@@ -6,6 +6,11 @@ export const c = {
   red: paint('31'), yellow: paint('33'), green: paint('32'), dim: paint('2'), bold: paint('1'), cyan: paint('36'),
 };
 
+/** File and message side by side, or the message on its own line when the path is too long. */
+function row(file, width, message) {
+  return file.length < width ? `${file.padEnd(width)}${message}` : `${file}\n${' '.repeat(8 + width)}${message}`;
+}
+
 export const label = (level) => (level === 'high' ? c.red(c.bold('HIGH')) : c.yellow(c.bold('MED ')));
 
 export function printScan({ root, findings, checked }, { quiet = false } = {}) {
@@ -18,8 +23,8 @@ export function printScan({ root, findings, checked }, { quiet = false } = {}) {
   }
 
   console.log(`${c.bold('forkguard')}  ${name}\n`);
-  const width = Math.min(48, Math.max(...findings.map((f) => f.file.length)) + 2);
-  for (const f of findings) console.log(`  ${label(f.level)}  ${f.file.padEnd(width)}${f.message}`);
+  const width = Math.min(40, Math.max(...findings.map((f) => f.file.length)) + 2);
+  for (const f of findings) console.log(`  ${label(f.level)}  ${row(f.file, width, f.message)}`);
   console.log('');
 
   const total = `${findings.length} problem${findings.length === 1 ? '' : 's'} found`;
@@ -38,6 +43,6 @@ export function printChanges(changes) {
     console.log('  Nothing to change.');
     return;
   }
-  const width = Math.min(48, Math.max(...changes.map((x) => x.file.length)) + 2);
-  for (const x of changes) console.log(`  ${x.failed ? c.red('fail') : c.green('done')}  ${x.file.padEnd(width)}${x.action}`);
+  const width = Math.min(40, Math.max(...changes.map((x) => x.file.length)) + 2);
+  for (const x of changes) console.log(`  ${x.failed ? c.red('fail') : c.green('done')}  ${row(x.file, width, x.action)}`);
 }

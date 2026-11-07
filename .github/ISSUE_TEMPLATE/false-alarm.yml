@@ -1,0 +1,41 @@
+name: False alarm
+description: forkguard flagged something that is actually fine
+title: "False alarm: "
+labels: ["false alarm"]
+body:
+  - type: markdown
+    attributes:
+      value: Sorry about that. A few details and the rule can get smarter.
+
+  - type: textarea
+    id: output
+    attributes:
+      label: What forkguard printed
+      description: Copy the lines from the output.
+      render: text
+      placeholder: |
+        HIGH  public/fonts/icons.woff2  Pretends to be a font but is actually code
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why is it fine?
+      placeholder: It is a real font from Font Awesome, version 6.5.
+    validations:
+      required: true
+
+  - type: input
+    id: link
+    attributes:
+      label: Link to the file, if the repo is public
+
+  - type: input
+    id: version
+    attributes:
+      label: forkguard version
+      description: Run `forkguard --version`
+      placeholder: 0.2.0
+    validations:
+      required: true

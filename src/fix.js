@@ -134,10 +134,11 @@ export function fix(result, { untrackSecrets = false } = {}) {
   const repoRel = (rel) => (prefix ? `${prefix}/${rel}` : rel);
   const changes = [];
   const done = new Set();
-  const hasEnv = findings.some((f) => f.rule === 'secret');
+  const hasEnv = findings.some((f) => f.rule === 'secret' || f.rule === 'env-not-ignored');
+  const unignoredEnv = findings.some((f) => f.rule === 'env-not-ignored');
 
   for (const f of findings) {
-    if (!f.fix || done.has(f.file + f.fix)) continue;
+    if (!f.fix || f.fix === 'ignore-env' || done.has(f.file + f.fix)) continue;
     done.add(f.file + f.fix);
     const full = path.join(root, f.file);
 
@@ -206,7 +207,7 @@ export function fix(result, { untrackSecrets = false } = {}) {
   }
 
   // If .env files are committed, make sure .gitignore keeps them out from now on.
-  if (untrackSecrets && hasEnv) {
+  if ((untrackSecrets && hasEnv) || unignoredEnv) {
     const gi = path.join(root, '.gitignore');
     const text = existsSync(gi) ? readFileSync(gi, 'utf8') : '';
     const next = cleanGitignore(text, true);

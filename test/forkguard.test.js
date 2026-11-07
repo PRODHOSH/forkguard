@@ -157,6 +157,25 @@ test('only the auto-run task is removed when tasks.json has real tasks too', () 
   rmSync(root, { recursive: true, force: true });
 });
 
+test('warns when a .env file is not ignored, and fix adds it to .gitignore', () => {
+  const root = tmp();
+  gitInit(root);
+  put(root, '.gitignore', 'node_modules\n');
+  put(root, '.env', 'API_KEY=abc\n');
+  put(root, '.env.example', 'API_KEY=\n');
+  const found = scan(root).findings.filter((f) => f.rule === 'env-not-ignored');
+  assert.deepEqual(found.map((f) => f.file), ['.env']);
+  fix(scan(root));
+  assert.match(readFileSync(path.join(root, '.gitignore'), 'utf8'), /\.env\*/);
+  assert.equal(scan(root).findings.filter((f) => f.rule === 'env-not-ignored').length, 0);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('npm on this machine is checked and is clean', async () => {
+  const { checkNpm } = await import('../src/scan.js');
+  assert.deepEqual(checkNpm(), []);
+});
+
 test('the gate stops npm install in an infected project and lets safe commands through', () => {
   const root = infectedProject();
   const run = (...a) => spawnSync(process.execPath, [BIN, '--gate', ...a], { cwd: root, encoding: 'utf8', env: { ...process.env, FORKGUARD_SKIP: '' } });

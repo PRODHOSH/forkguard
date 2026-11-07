@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, realpathSync } from 'node:fs';
 import path from 'node:path';
 
 // Repo hooks never run while forkguard works: an infected repo can ship its own hooks.
@@ -19,8 +19,26 @@ export function git(cwd, args, { input, allowFail = false, raw = false } = {}) {
   return raw ? res.stdout : res.stdout.toString().trim();
 }
 
+/**
+ * The real, fully resolved path. Temp folders often have two names (/var and /private/var on macOS,
+ * RUNNER~1 and runneradmin on Windows), and paths only compare correctly once both are resolved.
+ */
+export function realPath(p) {
+  try {
+    return realpathSync.native(p);
+  } catch {
+    return path.resolve(p);
+  }
+}
+
 export function repoRoot(dir) {
-  return git(dir, ['rev-parse', '--show-toplevel'], { allowFail: true });
+  const top = git(dir, ['rev-parse', '--show-toplevel'], { allowFail: true });
+  return top ? realPath(top) : null;
+}
+
+/** Whether git ignores this path. */
+export function isIgnored(root, rel) {
+  return git(root, ['check-ignore', '-q', '--', rel], { allowFail: true }) !== null;
 }
 
 export function isGitRepo(dir) {

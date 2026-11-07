@@ -1,0 +1,19 @@
+name: Idea
+description: Suggest something forkguard should do
+title: "Idea: "
+labels: ["idea"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would it solve?
+      placeholder: I clone a lot of repos for interviews and want to check them before opening.
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: What should forkguard do?
+    validations:
+      required: true
