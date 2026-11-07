@@ -266,7 +266,7 @@ No. It is built to catch this family of attacks very well. It is not a replaceme
 
 ## Contributing
 
-Found a new trick this malware uses? Open an issue with what it looked like, without the actual payload. Pull requests with a test are very welcome.
+forkguard is open source and contributions are welcome. Found a new trick this malware uses? Open an issue with what it looked like, without the actual payload. Pull requests with a test are even better. See [CONTRIBUTING.md](CONTRIBUTING.md) for the details.
 
 ```bash
 git clone https://github.com/PRODHOSH/forkguard
@@ -274,6 +274,25 @@ cd forkguard
 npm test
 ```
 
+## Developer
+
+<table>
+  <tr>
+    <td>
+      <a href="https://github.com/PRODHOSH"><img src="https://github.com/PRODHOSH.png" width="96" alt="Prodhosh V.S"></a>
+    </td>
+    <td>
+      <b>Prodhosh V.S</b><br>
+      Built forkguard after this malware hit my own repos.<br><br>
+      <a href="https://prodhosh.me">prodhosh.me</a> &nbsp;|&nbsp;
+      <a href="mailto:hello@prodhosh.me">hello@prodhosh.me</a> &nbsp;|&nbsp;
+      <a href="https://github.com/PRODHOSH">github.com/PRODHOSH</a>
+    </td>
+  </tr>
+</table>
+
+If forkguard saved you from a bad day, a star on the repo helps other developers find it.
+
 ## License
 
-MIT
+MIT. Use it, change it, share it.
