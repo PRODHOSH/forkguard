@@ -1,0 +1,45 @@
+name: forkguard
+description: Fail the build when a repo carries hidden malware, and optionally open a pull request that removes it.
+author: Prodhosh V.S
+branding:
+  icon: shield
+  color: red
+
+inputs:
+  path:
+    description: Folder to check
+    default: .
+  open-pr:
+    description: Open a pull request that removes what was found
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+
+    - id: scan
+      shell: bash
+      run: |
+        set +e
+        node "$GITHUB_ACTION_PATH/bin/forkguard.js" "${{ inputs.path }}"
+        code=$?
+        echo "infected=$([ $code -eq 1 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        [ $code -le 1 ] || exit $code
+
+    - if: steps.scan.outputs.infected == 'true' && inputs.open-pr == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        node "$GITHUB_ACTION_PATH/bin/forkguard.js" pr "${{ inputs.path }}"
+
+    - if: steps.scan.outputs.infected == 'true'
+      shell: bash
+      run: |
+        echo "::error::forkguard found malware in this repo. Do not install or run it until it is cleaned."
+        exit 1

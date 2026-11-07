@@ -1,0 +1,41 @@
+{
+  "name": "forkguard",
+  "version": "0.1.0",
+  "description": "Catch malware hidden in a repo before you install or run it, then clean it up and open a pull request.",
+  "type": "module",
+  "bin": {
+    "forkguard": "bin/forkguard.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "action.yml"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test",
+    "scan": "node bin/forkguard.js"
+  },
+  "keywords": [
+    "security",
+    "malware",
+    "supply-chain",
+    "npm",
+    "git",
+    "github",
+    "polinrider",
+    "cli"
+  ],
+  "author": "Prodhosh V.S",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PRODHOSH/forkguard.git"
+  },
+  "homepage": "https://github.com/PRODHOSH/forkguard#readme",
+  "bugs": {
+    "url": "https://github.com/PRODHOSH/forkguard/issues"
+  }
+}
