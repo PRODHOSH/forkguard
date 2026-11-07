@@ -34,11 +34,6 @@ function read(full) {
   }
 }
 
-/**
- * Looks through a folder and returns every problem it finds.
- * Each finding: { level: 'high' | 'medium', file, rule, message, fix }
- * `fix` says what `forkguard fix` will do, or null when a person has to decide.
- */
 /** Where npm's own entry file lives for the Node.js that is running forkguard. */
 function npmCliCandidates() {
   const nodeDir = path.dirname(process.execPath);
@@ -72,6 +67,125 @@ export function checkNpm() {
   return found;
 }
 
+export const isEnvFile = (name) => /^\.env(\.[^/]*)?$/.test(name) && !/example|sample|template/i.test(name);
+
+/** Whether forkguard needs to look inside a file with this name at all. */
+export function isInteresting(name, ext) {
+  return CODE_EXT.includes(ext) || name === 'init' || FONT_EXT.includes(ext) || DROPPER_NAMES.has(name.toLowerCase()) ||
+    DROPPER_EXT.includes(ext) || ['package.json', '.gitignore', 'tasks.json', 'settings.json', 'README.md'].includes(name) ||
+    LOCKFILES.has(name);
+}
+
+/**
+ * Runs every rule on one file. Shared by the folder scan and the GitHub link scan, so both
+ * catch exactly the same things. `buf` is the file's bytes.
+ */
+export function inspect(f, buf, add, fontDirs) {
+  const isCode = CODE_EXT.includes(f.ext);
+  const isInit = f.name === 'init';
+
+  if (DROPPER_NAMES.has(f.name.toLowerCase()) || DROPPER_EXT.includes(f.ext)) {
+    add('high', f.rel, 'dropper', 'File this malware drops to spread itself', 'delete');
+    return;
+  }
+  if (!buf) return;
+
+  if (FONT_EXT.includes(f.ext)) {
+    if (!isRealFont(buf, f.ext)) {
+      const head = buf.subarray(0, 4096).toString('utf8');
+      const isScript = looksLikeText(buf) && !/^\s*</.test(head) &&
+        /\bfunction\b|=>|\brequire\s*\(|\b(var|const|let)\s|\beval\b|global\[/.test(head);
+      add(isScript ? 'high' : 'medium', f.rel, 'fake-font',
+        isScript ? 'Pretends to be a font but is actually code' : 'Is not a real font file (maybe a broken download)', isScript ? 'delete' : null);
+      const dir = path.posix.dirname(f.rel);
+      fontDirs.set(dir, { ...(fontDirs.get(dir) || {}), fake: true });
+    }
+    return;
+  }
+
+  const text = buf.toString('utf8');
+
+  if (f.name === 'README.md') {
+    if (/fonts?$/i.test(path.posix.dirname(f.rel)) && /Blockchain ?(Explorer|Font)/.test(text)) {
+      const dir = path.posix.dirname(f.rel);
+      fontDirs.set(dir, { ...(fontDirs.get(dir) || {}), decoy: true });
+    }
+    return;
+  }
+
+  if (isCode || isInit) {
+    const tail = findHiddenTail(text);
+    const marker = findMarker(text);
+    if (tail || marker) {
+      const where = tail ? `Code hidden after ${tail.blanks} blank spaces on line ${tail.line}` : 'Contains a known malware signature';
+      add('high', f.rel, 'hidden-code', where, isInit ? 'delete' : 'strip');
+    } else if (CONFIG_RE.test(f.rel) && hasPrelude(text) && text.includes('exports: {}')) {
+      add('medium', f.rel, 'prelude', 'Has the fake require() lines this malware adds to configs', 'strip');
+    }
+    return;
+  }
+
+  if (f.name === 'package.json') {
+    let pkg;
+    try { pkg = JSON.parse(text); } catch { return; }
+    for (const [name, cmd] of Object.entries(pkg.scripts || {})) {
+      const why = badScript(String(cmd));
+      if (why) add('high', f.rel, 'script', `"${name}" ${why}`, 'script');
+      const risky = riskyLifecycle(name, String(cmd));
+      if (risky) add('medium', f.rel, 'lifecycle', risky);
+    }
+    const deps = { ...pkg.dependencies, ...pkg.devDependencies, ...pkg.optionalDependencies };
+    for (const bad of BAD_PACKAGES) {
+      if (deps[bad]) add('high', f.rel, 'bad-package', `Depends on ${bad}, a known malicious package`);
+    }
+    return;
+  }
+
+  if (LOCKFILES.has(f.name)) {
+    for (const bad of BAD_PACKAGES) {
+      if (text.includes(`node_modules/${bad}"`) || text.includes(`"${bad}@`) || text.includes(`\n${bad}@`) || text.includes(`/${bad}@`)) {
+        add('high', f.rel, 'bad-package', `Lockfile pulls in ${bad}, a known malicious package`);
+      }
+    }
+    return;
+  }
+
+  if (f.name === 'tasks.json' && f.rel.includes('.vscode/')) {
+    if (/folderOpen/.test(text)) {
+      const runs = /"(node|curl|wget|powershell|pwsh|cmd|bash|sh|python3?)"|\b(node|curl|wget|powershell)\s|fonts?\//.test(text);
+      add(runs ? 'high' : 'medium', f.rel, 'autorun',
+        runs ? 'VS Code task runs a hidden command the moment you open the folder' : 'VS Code task runs when you open the folder', 'autorun');
+    }
+    return;
+  }
+
+  if (f.name === 'settings.json' && f.rel.includes('.vscode/')) {
+    if (/"task\.allowAutomaticTasks"\s*:\s*("on"|true)/.test(text)) {
+      add('medium', f.rel, 'autorun-setting', 'Turns on automatic VS Code tasks so the hidden task can run', 'setting');
+    }
+    return;
+  }
+
+  if (f.name === '.gitignore' && /^\s*(config\.bat|temp_auto_push\.bat)\s*$/m.test(text)) {
+    add('medium', f.rel, 'gitignore', 'Hides config.bat, a file this malware drops', 'gitignore');
+  }
+}
+
+/** Adds decoy folder findings and sorts the list, most serious first. */
+export function finish(findings, fontDirs, add) {
+  for (const [dir, info] of fontDirs) {
+    if (info.fake && info.decoy) add('high', `${dir}/`, 'decoy-folder', 'Decoy fonts folder planted to hide the fake font', 'delete-dir');
+  }
+  const order = { high: 0, medium: 1 };
+  findings.sort((a, b) => order[a.level] - order[b.level] || a.file.localeCompare(b.file));
+  return findings;
+}
+
+/**
+ * Looks through a folder and returns every problem it finds.
+ * Each finding: { level: 'high' | 'medium', file, rule, message, fix }
+ * `fix` says what `forkguard fix` will do, or null when a person has to decide.
+ */
 export function scan(target) {
   if (!existsSync(target)) throw new Error(`No such folder: ${target}`);
   const root = realPath(path.resolve(target));
@@ -84,17 +198,8 @@ export function scan(target) {
   const gitPrefix = gitRoot ? toPosix(path.relative(gitRoot, root)) : '';
 
   for (const f of walk(root)) {
-    const isCode = CODE_EXT.includes(f.ext);
-    const isInit = f.name === 'init';
-    const isFont = FONT_EXT.includes(f.ext);
-    const isEnv = /^\.env(\.[^/]*)?$/.test(f.name) && !/example|sample|template/i.test(f.name);
-    const interesting = isCode || isInit || isFont || isEnv || DROPPER_NAMES.has(f.name.toLowerCase()) ||
-      DROPPER_EXT.includes(f.ext) || ['package.json', '.gitignore', 'tasks.json', 'settings.json', 'README.md'].includes(f.name) ||
-      LOCKFILES.has(f.name);
-    if (!interesting) continue;
-    checked++;
-
-    if (isEnv) {
+    if (isEnvFile(f.name)) {
+      checked++;
       // A .env that git would happily commit. The malware has been seen taking .env out of .gitignore.
       const repoRel = gitPrefix ? `${gitPrefix}/${f.rel}` : f.rel;
       if (gitRoot && !tracked.has(repoRel) && !isIgnored(gitRoot, repoRel)) {
@@ -102,109 +207,16 @@ export function scan(target) {
       }
       continue;
     }
-
-    if (DROPPER_NAMES.has(f.name.toLowerCase()) || DROPPER_EXT.includes(f.ext)) {
-      add('high', f.rel, 'dropper', 'File this malware drops to spread itself', 'delete');
-      continue;
-    }
-
-    const buf = read(f.full);
-    if (!buf) continue;
-
-    if (isFont) {
-      if (!isRealFont(buf, f.ext)) {
-        const head = buf.subarray(0, 4096).toString('utf8');
-        const isScript = looksLikeText(buf) && !/^\s*</.test(head) &&
-          /\bfunction\b|=>|\brequire\s*\(|\b(var|const|let)\s|\beval\b|global\[/.test(head);
-        add(isScript ? 'high' : 'medium', f.rel, 'fake-font',
-          isScript ? 'Pretends to be a font but is actually code' : 'Is not a real font file (maybe a broken download)', isScript ? 'delete' : null);
-        const dir = path.posix.dirname(f.rel);
-        fontDirs.set(dir, { ...(fontDirs.get(dir) || {}), fake: true });
-      }
-      continue;
-    }
-
-    const text = buf.toString('utf8');
-
-    if (f.name === 'README.md') {
-      if (/fonts?$/i.test(path.posix.dirname(f.rel)) && /Blockchain ?(Explorer|Font)/.test(text)) {
-        const dir = path.posix.dirname(f.rel);
-        fontDirs.set(dir, { ...(fontDirs.get(dir) || {}), decoy: true });
-      }
-      continue;
-    }
-
-    if (isCode || isInit) {
-      const tail = findHiddenTail(text);
-      const marker = findMarker(text);
-      if (tail || marker) {
-        const where = tail ? `Code hidden after ${tail.blanks} blank spaces on line ${tail.line}` : 'Contains a known malware signature';
-        add('high', f.rel, 'hidden-code', where, isInit ? 'delete' : 'strip');
-      } else if (CONFIG_RE.test(f.rel) && hasPrelude(text) && text.includes('exports: {}')) {
-        add('medium', f.rel, 'prelude', 'Has the fake require() lines this malware adds to configs', 'strip');
-      }
-      continue;
-    }
-
-    if (f.name === 'package.json') {
-      let pkg;
-      try { pkg = JSON.parse(text); } catch { continue; }
-      for (const [name, cmd] of Object.entries(pkg.scripts || {})) {
-        const why = badScript(String(cmd));
-        if (why) add('high', f.rel, 'script', `"${name}" ${why}`, 'script');
-        const risky = riskyLifecycle(name, String(cmd));
-        if (risky) add('medium', f.rel, 'lifecycle', risky);
-      }
-      const deps = { ...pkg.dependencies, ...pkg.devDependencies, ...pkg.optionalDependencies };
-      for (const bad of BAD_PACKAGES) {
-        if (deps[bad]) add('high', f.rel, 'bad-package', `Depends on ${bad}, a known malicious package`);
-      }
-      continue;
-    }
-
-    if (LOCKFILES.has(f.name)) {
-      for (const bad of BAD_PACKAGES) {
-        if (text.includes(`node_modules/${bad}"`) || text.includes(`"${bad}@`) || text.includes(`\n${bad}@`) || text.includes(`/${bad}@`)) {
-          add('high', f.rel, 'bad-package', `Lockfile pulls in ${bad}, a known malicious package`);
-        }
-      }
-      continue;
-    }
-
-    if (f.name === 'tasks.json' && f.rel.includes('.vscode/')) {
-      if (/folderOpen/.test(text)) {
-        const runs = /"(node|curl|wget|powershell|pwsh|cmd|bash|sh|python3?)"|\b(node|curl|wget|powershell)\s|fonts?\//.test(text);
-        add(runs ? 'high' : 'medium', f.rel, 'autorun',
-          runs ? 'VS Code task runs a hidden command the moment you open the folder' : 'VS Code task runs when you open the folder', 'autorun');
-      }
-      continue;
-    }
-
-    if (f.name === 'settings.json' && f.rel.includes('.vscode/')) {
-      if (/"task\.allowAutomaticTasks"\s*:\s*("on"|true)/.test(text)) {
-        add('medium', f.rel, 'autorun-setting', 'Turns on automatic VS Code tasks so the hidden task can run', 'setting');
-      }
-      continue;
-    }
-
-    if (f.name === '.gitignore') {
-      if (/^\s*(config\.bat|temp_auto_push\.bat)\s*$/m.test(text)) {
-        add('medium', f.rel, 'gitignore', 'Hides config.bat, a file this malware drops', 'gitignore');
-      }
-    }
-  }
-
-  for (const [dir, info] of fontDirs) {
-    if (info.fake && info.decoy) add('high', `${dir}/`, 'decoy-folder', 'Decoy fonts folder planted to hide the fake font', 'delete-dir');
+    if (!isInteresting(f.name, f.ext)) continue;
+    checked++;
+    const needsBytes = !DROPPER_NAMES.has(f.name.toLowerCase()) && !DROPPER_EXT.includes(f.ext);
+    inspect(f, needsBytes ? read(f.full) : null, add, fontDirs);
   }
 
   if (gitRoot) {
-    const prefix = gitPrefix;
     for (const file of tracked) {
-      const rel = prefix ? (file.startsWith(prefix + '/') ? file.slice(prefix.length + 1) : null) : file;
-      if (rel && /(^|\/)\.env(\.[^/]*)?$/.test(rel) && !/example|sample|template/i.test(rel)) {
-        add('medium', rel, 'secret', 'Secret file is committed to the repo', 'untrack');
-      }
+      const rel = gitPrefix ? (file.startsWith(gitPrefix + '/') ? file.slice(gitPrefix.length + 1) : null) : file;
+      if (rel && isEnvFile(path.posix.basename(rel))) add('medium', rel, 'secret', 'Secret file is committed to the repo', 'untrack');
     }
     if (findings.some((f) => f.level === 'high')) {
       const head = rewrittenHead(gitRoot);
@@ -216,8 +228,6 @@ export function scan(target) {
   }
 
   findings.push(...checkNpm());
-
-  const order = { high: 0, medium: 1 };
-  findings.sort((a, b) => order[a.level] - order[b.level] || a.file.localeCompare(b.file));
+  finish(findings, fontDirs, add);
   return { root, findings, checked, gitRoot };
 }

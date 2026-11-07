@@ -8,10 +8,11 @@ The details behind the scenes. You do not need any of this to use forkguard. For
 2. [What it checks](#2-what-it-checks)
 3. [How fixing works](#3-how-fixing-works)
 4. [How the pull request works](#4-how-the-pull-request-works)
-5. [How automatic checks work](#5-how-automatic-checks-work)
-6. [Architecture](#6-architecture)
-7. [Tech stack](#7-tech-stack)
-8. [Safety and privacy](#8-safety-and-privacy)
+5. [How checking a GitHub link works](#5-how-checking-a-github-link-works)
+6. [How automatic checks work](#6-how-automatic-checks-work)
+7. [Architecture](#7-architecture)
+8. [Tech stack](#8-tech-stack)
+9. [Safety and privacy](#9-safety-and-privacy)
 
 ---
 
@@ -103,7 +104,33 @@ sequenceDiagram
 
 ---
 
-## 5. How automatic checks work
+## 5. How checking a GitHub link works
+
+`forkguard owner/repo` and `forkguard --mine` check repos on GitHub without ever writing their files to your disk.
+
+```mermaid
+flowchart LR
+    A["forkguard owner/repo"] --> B["Download the latest commit<br/>of every branch"]
+    B --> C["Keep files packed<br/>inside git"]
+    C --> D["Search them with git grep<br/>and read them from git"]
+    D --> E["Run every rule"]
+    E --> F["Delete the download"]
+```
+
+Step by step:
+
+1. **A shallow, no-checkout clone.** forkguard runs `git clone --no-checkout --depth 1 --no-single-branch` into a temporary folder. That fetches only the newest commit of each branch, which is small and fast. `--no-checkout` means the files are never unpacked onto your disk, so there is nothing an editor, an antivirus scan or a stray double click could run.
+2. **Search inside git.** It uses `git grep` to search every code file on a branch for the malware's fingerprints in one pass, so even repos with thousands of files take a few seconds.
+3. **Read only what matters.** It reads the suspicious files, plus every `package.json`, lockfile, font and VS Code file, straight out of git's database with `git cat-file`.
+4. **The same rules.** It runs exactly the same checks as a folder scan, so a link check and a local check never disagree.
+5. **One check per commit.** Branches that point at the same commit are only checked once.
+6. **Clean up.** The temporary folder is deleted, whether the check passed or failed.
+
+`--mine` lists your repos through the GitHub CLI or the GitHub API, then runs this for four repos at a time.
+
+---
+
+## 6. How automatic checks work
 
 `forkguard setup` adds a small, clearly marked block to your shell profile. It wraps `npm`, `pnpm`, `yarn`, `bun` and `git`:
 
@@ -121,12 +148,13 @@ flowchart LR
 
 ---
 
-## 6. Architecture
+## 7. Architecture
 
 ```mermaid
 flowchart TD
     CLI["bin/forkguard.js<br/>commands and shell gate"]
     SCAN["src/scan.js<br/>walks the project"]
+    REMOTE["src/remote.js<br/>GitHub links and --mine"]
     RULES["src/rules.js<br/>what the malware looks like"]
     FIX["src/fix.js<br/>cleans and restores originals"]
     PR["src/pr.js<br/>branch, push, pull request"]
@@ -134,6 +162,9 @@ flowchart TD
     GIT["src/git.js<br/>git with hooks switched off"]
 
     CLI --> SCAN
+    CLI --> REMOTE
+    REMOTE --> SCAN
+    REMOTE --> GIT
     CLI --> FIX
     CLI --> PR
     CLI --> SETUP
@@ -150,7 +181,8 @@ flowchart TD
 | --- | --- |
 | `bin/forkguard.js` | Reads your command and runs the right part |
 | `src/rules.js` | Everything forkguard knows about the malware |
-| `src/scan.js` | Walks the project and collects problems |
+| `src/scan.js` | Walks the project and runs every rule on each file |
+| `src/remote.js` | Checks GitHub repos and `--mine` straight from git's database |
 | `src/fix.js` | Removes problems and restores original files |
 | `src/pr.js` | Creates the branch, commit, push and pull request |
 | `src/setup.js` | Installs and removes the shell hooks |
@@ -159,7 +191,7 @@ flowchart TD
 
 ---
 
-## 7. Tech stack
+## 8. Tech stack
 
 | Part | Choice | Why |
 | --- | --- | --- |
@@ -172,10 +204,11 @@ flowchart TD
 
 ---
 
-## 8. Safety and privacy
+## 9. Safety and privacy
 
 - **It never runs project code.** It only reads files.
 - **It switches off git hooks** whenever it calls git, because an infected repo can ship its own.
 - **It never runs npm** to check npm. It reads npm's files directly.
-- **It sends nothing anywhere.** The only network calls are from `forkguard pr`, to GitHub, when you ask for it.
+- **It never writes downloaded repo files to disk.** Link checks keep everything packed inside git and delete it afterwards.
+- **It sends nothing anywhere.** The only network calls are downloading a repo you asked it to check, and talking to GitHub for `forkguard pr` and `--mine`.
 - **Zero dependencies.** There is nothing in between you and the check that could be compromised.

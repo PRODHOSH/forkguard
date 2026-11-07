@@ -10,6 +10,9 @@ import { setup } from '../src/setup.js';
 import { c, printChanges, printScan } from '../src/report.js';
 import { GATED } from '../src/rules.js';
 import { isGitRepo, repoRoot } from '../src/git.js';
+import { checkMine, checkRemote, parseRemote, printRemote } from '../src/remote.js';
+
+const hasHigh = (r) => (r.branches || []).some((b) => b.findings.some((f) => f.level === 'high'));
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const { version } = JSON.parse(readFileSync(path.join(here, '..', 'package.json'), 'utf8'));
@@ -18,6 +21,8 @@ const HELP = `forkguard ${version}
 Catch malware hidden in a repo before you install or run it.
 
   forkguard [folder]        check a project (default: this folder)
+  forkguard <github link>   check a repo on GitHub without downloading its files
+  forkguard --mine          check every repo you own on GitHub
   forkguard fix [folder]    remove what it found
   forkguard pr [folder]     remove it on a new branch and open a pull request
                             add --upstream to send the fix to the repo you forked from
@@ -100,7 +105,32 @@ async function main() {
   if (flags.has('--help') || flags.has('-h') || words[0] === 'help') return console.log(HELP), 0;
   if (flags.has('--version') || flags.has('-v')) return console.log(version), 0;
 
+  if (flags.has('--mine')) {
+    const results = await checkMine({ json: flags.has('--json') });
+    if (flags.has('--json')) {
+      console.log(JSON.stringify(results, null, 2));
+    } else {
+      const flagged = results.filter((r) => r.error || (r.branches || []).some((b) => b.findings.length));
+      const infected = results.filter(hasHigh).length;
+      console.log(`\n  ${results.length} repos checked: ${c.green(`${results.length - flagged.length} clean`)}, ${infected ? c.red(`${infected} infected`) : '0 infected'}\n`);
+      for (const r of flagged) { printRemote(r); console.log(''); }
+    }
+    return results.some(hasHigh) ? 1 : 0;
+  }
+
   const [cmd, folder] = ['fix', 'pr', 'setup'].includes(words[0]) ? [words[0], words[1]] : ['scan', words[0]];
+
+  const remote = parseRemote(folder);
+  if (remote && cmd === 'scan') {
+    if (!flags.has('--json')) console.log(c.dim(`  checking ${remote.name} on GitHub, every branch, without writing its files...\n`));
+    const result = await checkRemote(remote);
+    if (flags.has('--json')) console.log(JSON.stringify(result, null, 2));
+    else printRemote(result);
+    if (result.error) return 2;
+    return hasHigh(result) ? 1 : 0;
+  }
+  if (remote) throw new Error(`"forkguard ${cmd}" works on a folder. Clone the repo first, then run it inside the folder.`);
+
   const target = path.resolve(folder || '.');
 
   if (cmd === 'setup') {

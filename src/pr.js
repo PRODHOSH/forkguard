@@ -5,7 +5,7 @@ import { scan } from './scan.js';
 import { fix } from './fix.js';
 import { c, printChanges } from './report.js';
 import {
-  currentBranch, git, githubSlug, hasCommand, hasTrackedChanges, remoteUrl, repoRoot, run,
+  currentBranch, ghCommand, git, githubSlug, hasTrackedChanges, remoteUrl, repoRoot, run,
 } from './git.js';
 
 const BRANCH = 'forkguard/remove-malware';
@@ -13,8 +13,9 @@ const BRANCH = 'forkguard/remove-malware';
 function token() {
   if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;
   if (process.env.GH_TOKEN) return process.env.GH_TOKEN;
-  if (hasCommand('gh')) {
-    try { return run('gh', ['auth', 'token']); } catch { /* not logged in */ }
+  const gh = ghCommand();
+  if (gh) {
+    try { return run(gh, ['auth', 'token']); } catch { /* not logged in */ }
   }
   return null;
 }
@@ -119,9 +120,10 @@ export async function openPr(target, { upstream = false } = {}) {
     const title = 'Remove injected malware';
     const body = prBody(changes, result.findings);
     let url = null;
-    if (hasCommand('gh')) {
+    const gh = ghCommand();
+    if (gh) {
       try {
-        url = run('gh', ['pr', 'create', '--repo', repo, '--base', base, '--head', `${owner}:${branch}`, '--title', title, '--body', body]);
+        url = run(gh, ['pr', 'create', '--repo', repo, '--base', base, '--head', `${owner}:${branch}`, '--title', title, '--body', body]);
       } catch (err) {
         console.log(c.dim(`  gh could not open the pull request: ${String(err.stderr || err.message).trim().split('\n').pop()}`));
       }

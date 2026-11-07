@@ -176,6 +176,37 @@ test('npm on this machine is checked and is clean', async () => {
   assert.deepEqual(checkNpm(), []);
 });
 
+test('understands GitHub links in every common form', async () => {
+  const { parseRemote } = await import('../src/remote.js');
+  for (const link of ['https://github.com/a/b', 'https://github.com/a/b.git', 'github.com/a/b', 'https://github.com/a/b/tree/dev', 'a/b']) {
+    assert.deepEqual(parseRemote(link), { url: 'https://github.com/a/b.git', name: 'a/b' }, link);
+  }
+  assert.equal(parseRemote('git@github.com:a/b.git').name, 'a/b');
+  assert.equal(parseRemote('.'), null);
+});
+
+test('checks every branch of a remote repo without writing its files', async () => {
+  const { checkRemote } = await import('../src/remote.js');
+  const root = tmp();
+  const g = gitInit(root);
+  put(root, 'package.json', JSON.stringify({ name: 'x', scripts: { dev: 'next dev' } }));
+  g('add', '.');
+  g('commit', '-q', '-m', 'clean');
+  g('checkout', '-q', '-b', 'infected');
+  put(root, 'init', `let a;${payload()}`);
+  put(root, 'package.json', JSON.stringify({ name: 'x', scripts: { dev: 'node init && next dev' } }));
+  g('add', '.');
+  g('commit', '-q', '-m', 'update');
+  g('checkout', '-q', 'main');
+  const url = 'file://' + root.split(path.sep).join('/');
+  const result = await checkRemote({ url, name: 'test/repo' });
+  assert.equal(result.error, undefined, result.error);
+  const byName = Object.fromEntries(result.branches.map((b) => [b.name, b.findings.map((f) => f.rule)]));
+  assert.deepEqual(byName.main, []);
+  assert.ok(byName.infected.includes('hidden-code') && byName.infected.includes('script'), JSON.stringify(byName));
+  rmSync(root, { recursive: true, force: true });
+});
+
 test('the gate stops npm install in an infected project and lets safe commands through', () => {
   const root = infectedProject();
   const run = (...a) => spawnSync(process.execPath, [BIN, '--gate', ...a], { cwd: root, encoding: 'utf8', env: { ...process.env, FORKGUARD_SKIP: '' } });

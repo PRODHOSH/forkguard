@@ -4,78 +4,160 @@
 
 **Catch malware hidden in a repo before you install or run it.**
 
+Check a folder, a GitHub link, or every repo you own. Clean what it finds and open a pull request in one command.
+
 [![npm](https://img.shields.io/npm/v/forkguard?color=7F00FF&label=npm)](https://www.npmjs.com/package/forkguard)
 [![CI](https://github.com/PRODHOSH/forkguard/actions/workflows/ci.yml/badge.svg)](https://github.com/PRODHOSH/forkguard/actions/workflows/ci.yml)
+[![Marketplace](https://img.shields.io/badge/GitHub%20Action-Marketplace-7F00FF)](https://github.com/marketplace/actions/forkguard)
 ![Dependencies](https://img.shields.io/badge/dependencies-0-7F00FF)
+![Node](https://img.shields.io/badge/node-%3E%3D18-7F00FF)
 [![License](https://img.shields.io/badge/license-MIT-7F00FF)](LICENSE)
 
-**[Getting started](docs/getting-started.md)** &nbsp;|&nbsp; **[How it works](docs/how-it-works.md)** &nbsp;|&nbsp; **[The story](https://blog.prodhosh.me/blog/malware-hid-in-my-old-repos-polinrider)**
+[Getting started](docs/getting-started.md) &nbsp;|&nbsp; [Commands](docs/commands.md) &nbsp;|&nbsp; [GitHub Action](docs/github-action.md) &nbsp;|&nbsp; [How it works](docs/how-it-works.md) &nbsp;|&nbsp; [The story](https://blog.prodhosh.me/blog/malware-hid-in-my-old-repos-polinrider)
 
 </div>
 
 ---
 
-## Try it now
+## Contents
 
-Inside any project folder:
+- [What is forkguard](#what-is-forkguard)
+- [Features](#features)
+- [Quick start](#quick-start)
+- [Commands](#commands)
+- [Which one are you?](#which-one-are-you)
+- [What it catches](#what-it-catches)
+- [Automatic protection](#automatic-protection)
+- [GitHub Action](#github-action)
+- [How it works](#how-it-works)
+- [Safety and privacy](#safety-and-privacy)
+- [Why I built this](#why-i-built-this)
+- [FAQ](#faq)
+- [Contributing](#contributing)
+- [Developer](#developer)
 
-```bash
-npx forkguard
-```
+---
 
-If it is clean:
+## What is forkguard
+
+Some malware hides inside ordinary looking GitHub repos. It sits after hundreds of spaces at the end of a normal line, so your editor shows nothing. It rewrites commits without changing the author or date, so git shows nothing either. The moment you open the folder in VS Code or type `npm install` or `npm run dev`, it runs, steals your tokens, keys and saved passwords, and spreads to every repo you can push to.
+
+forkguard finds it **before** any of that happens, and cleans it up for you.
 
 ```text
-forkguard  my-app looks clean (433 files checked)
-```
+$ forkguard
 
-If it is not:
-
-```text
 forkguard  my-app
 
-  HIGH  init          Code hidden after 776 blank spaces on line 35
-  HIGH  package.json  "dev" runs a hidden file called init before your real command
+  HIGH  init                Code hidden after 776 blank spaces on line 35
+  HIGH  package.json        "dev" runs a hidden file called init before your real command
+  HIGH  postcss.config.mjs  Code hidden after 149 blank spaces on line 12
+  MED   .gitignore          Hides config.bat, a file this malware drops
 
-  2 problems found. Do not run npm install, npm run dev or open this folder in VS Code yet.
+  4 problems found. Do not run npm install, npm run dev or open this folder in VS Code yet.
+  Run forkguard fix to clean it, or forkguard pr to clean it and open a pull request.
 ```
 
-## What you can do
+## Features
+
+| | |
+| --- | --- |
+| **Check a folder** | Scans a project in well under a second |
+| **Check a GitHub link** | Checks every branch of any repo without writing its files to your disk |
+| **Check all your repos** | One command checks every repo you own on GitHub |
+| **Clean it** | Removes the malware and restores your original files from git history |
+| **Open a pull request** | Cleans a repo on a new branch, pushes it and opens the pull request for you |
+| **Automatic protection** | Stops `npm install` and `npm run dev` on infected projects, warns after `git clone` |
+| **GitHub Action** | Fails the build when malware lands, and can open the fix as a pull request |
+| **Checks npm itself** | Spots an infected npm on your computer, which would reinfect you after every cleanup |
+| **Zero dependencies** | Nothing extra is installed, so nothing extra can be compromised |
+| **Cross platform** | Windows, macOS and Linux, with PowerShell, Git Bash, bash and zsh |
+
+## Quick start
+
+You need [Node.js](https://nodejs.org) 18 or newer and [git](https://git-scm.com).
+
+**1. Install it**
+
+```bash
+npm install -g forkguard
+```
+
+**2. Check the project you are in**
+
+```bash
+forkguard
+```
+
+**3. Turn on automatic protection, once**
+
+```bash
+forkguard setup
+```
+
+Open a new terminal and you are protected from then on. Just want to try it without installing? Run `npx forkguard`.
+
+New to all this? The [Getting started guide](docs/getting-started.md) walks you through every step.
+
+## Commands
+
+### Check
 
 | Command | What it does |
 | --- | --- |
-| `forkguard` | Checks a project |
-| `forkguard fix` | Cleans it |
-| `forkguard pr` | Cleans it on GitHub with a pull request |
-| `forkguard setup` | Checks automatically before every `npm install` and after every `git clone` |
+| `forkguard` | Checks the folder you are in |
+| `forkguard path/to/folder` | Checks another folder |
+| `forkguard owner/repo` | Checks a GitHub repo, every branch, without downloading its files |
+| `forkguard https://github.com/owner/repo` | Same, with a full link |
+| `forkguard --mine` | Checks every repo you own on GitHub |
 
-New here? The **[Getting started guide](docs/getting-started.md)** walks you through each one, step by step.
+### Clean
+
+| Command | What it does |
+| --- | --- |
+| `forkguard fix` | Cleans the folder you are in |
+| `forkguard pr` | Cleans it on a new branch, pushes it and opens a pull request on your repo |
+| `forkguard pr --upstream` | Sends the fix as a pull request to the repo you forked from |
+
+### Protect
+
+| Command | What it does |
+| --- | --- |
+| `forkguard setup` | Turns on automatic checks for npm, pnpm, yarn, bun and git |
+| `forkguard setup --remove` | Turns them off |
+
+### Extras
+
+| Option | What it does |
+| --- | --- |
+| `--json` | Prints the results as JSON, for scripts |
+| `--version` | Shows the version |
+| `--help` | Shows all commands |
+| `FORKGUARD_SKIP=1` | Skips the automatic check once |
+
+Every command, option and exit code is explained in detail in the [Commands reference](docs/commands.md).
 
 ## Which one are you?
 
 Click your situation.
 
 <details>
-<summary><b>I am forking or cloning someone's repo. Is it safe?</b></summary>
+<summary><b>I want to fork or clone someone's repo. Is it safe?</b></summary>
 <br>
 
-Check it **before** you open it in VS Code or install anything.
+Check the link **before** you clone it:
 
-1. Clone it from the terminal, not from VS Code:
+```bash
+forkguard someone/their-repo
+```
 
-   ```bash
-   git clone https://github.com/someone/their-repo
-   ```
+forkguard checks every branch straight from GitHub without writing any of the repo's files to your disk. Clone it only if it says **looks clean**.
 
-2. Check it:
+Already cloned it? Check the folder before you open it in VS Code or install anything:
 
-   ```bash
-   npx forkguard their-repo
-   ```
-
-3. Only if it says **looks clean**, open it and run `npm install`.
-
-Why the terminal? The malware can start the moment VS Code opens the folder. Nothing runs in the terminal until you run it.
+```bash
+forkguard their-repo
+```
 
 </details>
 
@@ -83,43 +165,39 @@ Why the terminal? The malware can start the moment VS Code opens the folder. Not
 <summary><b>Is my own repo clean?</b></summary>
 <br>
 
-Pull first, because the malware gets into GitHub, not your laptop. Then check:
+On your laptop, pull first, because the malware gets into GitHub, not your laptop:
 
 ```bash
 cd my-repo
 git pull
-npx forkguard
+forkguard
 ```
 
-If it finds something, `forkguard fix` cleans your copy and `forkguard pr` cleans GitHub too.
+Or check it straight on GitHub, every branch:
+
+```bash
+forkguard your-name/my-repo
+```
+
+If something is found, `forkguard fix` cleans your copy and `forkguard pr` cleans GitHub too.
 
 </details>
 
 <details>
-<summary><b>Is my repo clean on GitHub?</b></summary>
+<summary><b>Are all my repos clean?</b></summary>
 <br>
 
-Let GitHub check it for you on every push. Add this file to the repo as `.github/workflows/forkguard.yml`:
+Log in to the GitHub CLI once, then check everything you own:
 
-```yaml
-name: forkguard
-on: [push, pull_request]
-jobs:
-  check:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.2.0
+```bash
+gh auth login
 ```
 
-If malware ever lands, the build turns red and GitHub emails you.
+```bash
+forkguard --mine
+```
 
-Signs you can also spot by eye on GitHub:
-
-- An old repo you have not touched says **updated a few hours ago**
-- A pull request shows **force-pushed** when you did not force push
-- Signed commits suddenly show **Unverified**
-- Vercel or Netlify builds start failing on projects you have not changed
+You get one line per repo, then the details for anything that needs a look.
 
 </details>
 
@@ -127,21 +205,19 @@ Signs you can also spot by eye on GitHub:
 <summary><b>Someone sent me a repo for a job interview or coding test</b></summary>
 <br>
 
-This is one of the main ways this malware spreads, so treat it with care.
+This is one of the main ways this malware spreads. Check the link first, before you clone or open anything:
 
-1. Clone it from the terminal into any folder.
-2. Run `npx forkguard <folder>`.
-3. Do not open it in VS Code or run anything until it says **looks clean**.
+```bash
+forkguard https://github.com/someone/coding-test
+```
 
-If it finds something, do not run it at all. Tell the person who sent it.
+If it finds anything HIGH, do not clone it, do not open it and do not run it. Tell the person who sent it.
 
 </details>
 
 <details>
 <summary><b>I never want to think about this again</b></summary>
 <br>
-
-Install it once and turn on automatic checks:
 
 ```bash
 npm install -g forkguard
@@ -153,6 +229,8 @@ forkguard setup
 
 Open a new terminal. From now on forkguard checks every project before `npm install` or `npm run dev`, and right after every `git clone` or `git pull`. Clean projects stay silent. Dangerous ones are stopped before anything runs.
 
+Add the [GitHub Action](#github-action) to your repos and GitHub checks every push for you too.
+
 </details>
 
 <details>
@@ -162,43 +240,168 @@ Open a new terminal. From now on forkguard checks every project before `npm inst
 The order matters.
 
 1. Do not run `npm install` or `npm run dev`, and do not open the folder in VS Code.
-2. Run `forkguard fix`, or `forkguard pr` to fix GitHub too.
+2. Run `forkguard fix`, or `forkguard pr` to clean GitHub too.
 3. From another device, change your GitHub tokens, SSH keys, npm token, cloud keys and `.env` secrets.
 4. Block force pushes on your main branch: **Settings**, then **Rules**, then **Rulesets**.
-5. Run a full antivirus scan.
-
-[Full checklist](docs/getting-started.md#9-found-something-do-this-next)
+5. If forkguard says npm itself is infected, reinstall Node.js from [nodejs.org](https://nodejs.org).
+6. Run a full antivirus scan, and tell anyone else who works on the repo.
 
 </details>
 
-## Why it exists
+## What it catches
 
-Some malware hides inside ordinary repos. It sits after hundreds of spaces at the end of a normal line, so your editor shows nothing, and it rewrites commits without changing the author or date, so git shows nothing either. It runs when you open the folder in VS Code or type `npm run dev`, then steals your tokens and passwords and spreads to every repo you can push to.
+Every rule comes from real infected repos.
 
-It hit 35 of my 53 repos. Antivirus caught pieces of it but could not tell me which repos were infected or how to fix them. forkguard is the tool I wish I had that day.
+| Check | What it means | Level |
+| --- | --- | --- |
+| Hidden code | Code pushed far to the right after a long run of spaces, in any JS or TS file | HIGH |
+| Known signatures | Strings that only show up in this malware | HIGH |
+| `node init` scripts | `dev`, `build` or `start` secretly run a file called `init` first | HIGH |
+| Fake fonts | A `.ttf` or `.woff2` file that is really JavaScript | HIGH |
+| Decoy folders | A fonts folder planted to make the fake font look normal | HIGH |
+| VS Code auto tasks | A task that runs the moment you open the folder | HIGH |
+| Dropped files | `config.bat`, `temp_auto_push.bat`, `.orc` files | HIGH |
+| Bad packages | npm packages known to carry this malware | HIGH |
+| Infected npm | npm's own `cli.js` on your computer bloated with hidden code | HIGH |
+| Injected require lines | Fake `createRequire` lines added to config files | MED |
+| Auto task setting | VS Code settings that switch automatic tasks on | MED |
+| `.gitignore` tricks | Hiding the dropped `config.bat` | MED |
+| Unprotected `.env` | A `.env` that git is not ignoring, or one that is committed | MED |
+| Risky install scripts | `postinstall` and friends that download or decode things | MED |
+| Rewritten commit | The latest commit has the same time in a different timezone | MED |
 
-Full story on my blog: **[Malware Hid in My Old Repos and Git Never Showed It](https://blog.prodhosh.me/blog/malware-hid-in-my-old-repos-polinrider)**
+**HIGH** means it can run by itself and steal from you. **MED** means it is worth a look but does not run by itself.
 
-## Why trust it
+## Automatic protection
 
-- **Zero dependencies.** Nothing gets installed alongside it.
-- **Never runs project code.** It only reads files.
-- **Sends nothing anywhere.** Your code stays on your machine.
-- **Gives your work back.** When it cleans a file, it restores your exact original from git history if it can.
-- **Tested** on Linux, Windows and macOS.
+After `forkguard setup`, in every new terminal:
 
-## Use it in GitHub Actions
+| When you run | forkguard |
+| --- | --- |
+| `npm install`, `npm run dev`, `npm start`, `npm test`, `npm run build` | Checks first and **stops the command** if the project is dangerous |
+| The same with `pnpm`, `yarn` or `bun` | Does the same |
+| `git clone`, `git pull`, `git merge`, `git checkout`, `git switch` | Checks what you just pulled in and warns you |
+| Anything else, like `npm --version` or `git status` | Passes straight through |
+
+It also offers to turn off automatic tasks in VS Code, the setting this malware uses to start the moment you open a folder.
+
+Clean projects stay silent. Skip the check once with `FORKGUARD_SKIP=1 npm install`, or in PowerShell `$env:FORKGUARD_SKIP='1'; npm install`. Undo everything with `forkguard setup --remove`.
+
+## GitHub Action
+
+Check every push and pull request on GitHub:
 
 ```yaml
-- uses: actions/checkout@v4
-- uses: PRODHOSH/forkguard@v0.2.0
+name: forkguard
+on: [push, pull_request]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: PRODHOSH/forkguard@v0.3.0
+        with:
+          open-pr: true
 ```
 
-The build fails if malware shows up. [More options](docs/getting-started.md#8-use-it-in-github-actions)
+| Input | Default | What it does |
+| --- | --- | --- |
+| `path` | `.` | Folder to check |
+| `open-pr` | `false` | Also open a pull request that removes what was found |
+
+The build fails when anything HIGH is found. See the [GitHub Action guide](docs/github-action.md) for every option.
+
+## How it works
+
+```mermaid
+flowchart LR
+    A["Your project, a GitHub link,<br/>or all your repos"] --> B["forkguard checks<br/>every rule"]
+    B --> C{"Anything<br/>dangerous?"}
+    C -- "No" --> D["Looks clean"]
+    C -- "Yes" --> E["Shows what and where"]
+    E --> F["forkguard fix<br/>or forkguard pr"]
+    F --> G["Malware removed,<br/>your files restored"]
+```
+
+- **Checking** reads files and looks for every trick in the table above. It skips `node_modules`, build output and other folders that are not your code.
+- **Checking a link** downloads only the latest commit of each branch into a temporary folder, reads the files straight from git's database without writing them out, then deletes the download.
+- **Fixing** deletes files that are pure malware, cuts the hidden code out of your own files, and restores your exact original from git history when it can.
+- **Pull requests** are built on a fresh branch, so your work in progress is never touched.
+
+The full picture, with diagrams of every part, is in [How it works](docs/how-it-works.md).
+
+## Safety and privacy
+
+- **It never runs code** from the project it checks. It only reads files.
+- **It switches off git hooks** every time it calls git, since an infected repo can ship its own.
+- **It never runs npm** to check npm. It reads npm's files directly.
+- **It sends nothing anywhere.** The only network calls are downloading a repo you asked it to check, and talking to GitHub when you run `forkguard pr` or `--mine`.
+- **Zero dependencies.** There is nothing between you and the check that could be compromised.
+
+## Why I built this
+
+It started with emails from Vercel. Production builds were failing on old projects I had not touched in months, all with the same useless message: `npm run build exited with 1`.
+
+I opened `postcss.config.mjs` in one of them and scrolled right. After `export default config;` there were hundreds of spaces, then a block of scrambled JavaScript. Git showed nothing. Same author, same date, same message.
+
+It is a malware campaign researchers call **PolinRider**. It has reached thousands of repos. Weeks after I first found it, it was back in 35 of my 53 repos. Cleaning that by hand without losing real work took a whole day. forkguard is the tool I wish I had on the first day.
+
+Full story: **[Malware Hid in My Old Repos and Git Never Showed It](https://blog.prodhosh.me/blog/malware-hid-in-my-old-repos-polinrider)**
+
+## FAQ
+
+<details>
+<summary><b>Does it upload my code?</b></summary>
+<br>
+No. Everything happens on your machine. It only talks to GitHub when you ask it to check a link, check your repos, or open a pull request.
+</details>
+
+<details>
+<summary><b>Will it slow down npm?</b></summary>
+<br>
+A typical project is checked in well under a second. Commands like <code>npm --version</code> are not checked at all.
+</details>
+
+<details>
+<summary><b>Can it check private repos?</b></summary>
+<br>
+Yes, as long as git on your machine can access them. Logging in with <code>gh auth login</code> is the easiest way.
+</details>
+
+<details>
+<summary><b>What if it flags something that is fine?</b></summary>
+<br>
+Skip it once with <code>FORKGUARD_SKIP=1</code>, and <a href="https://github.com/PRODHOSH/forkguard/issues/new?template=false-alarm.yml">report a false alarm</a> so the rule gets better.
+</details>
+
+<details>
+<summary><b>Does it replace antivirus?</b></summary>
+<br>
+No. It is built to catch this family of attacks very well, before code runs. Keep your antivirus too.
+</details>
+
+More questions are answered in the [Getting started guide](docs/getting-started.md#12-troubleshooting).
 
 ## Contributing
 
-forkguard is open source. Found something it misses, or a false alarm? [Open an issue](https://github.com/PRODHOSH/forkguard/issues/new/choose). Pull requests are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md).
+forkguard is open source and contributions are welcome.
+
+- Found something it misses? [Tell us what it looked like](https://github.com/PRODHOSH/forkguard/issues/new?template=missed-malware.yml), without pasting the malicious code.
+- Got a false alarm? [Report it](https://github.com/PRODHOSH/forkguard/issues/new?template=false-alarm.yml).
+- Want to help build it? Read [CONTRIBUTING.md](CONTRIBUTING.md).
+
+```bash
+git clone https://github.com/PRODHOSH/forkguard
+cd forkguard
+npm test
+```
+
+Security problem in forkguard itself? See [SECURITY.md](SECURITY.md).
 
 ## Developer
 
@@ -221,4 +424,4 @@ If forkguard saved you from a bad day, a star helps other developers find it.
 
 ## License
 
-MIT
+[MIT](LICENSE). Use it, change it, share it.

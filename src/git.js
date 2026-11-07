@@ -92,6 +92,18 @@ export function githubSlug(url) {
   return m ? `${m[1]}/${m[2]}` : null;
 }
 
+/**
+ * The GitHub CLI, even when this terminal was opened before it was installed and so cannot see it
+ * on PATH yet. Returns the command to run, or null.
+ */
+export function ghCommand() {
+  if (hasCommand('gh')) return 'gh';
+  const known = process.platform === 'win32'
+    ? [path.join(process.env.ProgramFiles || 'C:\\Program Files', 'GitHub CLI', 'gh.exe'), path.join(process.env.LOCALAPPDATA || '', 'Programs', 'GitHub CLI', 'gh.exe')]
+    : ['/opt/homebrew/bin/gh', '/usr/local/bin/gh', '/usr/bin/gh'];
+  return known.find((p) => p && existsSync(p)) || null;
+}
+
 export function hasCommand(cmd) {
   const probe = process.platform === 'win32' ? 'where' : 'which';
   return spawnSync(probe, [cmd], { stdio: 'ignore' }).status === 0;
