@@ -13,7 +13,7 @@ const ENV = { ...process.env, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'never'
 // Same fingerprints as the folder scan, as one git grep pattern so thousands of files are searched in one go.
 // Built from rules.js at runtime, so this file never contains a whole fingerprint and never flags itself.
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const GREP = `(?:${MARKERS.map(escapeRe).join('|')}|^.{0,400}?[ \\t]{30,}\\S.{1500})`;
+const GREP = `(?:${MARKERS.map(escapeRe).join('|')}|^.{0,400}?[ \\t]{30,}\\S.{1500}|atob\\(\\s*process\\.env)`;
 
 /** A GitHub link, a git URL, or owner/repo. Returns a clone URL and a short name, or null for a local folder. */
 export function parseRemote(arg) {

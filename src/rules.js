@@ -87,6 +87,23 @@ export function findHiddenTail(text) {
   return null;
 }
 
+/**
+ * The second variant: no hidden spaces at all. A small block decodes a URL kept in an env var,
+ * downloads code from it and runs it with eval. Plain to see, but easy to skim past.
+ * Returns the matched block(s) so fix can cut exactly those, or null.
+ */
+const LOADER_RE = /\(\s*async\s*\(\s*\)\s*=>\s*\{(?:(?!\}\s*\)\s*\(\s*\)\s*;?)[\s\S]){0,1500}?atob\s*\(\s*process\.env\.[\w$]+\s*\)(?:(?!\}\s*\)\s*\(\s*\)\s*;?)[\s\S]){0,1500}?\beval\s*\([\s\S]{0,600}?\}\s*\)\s*\(\s*\)\s*;?/g;
+
+export function findLoader(text) {
+  if (!/atob\s*\(\s*process\.env/.test(text) || !/\beval\s*\(/.test(text)) return null;
+  const blocks = text.match(LOADER_RE);
+  return blocks && blocks.length ? blocks : null;
+}
+
+export function stripLoader(text) {
+  return text.replace(LOADER_RE, '');
+}
+
 export function findMarker(text) {
   return MARKERS.find((m) => text.includes(m)) || null;
 }

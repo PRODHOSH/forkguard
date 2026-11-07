@@ -44,6 +44,7 @@ Every rule comes from real infected repos.
 | --- | --- | --- |
 | Hidden code | Code pushed far right after a long run of spaces, in any JS or TS file | High |
 | Known signatures | Strings that only show up in this malware | High |
+| Env loaders | A small block that decodes a URL from an env variable, downloads code and runs it with `eval` | High |
 | `node init` scripts | `dev`, `build` or `start` secretly running a file called `init` first | High |
 | Fake fonts | A `.ttf` or `.woff2` file that is really JavaScript | High |
 | Decoy folders | A fonts folder planted to make the fake font look normal | High |

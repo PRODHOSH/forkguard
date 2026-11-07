@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, rmSync, existsSync, readdirSync, rmdirSync } from 'node:fs';
 import path from 'node:path';
-import { PRELUDE, findHiddenTail, findMarker, hasPrelude } from './rules.js';
+import { PRELUDE, findHiddenTail, findLoader, findMarker, hasPrelude, stripLoader } from './rules.js';
 import { fileHistory, git, repoRoot, showFile, toPosix } from './git.js';
 
 /** Cuts the hidden tail off every line that has one. */
@@ -44,9 +44,11 @@ function dropPrelude(text) {
 }
 
 export function cleanSource(text) {
-  const cut = cutHiddenTails(text);
-  if (cut === null && !hasPrelude(text)) return null;
-  return dropPrelude(cut ?? text);
+  const loader = findLoader(text);
+  const base = loader ? stripLoader(text) : text;
+  const cut = cutHiddenTails(base);
+  if (cut === null && !hasPrelude(base) && !loader) return null;
+  return dropPrelude(cut ?? base);
 }
 
 const squash = (s) => s.replace(/\s+/g, '');
@@ -81,8 +83,9 @@ function originalFromHistory(gitRoot, rel, cleaned) {
     const old = showFile(gitRoot, commit, rel);
     if (!old) continue;
     const text = old.toString('utf8');
-    if (findHiddenTail(text) || findMarker(text) || hasPrelude(text) && text.includes('exports: {}')) continue;
-    return squash(text) === squash(cleaned) ? old : null;
+    if (findHiddenTail(text) || findMarker(text) || findLoader(text) || hasPrelude(text) && text.includes('exports: {}')) continue;
+    const plain = (s) => squash(s.replace(/^\s*import\s+['"]dotenv\/config['"];?\s*$/m, ''));
+    return squash(text) === squash(cleaned) || plain(text) === plain(cleaned) ? old : null;
   }
   return null;
 }

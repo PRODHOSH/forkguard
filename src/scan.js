@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import {
   BAD_PACKAGES, CODE_EXT, CONFIG_RE, DROPPER_EXT, DROPPER_NAMES, FONT_EXT, LOCKFILES, SKIP_DIRS,
-  badScript, findHiddenTail, findMarker, hasPrelude, isRealFont, looksLikeText, riskyLifecycle,
+  badScript, findHiddenTail, findLoader, findMarker, hasPrelude, isRealFont, looksLikeText, riskyLifecycle,
 } from './rules.js';
 import { isIgnored, realPath, repoRoot, rewrittenHead, toPosix, trackedFiles } from './git.js';
 
@@ -116,6 +116,10 @@ export function inspect(f, buf, add, fontDirs) {
   if (isCode || isInit) {
     const tail = findHiddenTail(text);
     const marker = findMarker(text);
+    const loader = findLoader(text);
+    if (loader) {
+      add('high', f.rel, 'loader', 'Downloads code from a hidden URL in an env variable and runs it', isInit ? 'delete' : 'strip');
+    }
     if (tail || marker) {
       const where = tail ? `Code hidden after ${tail.blanks} blank spaces on line ${tail.line}` : 'Contains a known malware signature';
       add('high', f.rel, 'hidden-code', where, isInit ? 'delete' : 'strip');
