@@ -379,7 +379,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.3.0
+      - uses: PRODHOSH/forkguard@v0.3.1
 ```
 
 Commit and push it. If malware ever lands, the build turns red and GitHub emails you.

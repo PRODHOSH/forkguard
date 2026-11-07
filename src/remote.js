@@ -2,7 +2,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { CODE_EXT, CONFIG_RE, SKIP_DIRS } from './rules.js';
+import { CODE_EXT, CONFIG_RE, MARKERS, SKIP_DIRS } from './rules.js';
 import { finish, inspect, isEnvFile, isInteresting } from './scan.js';
 import { ghCommand, git, run } from './git.js';
 import { c, label } from './report.js';
@@ -11,7 +11,9 @@ const NO_HOOKS = ['-c', `core.hooksPath=${process.platform === 'win32' ? 'NUL' :
 const ENV = { ...process.env, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'never' };
 
 // Same fingerprints as the folder scan, as one git grep pattern so thousands of files are searched in one go.
-const GREP = String.raw`(?:global\['(r|!|_V|m)'\]|_\$_1e42|rmcej%otb%|Cot%3t=shtP|api\.trongrid\.io|aptoslabs\.com|^.{0,400}?[ \t]{30,}\S.{1500})`;
+// Built from rules.js at runtime, so this file never contains a whole fingerprint and never flags itself.
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const GREP = `(?:${MARKERS.map(escapeRe).join('|')}|^.{0,400}?[ \\t]{30,}\\S.{1500})`;
 
 /** A GitHub link, a git URL, or owner/repo. Returns a clone URL and a short name, or null for a local folder. */
 export function parseRemote(arg) {

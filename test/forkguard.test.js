@@ -58,6 +58,11 @@ function infectedProject() {
   return root;
 }
 
+test('forkguard never flags its own source code', () => {
+  const own = scan(path.join(path.dirname(fileURLToPath(import.meta.url)), '..'));
+  assert.deepEqual(own.findings.filter((f) => f.level === 'high'), []);
+});
+
 test('a clean project has no findings', () => {
   const root = tmp();
   put(root, 'package.json', JSON.stringify({ name: 'ok', scripts: { dev: 'next dev' } }));
