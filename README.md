@@ -51,6 +51,126 @@ forkguard  my-app
 
 New here? The **[Getting started guide](docs/getting-started.md)** walks you through each one, step by step.
 
+## Which one are you?
+
+Click your situation.
+
+<details>
+<summary><b>I am forking or cloning someone's repo. Is it safe?</b></summary>
+<br>
+
+Check it **before** you open it in VS Code or install anything.
+
+1. Clone it from the terminal, not from VS Code:
+
+   ```bash
+   git clone https://github.com/someone/their-repo
+   ```
+
+2. Check it:
+
+   ```bash
+   npx forkguard their-repo
+   ```
+
+3. Only if it says **looks clean**, open it and run `npm install`.
+
+Why the terminal? The malware can start the moment VS Code opens the folder. Nothing runs in the terminal until you run it.
+
+</details>
+
+<details>
+<summary><b>Is my own repo clean?</b></summary>
+<br>
+
+Pull first, because the malware gets into GitHub, not your laptop. Then check:
+
+```bash
+cd my-repo
+git pull
+npx forkguard
+```
+
+If it finds something, `forkguard fix` cleans your copy and `forkguard pr` cleans GitHub too.
+
+</details>
+
+<details>
+<summary><b>Is my repo clean on GitHub?</b></summary>
+<br>
+
+Let GitHub check it for you on every push. Add this file to the repo as `.github/workflows/forkguard.yml`:
+
+```yaml
+name: forkguard
+on: [push, pull_request]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: PRODHOSH/forkguard@v0.2.0
+```
+
+If malware ever lands, the build turns red and GitHub emails you.
+
+Signs you can also spot by eye on GitHub:
+
+- An old repo you have not touched says **updated a few hours ago**
+- A pull request shows **force-pushed** when you did not force push
+- Signed commits suddenly show **Unverified**
+- Vercel or Netlify builds start failing on projects you have not changed
+
+</details>
+
+<details>
+<summary><b>Someone sent me a repo for a job interview or coding test</b></summary>
+<br>
+
+This is one of the main ways this malware spreads, so treat it with care.
+
+1. Clone it from the terminal into any folder.
+2. Run `npx forkguard <folder>`.
+3. Do not open it in VS Code or run anything until it says **looks clean**.
+
+If it finds something, do not run it at all. Tell the person who sent it.
+
+</details>
+
+<details>
+<summary><b>I never want to think about this again</b></summary>
+<br>
+
+Install it once and turn on automatic checks:
+
+```bash
+npm install -g forkguard
+```
+
+```bash
+forkguard setup
+```
+
+Open a new terminal. From now on forkguard checks every project before `npm install` or `npm run dev`, and right after every `git clone` or `git pull`. Clean projects stay silent. Dangerous ones are stopped before anything runs.
+
+</details>
+
+<details>
+<summary><b>forkguard found something. What now?</b></summary>
+<br>
+
+The order matters.
+
+1. Do not run `npm install` or `npm run dev`, and do not open the folder in VS Code.
+2. Run `forkguard fix`, or `forkguard pr` to fix GitHub too.
+3. From another device, change your GitHub tokens, SSH keys, npm token, cloud keys and `.env` secrets.
+4. Block force pushes on your main branch: **Settings**, then **Rules**, then **Rulesets**.
+5. Run a full antivirus scan.
+
+[Full checklist](docs/getting-started.md#9-found-something-do-this-next)
+
+</details>
+
 ## Why it exists
 
 Some malware hides inside ordinary repos. It sits after hundreds of spaces at the end of a normal line, so your editor shows nothing, and it rewrites commits without changing the author or date, so git shows nothing either. It runs when you open the folder in VS Code or type `npm run dev`, then steals your tokens and passwords and spreads to every repo you can push to.
