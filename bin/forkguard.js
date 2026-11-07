@@ -49,7 +49,7 @@ function findProjectRoot(start) {
   for (;;) {
     if (existsSync(path.join(dir, 'package.json'))) return dir;
     const up = path.dirname(dir);
-    if (up === dir) return path.resolve(start);
+    if (up === dir) return null; // not inside a project, so nothing to protect
     dir = up;
   }
 }
@@ -76,6 +76,8 @@ async function gate(tool, rest) {
   if (process.env.FORKGUARD_SKIP === '1' || !GATED[tool]) return 0;
   const sub = rest.find((a) => !a.startsWith('-')) ?? '';
   if (!GATED[tool].has(sub)) return 0;
+  // A global install runs that package's own scripts, not the project you happen to be standing in.
+  if (tool !== 'git' && rest.some((a) => a === '-g' || a === '--global' || a === '--location=global')) return 0;
 
   let dir;
   if (tool === 'git') dir = sub === 'clone' ? cloneTarget(rest.slice(rest.indexOf('clone') + 1)) : repoRoot(process.cwd());

@@ -224,6 +224,20 @@ test('the gate stops npm install in an infected project and lets safe commands t
   rmSync(root, { recursive: true, force: true });
 });
 
+test('the gate skips global installs and folders outside any project', () => {
+  const root = infectedProject();
+  const g = spawnSync(process.execPath, [BIN, '--gate', 'npm', 'install', '-g', 'cowsay'], { cwd: root, encoding: 'utf8', env: { ...process.env, FORKGUARD_SKIP: '' } });
+  assert.equal(g.status, 0);
+  const empty = tmp();
+  const t = Date.now();
+  const e = spawnSync(process.execPath, [BIN, '--gate', 'npm', 'install'], { cwd: empty, encoding: 'utf8', env: { ...process.env, FORKGUARD_SKIP: '' } });
+  assert.equal(e.status, 0);
+  assert.equal(e.stdout + e.stderr, '');
+  assert.ok(Date.now() - t < 3000);
+  rmSync(root, { recursive: true, force: true });
+  rmSync(empty, { recursive: true, force: true });
+});
+
 test('scan exits 1 when something dangerous is found', () => {
   const root = infectedProject();
   const res = spawnSync(process.execPath, [BIN, root, '--json'], { encoding: 'utf8' });
