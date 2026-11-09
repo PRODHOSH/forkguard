@@ -276,3 +276,10 @@ test('scan exits 1 when something dangerous is found', () => {
   assert.ok(JSON.parse(res.stdout).findings.length >= 8);
   rmSync(root, { recursive: true, force: true });
 });
+
+test('setup --print outputs the hook for the current platform', () => {
+  const res = spawnSync(process.execPath, [BIN, 'setup', '--print'], { encoding: 'utf8' });
+  assert.equal(res.status, 0);
+  assert.ok(res.stdout.includes('# >>> forkguard >>>'));
+  assert.ok(res.stdout.includes('# <<< forkguard <<<'));
+});

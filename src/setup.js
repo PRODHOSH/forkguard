@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
@@ -56,12 +57,38 @@ function removeBlock(text) {
   return text.replace(re, '\n').replace(/\n{3,}$/, '\n');
 }
 
+function safeMkdirSync(dir) {
+  if (existsSync(dir)) return;
+  if (process.platform === 'win32') {
+    const script = `const fs = require('fs'); fs.mkdirSync(${JSON.stringify(dir)}, { recursive: true });`;
+    const res = spawnSync(process.execPath, ['-e', script], { timeout: 1000 });
+    if (res.error?.code === 'ETIMEDOUT' || res.status !== 0) {
+      throw new Error('Blocked by Windows Defender or permission denied');
+    }
+    return;
+  }
+  mkdirSync(dir, { recursive: true });
+}
+
+function safeWriteFileSync(file, content) {
+  if (process.platform === 'win32') {
+    const b64 = Buffer.from(content, 'utf8').toString('base64');
+    const script = `const fs = require('fs'); fs.writeFileSync(${JSON.stringify(file)}, Buffer.from(${JSON.stringify(b64)}, 'base64'));`;
+    const res = spawnSync(process.execPath, ['-e', script], { timeout: 1000 });
+    if (res.error?.code === 'ETIMEDOUT' || res.status !== 0) {
+      throw new Error('Blocked by Windows Defender or permission denied');
+    }
+    return;
+  }
+  writeFileSync(file, content);
+}
+
 function writeBlock(file, block) {
-  mkdirSync(path.dirname(file), { recursive: true });
+  safeMkdirSync(path.dirname(file));
   const before = existsSync(file) ? readFileSync(file, 'utf8') : '';
   const cleaned = removeBlock(before);
   const next = block ? `${cleaned.replace(/\s*$/, '')}${cleaned.trim() ? '\n\n' : ''}${block}\n` : cleaned;
-  if (next !== before) writeFileSync(file, next);
+  if (next !== before) safeWriteFileSync(file, next);
   return next !== before;
 }
 
@@ -118,7 +145,12 @@ async function ask(question) {
   return answer === '' || answer === 'y' || answer === 'yes';
 }
 
-export async function setup({ remove = false } = {}) {
+export async function setup({ remove = false, print = false } = {}) {
+  if (print) {
+    console.log(process.platform === 'win32' ? POWERSHELL : POSIX);
+    return;
+  }
+
   const runningFromNpx = /[\\/]_npx[\\/]/.test(process.argv[1] || '');
   if (!remove && (runningFromNpx || !hasCommand('forkguard'))) {
     console.log(`${c.yellow('forkguard')}  Install it globally first so your shell can find it:\n\n    npm install -g forkguard\n\n  Then run ${c.cyan('forkguard setup')} again.`);
@@ -126,19 +158,41 @@ export async function setup({ remove = false } = {}) {
   }
 
   console.log(`${c.bold('forkguard')}  ${remove ? 'removing automatic checks' : 'setting up automatic checks'}\n`);
+  const failed = [];
   for (const p of profiles()) {
-    const changed = writeBlock(p.file, remove ? null : p.block);
-    console.log(`  ${c.green('done')}  ${p.name.padEnd(20)}${c.dim(p.file)}${changed ? '' : c.dim('  (no change)')}`);
+    try {
+      const changed = writeBlock(p.file, remove ? null : p.block);
+      console.log(`  ${c.green('done')}  ${p.name.padEnd(20)}${c.dim(p.file)}${changed ? '' : c.dim('  (no change)')}`);
+    } catch {
+      console.log(`  ${c.red('fail')}  ${p.name.padEnd(20)}${c.dim(p.file)}  ${c.yellow('(blocked by Windows Defender or permissions)')}`);
+      failed.push(p);
+    }
   }
+
   if (remove) {
-    console.log('\n  Open a new terminal and forkguard will no longer run on its own.');
+    if (failed.length) {
+      console.log(`\n  ${c.yellow('Note:')} Could not remove hook automatically due to permissions.`);
+      console.log(`  To remove manually, open your profile with ${c.cyan('notepad $PROFILE')} and delete the forkguard block.`);
+    } else {
+      console.log('\n  Open a new terminal and forkguard will no longer run on its own.');
+    }
     return;
   }
 
-  console.log(`\n  From a new terminal, forkguard now checks a project before:`);
-  console.log('    npm, pnpm, yarn or bun install / run / dev / start / build / test');
-  console.log('    and right after git clone, pull, merge, checkout or switch');
-  console.log(`  If it finds something dangerous, the command is stopped before anything runs.\n`);
+  if (failed.length) {
+    console.log(`\n  ${c.yellow('Windows Defender (Controlled Folder Access)')} blocked editing your Documents folder.`);
+    console.log(`  You do not need to change Windows Defender settings. To finish setup:\n`);
+    console.log(`  1. In PowerShell, open your profile:`);
+    console.log(`       ${c.cyan('notepad $PROFILE')}`);
+    console.log(`  2. Paste this block at the bottom and save:\n`);
+    console.log(c.dim(POWERSHELL));
+    console.log(`\n  Tip: You can also print this block anytime with: ${c.cyan('forkguard setup --print')}\n`);
+  } else {
+    console.log(`\n  From a new terminal, forkguard now checks a project before:`);
+    console.log('    npm, pnpm, yarn or bun install / run / dev / start / build / test');
+    console.log('    and right after git clone, pull, merge, checkout or switch');
+    console.log(`  If it finds something dangerous, the command is stopped before anything runs.\n`);
+  }
 
   if (await ask('  Also stop VS Code from running tasks by itself when you open a folder? (Y/n) ')) {
     console.log(`  ${c.green('done')}  VS Code automatic tasks: ${turnOffVsCodeAutoTasks()}`);

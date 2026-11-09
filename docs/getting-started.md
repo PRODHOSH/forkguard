@@ -410,6 +410,12 @@ Install it globally with `npm install -g forkguard`, then open a new terminal.
 **Automatic checks do not run after setup**
 Close the terminal and open a new one. Setup only takes effect in new terminals.
 
+**Windows Defender says "Unauthorized changes blocked" during setup**
+Windows Defender's Controlled Folder Access feature protects your `Documents` folder from being edited by outside tools. You do not need to change Windows Defender settings:
+1. Run `forkguard setup --print` to view the hook block.
+2. In PowerShell, run `notepad $PROFILE`.
+3. Paste the block at the bottom and save.
+
 **"Log in first so forkguard can list your repos"**
 Run `gh auth login`, or set a `GITHUB_TOKEN`. Needed for `--mine`.
 

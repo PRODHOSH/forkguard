@@ -28,6 +28,7 @@ Catch malware hidden in a repo before you install or run it.
                             add --upstream to send the fix to the repo you forked from
   forkguard setup           check automatically before npm install, npm run dev, git clone
                             add --remove to undo
+                            add --print to output the shell hook without writing files
 
 Exit code is 1 when something dangerous is found, so it works in CI too.
 Add --json to get the findings as JSON.`;
@@ -136,7 +137,7 @@ async function main() {
   const target = path.resolve(folder || '.');
 
   if (cmd === 'setup') {
-    await setup({ remove: flags.has('--remove') });
+    await setup({ remove: flags.has('--remove'), print: flags.has('--print') });
     return 0;
   }
 

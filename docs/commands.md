@@ -290,6 +290,14 @@ forkguard setup --remove
 
 Takes the block back out of every shell profile. Open a new terminal and it is gone.
 
+### --print
+
+```bash
+forkguard setup --print
+```
+
+Prints the hook directly to your terminal without writing to any files. Useful when Windows Defender Controlled Folder Access protects your `Documents` folder.
+
 ---
 
 ## 8. Options
@@ -299,6 +307,7 @@ Takes the block back out of every shell profile. Open a new terminal and it is g
 | `--json` | checking a folder, a link, or `--mine` | Prints the results as JSON instead of text |
 | `--upstream` | `pr` | Sends the pull request to the repo you forked from |
 | `--remove` | `setup` | Undoes setup |
+| `--print` | `setup` | Prints the shell hook without writing files |
 | `--version`, `-v` | anything | Prints the version |
 | `--help`, `-h` | anything | Prints all commands |
 
