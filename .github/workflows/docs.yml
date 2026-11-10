@@ -1,0 +1,26 @@
+name: docs
+
+# Cloudflare Pages builds and publishes the site itself. This job only makes sure the committed
+# site matches the pages in tools/docs, so a forgotten `npm run docs` cannot slip through.
+on:
+  push:
+    branches: [main]
+    paths: ['site/**', 'tools/docs/**', 'tools/build-docs.mjs']
+  pull_request:
+    paths: ['site/**', 'tools/docs/**', 'tools/build-docs.mjs']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node tools/build-docs.mjs
+      - name: The committed site matches the pages
+        run: git diff --exit-code -- site

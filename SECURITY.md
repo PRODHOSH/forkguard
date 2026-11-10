@@ -1,3 +1,12 @@
+<p align="center">
+  <a href="https://github.com/PRODHOSH/forkguard">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="site/assets/brand/logo-on-dark.svg">
+      <img src="site/assets/brand/logo.svg" alt="forkguard" height="56">
+    </picture>
+  </a>
+</p>
+
 # Security
 
 ## Reporting a problem in forkguard

@@ -1,0 +1,9 @@
+# forkguard documentation
+User-agent: *
+Allow: /
+
+# For language models: a short index and the full documentation as plain text
+# https://forkguard.pages.dev/llms.txt
+# https://forkguard.pages.dev/llms-full.txt
+
+Sitemap: https://forkguard.pages.dev/sitemap.xml

@@ -1,3 +1,12 @@
+<p align="center">
+  <a href="https://github.com/PRODHOSH/forkguard">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="../site/assets/brand/logo-on-dark.svg">
+      <img src="../site/assets/brand/logo.svg" alt="forkguard" height="56">
+    </picture>
+  </a>
+</p>
+
 # How forkguard works
 
 The details behind the scenes. You do not need any of this to use forkguard. For that, see [Getting started](getting-started.md).

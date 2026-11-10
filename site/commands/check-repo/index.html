@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>forkguard owner/repo · forkguard docs</title>
+<meta name="description" content="Check a GitHub repo for hidden malware, every branch, without downloading its files to your disk. Accepted link forms, how it stays safe, output and exit codes.">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
+<meta name="author" content="Prodhosh V.S">
+<link rel="canonical" href="https://forkguard.pages.dev/commands/check-repo/">
+<link rel="alternate" type="text/markdown" href="https://forkguard.pages.dev/commands/check-repo.md">
+<link rel="sitemap" type="application/xml" href="https://forkguard.pages.dev/sitemap.xml">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="forkguard docs">
+<meta property="og:title" content="forkguard owner/repo · forkguard docs">
+<meta property="og:description" content="Check a GitHub repo for hidden malware, every branch, without downloading its files to your disk. Accepted link forms, how it stays safe, output and exit codes.">
+<meta property="og:url" content="https://forkguard.pages.dev/commands/check-repo/">
+<meta property="og:image" content="https://forkguard.pages.dev/assets/social.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="forkguard documentation: Catch malware hidden in a repo before you install or run it.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://forkguard.pages.dev/assets/social.png">
+<link rel="icon" href="../../assets/brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="preload" href="../../assets/fonts/manrope.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../../assets/docs.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"forkguard docs","item":"https://forkguard.pages.dev/"},{"@type":"ListItem","position":2,"name":"Commands"},{"@type":"ListItem","position":3,"name":"forkguard owner/repo","item":"https://forkguard.pages.dev/commands/check-repo/"}]},{"@type":"TechArticle","headline":"forkguard owner/repo","description":"Check a GitHub repo for hidden malware, every branch, without downloading its files to your disk. Accepted link forms, how it stays safe, output and exit codes.","url":"https://forkguard.pages.dev/commands/check-repo/","inLanguage":"en","author":{"@type":"Person","name":"Prodhosh V.S","url":"https://prodhosh.me"},"publisher":{"@type":"Organization","name":"forkguard","logo":{"@type":"ImageObject","url":"https://forkguard.pages.dev/assets/brand/favicon.svg"}},"isPartOf":{"@type":"WebSite","name":"forkguard documentation","url":"https://forkguard.pages.dev/"}}]}</script>
+<script type="module" src="../../assets/docs.js" data-root="../../"></script>
+</head>
+<body>
+<svg class="sprite" aria-hidden="true" focusable="false">
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 16l4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-github" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.9.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.94.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z"/></symbol>
+</svg>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="top-inner">
+    <button class="icon-btn menu-btn" type="button" popovertarget="side" popovertargetaction="toggle" aria-controls="side" aria-label="Menu"><svg width="20" height="20" aria-hidden="true" focusable="false"><use href="#i-menu"/></svg></button>
+    <a class="brand" href="../../" aria-label="forkguard documentation, home"><picture><source media="(prefers-color-scheme: dark)" srcset="../../assets/brand/logo-on-dark.svg"><img src="../../assets/brand/logo.svg" alt="forkguard" width="117" height="30"></picture><span class="brand-sub">docs</span></a>
+    <div class="top-actions">
+      <button class="search-btn js-only" type="button" id="open-search" aria-keyshortcuts="/ Control+K Meta+K"><svg width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-search"/></svg><span>Search</span><kbd>/</kbd></button>
+      <label class="switch global-switch top-switch" title="Show every section as a short manual page"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label>
+      <a class="icon-link" href="https://github.com/PRODHOSH/forkguard" aria-label="forkguard on GitHub"><svg width="20" height="20" aria-hidden="true" focusable="false"><use href="#i-github"/></svg></a>
+    </div>
+  </div>
+</header>
+<div class="shell">
+<nav id="side" class="side" popover aria-label="Documentation"><div class="side-inner"><label class="switch global-switch side-switch" title="Show every section as a short manual page"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label><div class="group"><p class="group-title">Start</p><ul><li><a href="../../">Overview</a></li><li><a href="../../install/">Install</a></li><li><a href="../../quick-start/">Quick start</a></li></ul></div><div class="group"><p class="group-title">Commands</p><ul><li><a href="../../commands/check/">forkguard [folder]</a></li><li><a href="../../commands/check-repo/" aria-current="page">forkguard owner/repo</a></li><li><a href="../../commands/mine/">forkguard --mine</a></li><li><a href="../../commands/fix/">forkguard fix</a></li><li><a href="../../commands/pr/">forkguard pr</a></li><li><a href="../../commands/setup/">forkguard setup</a></li><li><a href="../../commands/agent/">forkguard agent<span class="badge">next release</span></a></li></ul></div><div class="group"><p class="group-title">Reference</p><ul><li><a href="../../reference/rules/">What it catches</a></li><li><a href="../../reference/json/">JSON output</a></li><li><a href="../../reference/options/">Options</a></li><li><a href="../../reference/exit-codes/">Exit codes</a></li><li><a href="../../reference/environment/">Environment</a></li></ul></div><div class="group"><p class="group-title">Guides</p><ul><li><a href="../../guides/read-results/">Reading the results</a></li><li><a href="../../guides/cleaning/">Cleaning an infected project</a></li><li><a href="../../guides/before-you-clone/">Before you clone</a></li><li><a href="../../guides/automatic-protection/">Automatic protection</a></li><li><a href="../../guides/github-action/">GitHub Action</a></li><li><a href="../../guides/ai-agents/">AI agents<span class="badge">next release</span></a></li><li><a href="../../guides/troubleshooting/">Troubleshooting &amp; FAQ</a></li></ul></div><div class="group"><p class="group-title">Internals</p><ul><li><a href="../../internals/how-it-works/">How it works</a></li><li><a href="../../internals/safety/">Safety and privacy</a></li></ul></div><div class="group"><p class="group-title">About</p><ul><li><a href="../../about/">About</a></li></ul></div></div></nav>
+<main id="main" class="doc">
+<nav class="crumbs" aria-label="Breadcrumb"><ol><li><a href="../../">Docs</a></li><li>Commands</li></ol></nav>
+
+<h1>forkguard owner/repo</h1>
+<p class="lede">Check a repo on GitHub, every branch, without writing its files to your disk.</p>
+<details class="mobile-toc"><summary>On this page</summary><ul><li class="l2"><a href="#name">NAME</a></li><li class="l2"><a href="#synopsis">SYNOPSIS</a></li><li class="l2"><a href="#forms">ACCEPTED FORMS</a></li><li class="l2"><a href="#description">DESCRIPTION</a></li><li class="l2"><a href="#output">OUTPUT</a></li><li class="l2"><a href="#options">OPTIONS</a></li><li class="l2"><a href="#exit-status">EXIT STATUS</a></li><li class="l2"><a href="#notes">NOTES</a></li><li class="l2"><a href="#examples">EXAMPLES</a></li><li class="l2"><a href="#see-also">SEE ALSO</a></li><li class="l2"><a href="#where-to-next">WHERE TO NEXT</a></li></ul></details>
+<section class="man" id="name"><header class="man-head"><h2><a class="anchor" href="#name" aria-label="Link to this section">#</a>Name</h2>
+<label class="switch"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label></header>
+<div class="view view-more"><p><code>forkguard owner/repo</code> checks a repo on GitHub, every branch, without checking its files out onto your disk.</p></div><div class="view view-less"><p>forkguard owner/repo - check a remote repository without checking it out</p></div></section>
+<section class="man" id="synopsis"><header class="man-head"><h2><a class="anchor" href="#synopsis" aria-label="Link to this section">#</a>Synopsis</h2>
+<label class="switch"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label></header>
+<div class="view view-more"><figure class="code"><pre tabindex="0"><code id="c">forkguard someone/their-repo
+forkguard https://github.com/someone/their-repo
+forkguard git@github.com:someone/their-repo.git
+forkguard someone/their-repo --json</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure></div><div class="view view-less"><figure class="code"><pre tabindex="0"><code id="c-2">forkguard &lt;owner/repo | url&gt; [--json]</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-2" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure></div></section>
+<section class="man" id="forms"><header class="man-head"><h2><a class="anchor" href="#forms" aria-label="Link to this section">#</a>Accepted forms</h2>
+<label class="switch"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label></header>
+<div class="view view-more"><p>All of these check the same repo:</p>
+<figure class="code"><pre tabindex="0"><code id="c-3">forkguard someone/their-repo
+forkguard https://github.com/someone/their-repo
+forkguard github.com/someone/their-repo
+forkguard https://github.com/someone/their-repo/tree/some-branch
+forkguard git@github.com:someone/their-repo.git</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-3" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure>
+<p>A link to a branch, a file or a pull request is trimmed to the repo, and <strong>every</strong> branch is still checked. Any git URL (<code>https://</code>, <code>ssh://</code>, <code>git://</code>, <code>git@host:</code>) works, so GitLab and Bitbucket are fine. Only GitHub has the <code>owner/repo</code> shortcut.</p>
+<aside class="note note-note"><p class="note-label">Note</p><p><code>owner/repo</code> is read as a GitHub repo only when no folder with that name exists. If you mistype a folder path such as <code>forkguard fix scr/lib</code>, you get “No such folder”, not a download attempt.</p></aside></div><div class="view view-less"><figure class="code"><pre tabindex="0"><code id="c-4">owner/repo                      GitHub shortcut
+https://github.com/o/r[/...]    link, trimmed to the repo
+git@github.com:o/r.git          ssh
+any https://, ssh://, git:// URL</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-4" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure></div></section>
+<section class="man" id="description"><header class="man-head"><h2><a class="anchor" href="#description" aria-label="Link to this section">#</a>Description</h2>
+<label class="switch"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label></header>
+<div class="view view-more"><p>Use it before you fork, clone or open a repo you do not know, like a coding test from a recruiter or a project you found online. It is also a quick way to check your own repos on GitHub without pulling them.</p>
+<h3 id="what-it-does"><a class="anchor" href="#what-it-does" aria-label="Link to this section">#</a>What it does</h3>
+<ol class="flow"><li>Downloads only the <strong>latest commit of every branch</strong> into a temporary folder.</li><li>Does <strong>not</strong> check the files out. They stay packed inside git’s database, so nothing from the repo lands on your disk as a real file.</li><li>Searches and reads them straight from git’s database, and runs the same rules as a folder check.</li><li>Deletes the temporary folder, whether the check passed or failed.</li></ol>
+<p>Every branch is checked, because the malware often hides on side branches such as old Vercel preview branches. Branches that point at the same commit are checked once.</p>
+<h3 id="limits"><a class="anchor" href="#limits" aria-label="Link to this section">#</a>Limits</h3>
+<p>Files larger than 6 MB are skipped, like a folder check. Folders such as <code>node_modules</code> and <code>dist</code> are skipped, so malware committed only inside build output is not seen.</p></div><div class="view view-less"><p>git clone --no-checkout --depth 1 --no-single-branch into a temp dir, git grep for fingerprints, git cat-file for the rest, same rules as a folder scan, then the temp dir is removed. Git hooks are disabled for every call. Prompts are disabled.</p></div></section>
+<section class="man" id="output"><header class="man-head"><h2><a class="anchor" href="#output" aria-label="Link to this section">#</a>Output</h2>
+<label class="switch"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label></header>
+<div class="view view-more"><figure class="code is-output"><figcaption>Output</figcaption><pre tabindex="0"><code id="c-5">forkguard  someone/their-repo looks clean (3 branches checked)</code></pre></figure>
+<p>When something is found, each branch is listed:</p>
+<figure class="code is-output"><figcaption>Output</figcaption><pre tabindex="0"><code id="c-6">forkguard  someone/their-repo (2 branches checked)
+
+  main
+    HIGH  postcss.config.mjs  Code hidden after 507 blank spaces on line 11
+  dev
+    HIGH  init                Code hidden after 776 blank spaces on line 35
+
+  Do not clone and run this repo yet. If it is yours, clean it with:
+    git clone https://github.com/someone/their-repo
+    cd their-repo
+    forkguard pr</code></pre></figure>
+<p>If there are only MED findings it says “Nothing that runs on its own, but worth a look.”</p></div><div class="view view-less"><figure class="code is-output"><figcaption>Output</figcaption><pre tabindex="0"><code id="c-7">forkguard  &lt;name&gt; (&lt;n&gt; branches checked)
+  &lt;branch&gt;
+    LEVEL  FILE  MESSAGE</code></pre></figure>
+<p>Clean branches are listed as “clean” when another branch has findings.</p></div></section>
+<section class="man" id="options"><header class="man-head"><h2><a class="anchor" href="#options" aria-label="Link to this section">#</a>Options</h2>
+<label class="switch"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label></header>
+<div class="view view-more"><dl><div><dt><code>--json</code></dt><dd>Print <code>{ name, url, branches: [{ name, checked, findings }] }</code> as JSON. See <a href="../../reference/json/">JSON output</a>.</dd></div></dl></div><div class="view view-less"><dl><div><dt>--json</dt><dd>machine readable output</dd></div></dl></div></section>
+<section class="man" id="exit-status"><header class="man-head"><h2><a class="anchor" href="#exit-status" aria-label="Link to this section">#</a>Exit status</h2>
+<label class="switch"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label></header>
+<div class="view view-more"><div class="table-wrap" tabindex="0" role="region" aria-label="Table"><table><thead><tr><th scope="col">Code</th><th scope="col">Meaning</th></tr></thead><tbody><tr><th scope="row"><code>0</code></th><td>Clean, or only MED findings.</td></tr><tr><th scope="row"><code>1</code></th><td>Something HIGH was found.</td></tr><tr><th scope="row"><code>2</code></th><td>forkguard itself could not run, for example when the repo could not be downloaded.</td></tr></tbody></table></div>
+<p>The same codes work in scripts and CI. See <a href="../../reference/exit-codes/">Exit codes</a>.</p></div><div class="view view-less"><figure class="code"><pre tabindex="0"><code id="c-8">0   clean, or MED findings only
+1   a HIGH finding
+2   error (for example when the repo could not be downloaded)</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-8" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure></div></section>
+<section class="man" id="notes"><header class="man-head"><h2><a class="anchor" href="#notes" aria-label="Link to this section">#</a>Notes</h2>
+<label class="switch"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label></header>
+<div class="view view-more"><h3 id="private-repos"><a class="anchor" href="#private-repos" aria-label="Link to this section">#</a>Private repos</h3>
+<p>They work as long as git on your computer can access them. The easiest way is <code>gh auth login</code>. Git never prompts for a password in the middle of a check: if access is missing, the check fails with “could not download”.</p>
+<h3 id="why-it-is-safe-to-point-at-a-hostile-repo"><a class="anchor" href="#why-it-is-safe-to-point-at-a-hostile-repo" aria-label="Link to this section">#</a>Why it is safe to point at a hostile repo</h3>
+<ul><li>Nothing is checked out, so there is no file for an editor, an antivirus scan or a stray double click to run.</li><li>Git hooks are switched off for every git call, because an infected repo can ship its own.</li><li>No code from the repo is ever executed.</li></ul></div><div class="view view-less"><ul><li>Private repos need git credentials (gh auth login).</li><li>Hooks disabled; terminal prompts disabled.</li></ul></div></section>
+<section class="man" id="examples"><header class="man-head"><h2><a class="anchor" href="#examples" aria-label="Link to this section">#</a>Examples</h2>
+<label class="switch"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label></header>
+<div class="view view-more"><p>Check a coding test before you clone it:</p>
+<figure class="code"><pre tabindex="0"><code id="c-9">forkguard recruiter/take-home-test</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-9" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure>
+<p>Clone only if it was clean:</p>
+<figure class="code"><pre tabindex="0"><code id="c-10">forkguard recruiter/take-home-test &amp;&amp; git clone https://github.com/recruiter/take-home-test</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-10" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure>
+<p>Check a GitLab repo:</p>
+<figure class="code"><pre tabindex="0"><code id="c-11">forkguard https://gitlab.com/someone/project.git</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-11" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure></div><div class="view view-less"><figure class="code"><pre tabindex="0"><code id="c-12">forkguard owner/repo
+forkguard owner/repo &amp;&amp; git clone https://github.com/owner/repo</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-12" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure></div></section>
+<section class="man" id="see-also"><header class="man-head"><h2><a class="anchor" href="#see-also" aria-label="Link to this section">#</a>See also</h2></header><div class="view"><ul><li><a href="../../commands/mine/">`forkguard --mine`</a></li><li><a href="../../guides/before-you-clone/">Check a repo before you clone it</a></li><li><a href="../../internals/how-it-works/">How checking a link works</a></li></ul></div></section>
+<section class="next-steps" id="where-to-next" aria-labelledby="next-h"><h2 id="next-h">Where to next</h2><ul class="tasks"><li><a href="../../commands/mine/"><span class="task-t">Check every repo you own</span><span class="task-d">forkguard --mine</span><span class="task-go" aria-hidden="true">→</span></a></li><li><a href="../../guides/before-you-clone/"><span class="task-t">Before you clone</span><span class="task-d">A safe routine for unknown repos.</span><span class="task-go" aria-hidden="true">→</span></a></li><li><a href="../../commands/fix/"><span class="task-t">Clean it</span><span class="task-d">forkguard fix</span><span class="task-go" aria-hidden="true">→</span></a></li></ul></section>
+<nav class="pager" aria-label="Previous and next page"><a class="prev" href="../../commands/check/" rel="prev"><span>Previous</span>forkguard [folder]</a><a class="next" href="../../commands/mine/" rel="next"><span>Next</span>forkguard --mine</a></nav>
+<p class="doc-foot"><a href="https://github.com/PRODHOSH/forkguard/edit/main/tools/docs/pages/commands.mjs">Edit this page on GitHub</a> <span aria-hidden="true">·</span> <a href="../../commands/check-repo.md">View as Markdown</a></p>
+</main>
+<aside class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="l2"><a href="#name">NAME</a></li><li class="l2"><a href="#synopsis">SYNOPSIS</a></li><li class="l2"><a href="#forms">ACCEPTED FORMS</a></li><li class="l2"><a href="#description">DESCRIPTION</a></li><li class="l2"><a href="#output">OUTPUT</a></li><li class="l2"><a href="#options">OPTIONS</a></li><li class="l2"><a href="#exit-status">EXIT STATUS</a></li><li class="l2"><a href="#notes">NOTES</a></li><li class="l2"><a href="#examples">EXAMPLES</a></li><li class="l2"><a href="#see-also">SEE ALSO</a></li><li class="l2"><a href="#where-to-next">WHERE TO NEXT</a></li></ul></aside>
+</div>
+<footer class="foot">
+  <p>forkguard 0.3.2 · MIT license · <a href="https://github.com/PRODHOSH/forkguard">GitHub</a> · <a href="https://www.npmjs.com/package/forkguard">npm</a> · <a href="../../about/">About</a></p>
+</footer>
+<dialog id="search" class="search" aria-label="Search the documentation">
+  <div class="search-box"><svg width="18" height="18" aria-hidden="true" focusable="false"><use href="#i-search"/></svg><input id="q" type="search" placeholder="Search the docs" autocomplete="off" autocapitalize="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="results" aria-autocomplete="list"><button type="button" class="esc" id="close-search" aria-label="Close search">Esc</button></div>
+  <ul id="results" role="listbox" aria-label="Search results"></ul>
+  <p class="search-hint" id="search-hint">Type to search. Use the arrow keys and Enter.</p>
+</dialog>
+</body>
+</html>

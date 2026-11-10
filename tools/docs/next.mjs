@@ -1,0 +1,29 @@
+// "Where to next" links shown at the bottom of each page: [label, one line, page:slug].
+const T = (label, desc, to) => [label, desc, `page:${to}`];
+
+export const NEXT = {
+  install: [T('Run your first check', 'Check a project, read the result, clean it.', 'quick-start'), T('Turn on automatic protection', 'Check before every npm install.', 'commands/setup'), T('Check a repo before you clone it', 'Coding tests and unknown repos.', 'guides/before-you-clone')],
+  'quick-start': [T('forkguard, in full', 'Every option of the check command.', 'commands/check'), T('Reading the results', 'What each message means.', 'guides/read-results'), T('Cleaning an infected project', 'What to do, in order.', 'guides/cleaning'), T('Automatic protection', 'Never forget to check again.', 'guides/automatic-protection')],
+  'commands/check': [T('Check a repo without cloning it', 'forkguard owner/repo', 'commands/check-repo'), T('Clean what was found', 'forkguard fix', 'commands/fix'), T('Reading the results', 'What each message means.', 'guides/read-results'), T('Every rule', 'What it catches.', 'reference/rules')],
+  'commands/check-repo': [T('Check every repo you own', 'forkguard --mine', 'commands/mine'), T('Before you clone', 'A safe routine for unknown repos.', 'guides/before-you-clone'), T('Clean it', 'forkguard fix', 'commands/fix')],
+  'commands/mine': [T('Cleaning an infected project', 'What to do, in order.', 'guides/cleaning'), T('Fix it on GitHub', 'forkguard pr', 'commands/pr'), T('Check every push', 'The GitHub Action.', 'guides/github-action')],
+  'commands/fix': [T('Open a pull request', 'forkguard pr', 'commands/pr'), T('Cleaning an infected project', 'The full checklist.', 'guides/cleaning'), T('Every rule', 'What fix does for each one.', 'reference/rules')],
+  'commands/pr': [T('Cleaning an infected project', 'Rotate secrets, block force pushes.', 'guides/cleaning'), T('Check every push', 'Open the fix automatically with the GitHub Action.', 'guides/github-action'), T('forkguard fix', 'Clean locally only.', 'commands/fix')],
+  'commands/setup': [T('Automatic protection, in full', 'Every command it checks, and how it fails open.', 'guides/automatic-protection'), T('GitHub Action', 'Protect GitHub too.', 'guides/github-action'), T('Troubleshooting', 'If a hook does not run.', 'guides/troubleshooting')],
+  'commands/agent': [T('AI agents and vibe coding', 'Why agents need this.', 'guides/ai-agents'), T('JSON output', 'What an agent reads.', 'reference/json'), T('Safety and privacy', 'What forkguard never does.', 'internals/safety')],
+  'reference/rules': [T('Reading the results', 'Messages in plain words.', 'guides/read-results'), T('forkguard fix', 'What gets fixed automatically.', 'commands/fix'), T('Troubleshooting', 'False alarms and misses.', 'guides/troubleshooting')],
+  'reference/json': [T('Exit codes', 'The three codes.', 'reference/exit-codes'), T('AI agents', 'Using JSON from an agent.', 'guides/ai-agents'), T('GitHub Action', 'Use it in CI.', 'guides/github-action')],
+  'reference/options': [T('Exit codes', 'What each code means.', 'reference/exit-codes'), T('Environment variables', 'FORKGUARD_SKIP and tokens.', 'reference/environment'), T('forkguard', 'The check command.', 'commands/check')],
+  'reference/exit-codes': [T('JSON output', 'Results for scripts.', 'reference/json'), T('GitHub Action', 'Fail the build on malware.', 'guides/github-action')],
+  'reference/environment': [T('forkguard setup', 'Where FORKGUARD_SKIP matters.', 'commands/setup'), T('forkguard --mine', 'Where a token matters.', 'commands/mine')],
+  'guides/read-results': [T('Every rule', 'Full detail for each finding.', 'reference/rules'), T('forkguard fix', 'Clean what it found.', 'commands/fix'), T('Cleaning an infected project', 'The checklist.', 'guides/cleaning')],
+  'guides/cleaning': [T('forkguard pr', 'Fix GitHub, not just your laptop.', 'commands/pr'), T('Check all your repos', 'forkguard --mine', 'commands/mine'), T('Automatic protection', 'Stop it happening again.', 'guides/automatic-protection')],
+  'guides/before-you-clone': [T('forkguard owner/repo', 'The command in full.', 'commands/check-repo'), T('Automatic protection', 'Check after every git clone.', 'guides/automatic-protection'), T('Safety and privacy', 'What forkguard cannot do.', 'internals/safety')],
+  'guides/automatic-protection': [T('forkguard setup', 'The command in full.', 'commands/setup'), T('GitHub Action', 'Protect every push.', 'guides/github-action'), T('Troubleshooting', 'If something does not run.', 'guides/troubleshooting')],
+  'guides/github-action': [T('Automatic protection', 'Protect your own computer too.', 'guides/automatic-protection'), T('Cleaning an infected project', 'When the build turns red.', 'guides/cleaning'), T('forkguard pr', 'The same fix, from the terminal.', 'commands/pr')],
+  'guides/ai-agents': [T('forkguard agent', 'The command in full.', 'commands/agent'), T('JSON output', 'What an agent reads.', 'reference/json'), T('Safety and privacy', 'Trust boundaries.', 'internals/safety')],
+  'guides/troubleshooting': [T('Reading the results', 'What a message means.', 'guides/read-results'), T('Every rule', 'False alarm or miss?', 'reference/rules'), T('About', 'Report a problem.', 'about')],
+  'internals/how-it-works': [T('Every rule', 'What it catches.', 'reference/rules'), T('Safety and privacy', 'What it never does.', 'internals/safety'), T('Commands', 'Start with the check.', 'commands/check')],
+  'internals/safety': [T('Cleaning an infected project', 'If you already ran it.', 'guides/cleaning'), T('How it works', 'The details.', 'internals/how-it-works')],
+  about: [T('Install', 'Get forkguard.', 'install'), T('Every rule', 'What it catches.', 'reference/rules'), T('Troubleshooting', 'Something wrong?', 'guides/troubleshooting')],
+};

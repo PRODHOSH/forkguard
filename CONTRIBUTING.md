@@ -1,3 +1,12 @@
+<p align="center">
+  <a href="https://github.com/PRODHOSH/forkguard">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="site/assets/brand/logo-on-dark.svg">
+      <img src="site/assets/brand/logo.svg" alt="forkguard" height="56">
+    </picture>
+  </a>
+</p>
+
 # Contributing to forkguard
 
 Thanks for helping. Every new rule makes the next developer a little safer.
@@ -33,3 +42,14 @@ If forkguard flags something that is fine, open an issue with the file name and 
 ## Security issues in forkguard itself
 
 Please email hello@prodhosh.me instead of opening a public issue.
+
+## Working on the documentation
+
+The docs site lives in [`site/`](site/) and is generated from the pages in `tools/docs/pages/`. Edit a page, then rebuild:
+
+```bash
+npm run docs
+python3 -m http.server 4173 --directory site
+```
+
+Then open http://localhost:4173. Commit the regenerated `site/` together with your change: CI fails if they disagree. See [`site/README.md`](site/README.md) for the full picture.

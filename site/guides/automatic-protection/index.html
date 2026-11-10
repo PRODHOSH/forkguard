@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Automatic protection · forkguard docs</title>
+<meta name="description" content="How forkguard setup protects you every day: which npm, pnpm, yarn, bun and git commands are checked, what is skipped, how it fails open, and how to skip or remove it.">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
+<meta name="author" content="Prodhosh V.S">
+<link rel="canonical" href="https://forkguard.pages.dev/guides/automatic-protection/">
+<link rel="alternate" type="text/markdown" href="https://forkguard.pages.dev/guides/automatic-protection.md">
+<link rel="sitemap" type="application/xml" href="https://forkguard.pages.dev/sitemap.xml">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="forkguard docs">
+<meta property="og:title" content="Automatic protection · forkguard docs">
+<meta property="og:description" content="How forkguard setup protects you every day: which npm, pnpm, yarn, bun and git commands are checked, what is skipped, how it fails open, and how to skip or remove it.">
+<meta property="og:url" content="https://forkguard.pages.dev/guides/automatic-protection/">
+<meta property="og:image" content="https://forkguard.pages.dev/assets/social.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="forkguard documentation: Catch malware hidden in a repo before you install or run it.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://forkguard.pages.dev/assets/social.png">
+<link rel="icon" href="../../assets/brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="preload" href="../../assets/fonts/manrope.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../../assets/docs.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"forkguard docs","item":"https://forkguard.pages.dev/"},{"@type":"ListItem","position":2,"name":"Guides"},{"@type":"ListItem","position":3,"name":"Automatic protection","item":"https://forkguard.pages.dev/guides/automatic-protection/"}]},{"@type":"TechArticle","headline":"Automatic protection","description":"How forkguard setup protects you every day: which npm, pnpm, yarn, bun and git commands are checked, what is skipped, how it fails open, and how to skip or remove it.","url":"https://forkguard.pages.dev/guides/automatic-protection/","inLanguage":"en","author":{"@type":"Person","name":"Prodhosh V.S","url":"https://prodhosh.me"},"publisher":{"@type":"Organization","name":"forkguard","logo":{"@type":"ImageObject","url":"https://forkguard.pages.dev/assets/brand/favicon.svg"}},"isPartOf":{"@type":"WebSite","name":"forkguard documentation","url":"https://forkguard.pages.dev/"}}]}</script>
+<script type="module" src="../../assets/docs.js" data-root="../../"></script>
+</head>
+<body>
+<svg class="sprite" aria-hidden="true" focusable="false">
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 16l4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-github" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.9.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.94.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z"/></symbol>
+</svg>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="top-inner">
+    <button class="icon-btn menu-btn" type="button" popovertarget="side" popovertargetaction="toggle" aria-controls="side" aria-label="Menu"><svg width="20" height="20" aria-hidden="true" focusable="false"><use href="#i-menu"/></svg></button>
+    <a class="brand" href="../../" aria-label="forkguard documentation, home"><picture><source media="(prefers-color-scheme: dark)" srcset="../../assets/brand/logo-on-dark.svg"><img src="../../assets/brand/logo.svg" alt="forkguard" width="117" height="30"></picture><span class="brand-sub">docs</span></a>
+    <div class="top-actions">
+      <button class="search-btn js-only" type="button" id="open-search" aria-keyshortcuts="/ Control+K Meta+K"><svg width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-search"/></svg><span>Search</span><kbd>/</kbd></button>
+      
+      <a class="icon-link" href="https://github.com/PRODHOSH/forkguard" aria-label="forkguard on GitHub"><svg width="20" height="20" aria-hidden="true" focusable="false"><use href="#i-github"/></svg></a>
+    </div>
+  </div>
+</header>
+<div class="shell">
+<nav id="side" class="side" popover aria-label="Documentation"><div class="side-inner"><div class="group"><p class="group-title">Start</p><ul><li><a href="../../">Overview</a></li><li><a href="../../install/">Install</a></li><li><a href="../../quick-start/">Quick start</a></li></ul></div><div class="group"><p class="group-title">Commands</p><ul><li><a href="../../commands/check/">forkguard [folder]</a></li><li><a href="../../commands/check-repo/">forkguard owner/repo</a></li><li><a href="../../commands/mine/">forkguard --mine</a></li><li><a href="../../commands/fix/">forkguard fix</a></li><li><a href="../../commands/pr/">forkguard pr</a></li><li><a href="../../commands/setup/">forkguard setup</a></li><li><a href="../../commands/agent/">forkguard agent<span class="badge">next release</span></a></li></ul></div><div class="group"><p class="group-title">Reference</p><ul><li><a href="../../reference/rules/">What it catches</a></li><li><a href="../../reference/json/">JSON output</a></li><li><a href="../../reference/options/">Options</a></li><li><a href="../../reference/exit-codes/">Exit codes</a></li><li><a href="../../reference/environment/">Environment</a></li></ul></div><div class="group"><p class="group-title">Guides</p><ul><li><a href="../../guides/read-results/">Reading the results</a></li><li><a href="../../guides/cleaning/">Cleaning an infected project</a></li><li><a href="../../guides/before-you-clone/">Before you clone</a></li><li><a href="../../guides/automatic-protection/" aria-current="page">Automatic protection</a></li><li><a href="../../guides/github-action/">GitHub Action</a></li><li><a href="../../guides/ai-agents/">AI agents<span class="badge">next release</span></a></li><li><a href="../../guides/troubleshooting/">Troubleshooting &amp; FAQ</a></li></ul></div><div class="group"><p class="group-title">Internals</p><ul><li><a href="../../internals/how-it-works/">How it works</a></li><li><a href="../../internals/safety/">Safety and privacy</a></li></ul></div><div class="group"><p class="group-title">About</p><ul><li><a href="../../about/">About</a></li></ul></div></div></nav>
+<main id="main" class="doc">
+<nav class="crumbs" aria-label="Breadcrumb"><ol><li><a href="../../">Docs</a></li><li>Guides</li></ol></nav>
+
+<h1>Automatic protection</h1>
+<p class="lede">Protect yourself every day without thinking about it.</p>
+<details class="mobile-toc"><summary>On this page</summary><ul><li class="l2"><a href="#turn-it-on">Turn it on</a></li><li class="l2"><a href="#which-commands-are-checked">Which commands are checked</a></li><li class="l2"><a href="#what-you-see">What you see</a></li><li class="l2"><a href="#when-the-check-is-skipped">When the check is skipped</a></li><li class="l2"><a href="#it-checks-the-project-you-mean">It checks the project you mean</a></li><li class="l2"><a href="#it-fails-open">It fails open</a></li><li class="l2"><a href="#run-something-anyway-once">Run something anyway, once</a></li><li class="l2"><a href="#turn-it-off">Turn it off</a></li><li class="l2"><a href="#where-to-next">Where to next</a></li></ul></details>
+<p><a href="../../commands/setup/">`forkguard setup`</a> adds a small, clearly marked block to your shell profile. It wraps <code>npm</code>, <code>pnpm</code>, <code>yarn</code>, <code>bun</code> and <code>git</code>. For package managers it checks <strong>before</strong> the command runs, and can stop it. For git it checks <strong>after</strong>, and warns you.</p>
+<ol class="flow"><li>You type <code>npm install</code>.</li><li>Your shell runs forkguard first.</li><li>Clean, or only MED: the command runs. HIGH: it is stopped, with the reason.</li></ol>
+<h2 id="turn-it-on"><a class="anchor" href="#turn-it-on" aria-label="Link to this section">#</a>Turn it on</h2>
+<figure class="code"><pre tabindex="0"><code id="c">npm install -g forkguard
+forkguard setup</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure>
+<p>Press Enter to also stop VS Code from running tasks by itself. Then <strong>close your terminal and open a new one</strong>.</p>
+<h2 id="which-commands-are-checked"><a class="anchor" href="#which-commands-are-checked" aria-label="Link to this section">#</a>Which commands are checked</h2>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Table"><table><thead><tr><th scope="col">Tool</th><th scope="col">Subcommands that trigger a check</th></tr></thead><tbody><tr><th scope="row"><code>npm</code></th><td><code>install</code>, <code>i</code>, <code>ci</code>, <code>add</code>, <code>run</code>, <code>run-script</code>, <code>dev</code>, <code>start</code>, <code>build</code>, <code>test</code>, <code>exec</code>, <code>x</code>, <code>rebuild</code></td></tr><tr><th scope="row"><code>pnpm</code></th><td><code>install</code>, <code>i</code>, <code>add</code>, <code>run</code>, <code>dev</code>, <code>start</code>, <code>build</code>, <code>test</code>, <code>exec</code>, <code>dlx</code></td></tr><tr><th scope="row"><code>yarn</code></th><td>plain <code>yarn</code>, <code>install</code>, <code>add</code>, <code>run</code>, <code>dev</code>, <code>start</code>, <code>build</code>, <code>test</code>, <code>dlx</code></td></tr><tr><th scope="row"><code>bun</code></th><td><code>install</code>, <code>i</code>, <code>add</code>, <code>run</code>, <code>dev</code>, <code>start</code>, <code>build</code>, <code>test</code>, <code>x</code></td></tr><tr><th scope="row"><code>git</code></th><td><code>clone</code>, <code>pull</code>, <code>merge</code>, <code>checkout</code>, <code>switch</code> (checked afterwards; warns, never stops)</td></tr></tbody></table></div>
+<p>Anything else, such as <code>npm --version</code>, <code>npm publish</code> or <code>git status</code>, runs normally with no check. <code>npx</code> is not wrapped.</p>
+<h2 id="what-you-see"><a class="anchor" href="#what-you-see" aria-label="Link to this section">#</a>What you see</h2>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Table"><table><thead><tr><th scope="col">Project state</th><th scope="col">What happens</th></tr></thead><tbody><tr><th scope="row">Clean</th><td>Nothing. No output at all.</td></tr><tr><th scope="row">Only MED findings</th><td>A one-line note: “forkguard: N thing(s) worth a look in my-app. Run &quot;forkguard&quot; for details.” The command runs.</td></tr><tr><th scope="row">Something HIGH</th><td>The findings are printed and the command is stopped: “Stopped &quot;npm install&quot; so nothing in this project runs.”</td></tr><tr><th scope="row">After <code>git clone</code> or <code>pull</code>, something HIGH</th><td>The findings are printed with “The code you just pulled in is infected. Clean it before you open or install it.” The git command had already finished.</td></tr></tbody></table></div>
+<h2 id="when-the-check-is-skipped"><a class="anchor" href="#when-the-check-is-skipped" aria-label="Link to this section">#</a>When the check is skipped</h2>
+<ul><li><strong>Global installs</strong> (<code>-g</code>, <code>--global</code>, <code>--location=global</code>). They run that package’s own scripts, not the project you happen to be in.</li><li><strong>Outside a project.</strong> There is no <code>package.json</code> above you, so there is nothing to protect.</li><li><strong>`FORKGUARD_SKIP=1`.</strong> Your explicit choice, for one command.</li></ul>
+<h2 id="it-checks-the-project-you-mean"><a class="anchor" href="#it-checks-the-project-you-mean" aria-label="Link to this section">#</a>It checks the project you mean</h2>
+<p>Options that take a value are understood, so they are not mistaken for the subcommand, and options that choose the project are followed:</p>
+<figure class="code"><pre tabindex="0"><code id="c-2">npm --prefix ./app install      # checks ./app
+pnpm -C ./app install            # checks ./app
+yarn --cwd ./app install         # checks ./app</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-2" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure>
+<h2 id="it-fails-open"><a class="anchor" href="#it-fails-open" aria-label="Link to this section">#</a>It fails open</h2>
+<p>The hook never breaks your tools. Only an explicit “infected” answer (exit code 1) stops a command. If <code>forkguard</code> is missing (you switched Node version with nvm, or uninstalled it) or crashes, your command runs anyway.</p>
+<h2 id="run-something-anyway-once"><a class="anchor" href="#run-something-anyway-once" aria-label="Link to this section">#</a>Run something anyway, once</h2>
+<figure class="code"><pre tabindex="0"><code id="c-3">FORKGUARD_SKIP=1 npm install</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-3" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure>
+<figure class="code"><pre tabindex="0"><code id="c-4">$env:FORKGUARD_SKIP='1'; npm install</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-4" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure>
+<h2 id="turn-it-off"><a class="anchor" href="#turn-it-off" aria-label="Link to this section">#</a>Turn it off</h2>
+<figure class="code"><pre tabindex="0"><code id="c-5">forkguard setup --remove</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-5" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure>
+<p>Open a new terminal and it is gone. The hook is plain shell code between <code># &gt;&gt;&gt; forkguard &gt;&gt;&gt;</code> and <code># &lt;&lt;&lt; forkguard &lt;&lt;&lt;</code> in your profile, so you can read it or delete it by hand.</p>
+<aside class="note note-note"><p class="note-label">Note</p><p>The check walks the project each time, so on a very large repo you may notice it after <code>git checkout</code>. A typical project takes well under a second.</p></aside>
+<section class="next-steps" id="where-to-next" aria-labelledby="next-h"><h2 id="next-h">Where to next</h2><ul class="tasks"><li><a href="../../commands/setup/"><span class="task-t">forkguard setup</span><span class="task-d">The command in full.</span><span class="task-go" aria-hidden="true">→</span></a></li><li><a href="../../guides/github-action/"><span class="task-t">GitHub Action</span><span class="task-d">Protect every push.</span><span class="task-go" aria-hidden="true">→</span></a></li><li><a href="../../guides/troubleshooting/"><span class="task-t">Troubleshooting</span><span class="task-d">If something does not run.</span><span class="task-go" aria-hidden="true">→</span></a></li></ul></section>
+<nav class="pager" aria-label="Previous and next page"><a class="prev" href="../../guides/before-you-clone/" rel="prev"><span>Previous</span>Before you clone</a><a class="next" href="../../guides/github-action/" rel="next"><span>Next</span>GitHub Action</a></nav>
+<p class="doc-foot"><a href="https://github.com/PRODHOSH/forkguard/edit/main/tools/docs/pages/guides.mjs">Edit this page on GitHub</a> <span aria-hidden="true">·</span> <a href="../../guides/automatic-protection.md">View as Markdown</a></p>
+</main>
+<aside class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="l2"><a href="#turn-it-on">Turn it on</a></li><li class="l2"><a href="#which-commands-are-checked">Which commands are checked</a></li><li class="l2"><a href="#what-you-see">What you see</a></li><li class="l2"><a href="#when-the-check-is-skipped">When the check is skipped</a></li><li class="l2"><a href="#it-checks-the-project-you-mean">It checks the project you mean</a></li><li class="l2"><a href="#it-fails-open">It fails open</a></li><li class="l2"><a href="#run-something-anyway-once">Run something anyway, once</a></li><li class="l2"><a href="#turn-it-off">Turn it off</a></li><li class="l2"><a href="#where-to-next">Where to next</a></li></ul></aside>
+</div>
+<footer class="foot">
+  <p>forkguard 0.3.2 · MIT license · <a href="https://github.com/PRODHOSH/forkguard">GitHub</a> · <a href="https://www.npmjs.com/package/forkguard">npm</a> · <a href="../../about/">About</a></p>
+</footer>
+<dialog id="search" class="search" aria-label="Search the documentation">
+  <div class="search-box"><svg width="18" height="18" aria-hidden="true" focusable="false"><use href="#i-search"/></svg><input id="q" type="search" placeholder="Search the docs" autocomplete="off" autocapitalize="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="results" aria-autocomplete="list"><button type="button" class="esc" id="close-search" aria-label="Close search">Esc</button></div>
+  <ul id="results" role="listbox" aria-label="Search results"></ul>
+  <p class="search-hint" id="search-hint">Type to search. Use the arrow keys and Enter.</p>
+</dialog>
+</body>
+</html>

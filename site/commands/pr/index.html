@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>forkguard pr · forkguard docs</title>
+<meta name="description" content="forkguard pr cleans a repo on a new branch, pushes it and opens a pull request. Requirements, every step, the --upstream option for forks, and common errors.">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
+<meta name="author" content="Prodhosh V.S">
+<link rel="canonical" href="https://forkguard.pages.dev/commands/pr/">
+<link rel="alternate" type="text/markdown" href="https://forkguard.pages.dev/commands/pr.md">
+<link rel="sitemap" type="application/xml" href="https://forkguard.pages.dev/sitemap.xml">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="forkguard docs">
+<meta property="og:title" content="forkguard pr · forkguard docs">
+<meta property="og:description" content="forkguard pr cleans a repo on a new branch, pushes it and opens a pull request. Requirements, every step, the --upstream option for forks, and common errors.">
+<meta property="og:url" content="https://forkguard.pages.dev/commands/pr/">
+<meta property="og:image" content="https://forkguard.pages.dev/assets/social.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="forkguard documentation: Catch malware hidden in a repo before you install or run it.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://forkguard.pages.dev/assets/social.png">
+<link rel="icon" href="../../assets/brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="preload" href="../../assets/fonts/manrope.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../../assets/docs.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"forkguard docs","item":"https://forkguard.pages.dev/"},{"@type":"ListItem","position":2,"name":"Commands"},{"@type":"ListItem","position":3,"name":"forkguard pr","item":"https://forkguard.pages.dev/commands/pr/"}]},{"@type":"TechArticle","headline":"forkguard pr","description":"forkguard pr cleans a repo on a new branch, pushes it and opens a pull request. Requirements, every step, the --upstream option for forks, and common errors.","url":"https://forkguard.pages.dev/commands/pr/","inLanguage":"en","author":{"@type":"Person","name":"Prodhosh V.S","url":"https://prodhosh.me"},"publisher":{"@type":"Organization","name":"forkguard","logo":{"@type":"ImageObject","url":"https://forkguard.pages.dev/assets/brand/favicon.svg"}},"isPartOf":{"@type":"WebSite","name":"forkguard documentation","url":"https://forkguard.pages.dev/"}}]}</script>
+<script type="module" src="../../assets/docs.js" data-root="../../"></script>
+</head>
+<body>
+<svg class="sprite" aria-hidden="true" focusable="false">
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 16l4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-github" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.9.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.94.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z"/></symbol>
+</svg>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="top-inner">
+    <button class="icon-btn menu-btn" type="button" popovertarget="side" popovertargetaction="toggle" aria-controls="side" aria-label="Menu"><svg width="20" height="20" aria-hidden="true" focusable="false"><use href="#i-menu"/></svg></button>
+    <a class="brand" href="../../" aria-label="forkguard documentation, home"><picture><source media="(prefers-color-scheme: dark)" srcset="../../assets/brand/logo-on-dark.svg"><img src="../../assets/brand/logo.svg" alt="forkguard" width="117" height="30"></picture><span class="brand-sub">docs</span></a>
+    <div class="top-actions">
+      <button class="search-btn js-only" type="button" id="open-search" aria-keyshortcuts="/ Control+K Meta+K"><svg width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-search"/></svg><span>Search</span><kbd>/</kbd></button>
+      <label class="switch global-switch top-switch" title="Show every section as a short manual page"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label>
+      <a class="icon-link" href="https://github.com/PRODHOSH/forkguard" aria-label="forkguard on GitHub"><svg width="20" height="20" aria-hidden="true" focusable="false"><use href="#i-github"/></svg></a>
+    </div>
+  </div>
+</header>
+<div class="shell">
+<nav id="side" class="side" popover aria-label="Documentation"><div class="side-inner"><label class="switch global-switch side-switch" title="Show every section as a short manual page"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label><div class="group"><p class="group-title">Start</p><ul><li><a href="../../">Overview</a></li><li><a href="../../install/">Install</a></li><li><a href="../../quick-start/">Quick start</a></li></ul></div><div class="group"><p class="group-title">Commands</p><ul><li><a href="../../commands/check/">forkguard [folder]</a></li><li><a href="../../commands/check-repo/">forkguard owner/repo</a></li><li><a href="../../commands/mine/">forkguard --mine</a></li><li><a href="../../commands/fix/">forkguard fix</a></li><li><a href="../../commands/pr/" aria-current="page">forkguard pr</a></li><li><a href="../../commands/setup/">forkguard setup</a></li><li><a href="../../commands/agent/">forkguard agent<span class="badge">next release</span></a></li></ul></div><div class="group"><p class="group-title">Reference</p><ul><li><a href="../../reference/rules/">What it catches</a></li><li><a href="../../reference/json/">JSON output</a></li><li><a href="../../reference/options/">Options</a></li><li><a href="../../reference/exit-codes/">Exit codes</a></li><li><a href="../../reference/environment/">Environment</a></li></ul></div><div class="group"><p class="group-title">Guides</p><ul><li><a href="../../guides/read-results/">Reading the results</a></li><li><a href="../../guides/cleaning/">Cleaning an infected project</a></li><li><a href="../../guides/before-you-clone/">Before you clone</a></li><li><a href="../../guides/automatic-protection/">Automatic protection</a></li><li><a href="../../guides/github-action/">GitHub Action</a></li><li><a href="../../guides/ai-agents/">AI agents<span class="badge">next release</span></a></li><li><a href="../../guides/troubleshooting/">Troubleshooting &amp; FAQ</a></li></ul></div><div class="group"><p class="group-title">Internals</p><ul><li><a href="../../internals/how-it-works/">How it works</a></li><li><a href="../../internals/safety/">Safety and privacy</a></li></ul></div><div class="group"><p class="group-title">About</p><ul><li><a href="../../about/">About</a></li></ul></div></div></nav>
+<main id="main" class="doc">
+<nav class="crumbs" aria-label="Breadcrumb"><ol><li><a href="../../">Docs</a></li><li>Commands</li></ol></nav>
+
+<h1>forkguard pr</h1>
+<p class="lede">Clean the repo on a new branch and open a pull request, so GitHub gets fixed too.</p>
+<details class="mobile-toc"><summary>On this page</summary><ul><li class="l2"><a href="#name">NAME</a></li><li class="l2"><a href="#synopsis">SYNOPSIS</a></li><li class="l2"><a href="#requirements">REQUIREMENTS</a></li><li class="l2"><a href="#description">DESCRIPTION</a></li><li class="l2"><a href="#output">OUTPUT</a></li><li class="l2"><a href="#notes">NOTES</a></li><li class="l2"><a href="#exit-status">EXIT STATUS</a></li><li class="l2"><a href="#examples">EXAMPLES</a></li><li class="l2"><a href="#see-also">SEE ALSO</a></li><li class="l2"><a href="#where-to-next">WHERE TO NEXT</a></li></ul></details>
+<section class="man" id="name"><header class="man-head"><h2><a class="anchor" href="#name" aria-label="Link to this section">#</a>Name</h2>
+<label class="switch"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label></header>
+<div class="view view-more"><p><code>forkguard pr</code> cleans a repo on a new branch, pushes it and opens a pull request, so GitHub is fixed too and not just your laptop.</p></div><div class="view view-less"><p>forkguard pr - clean a repository and open a pull request</p></div></section>
+<section class="man" id="synopsis"><header class="man-head"><h2><a class="anchor" href="#synopsis" aria-label="Link to this section">#</a>Synopsis</h2>
+<label class="switch"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label></header>
+<div class="view view-more"><figure class="code"><pre tabindex="0"><code id="c">forkguard pr
+forkguard pr path/to/project
+forkguard pr --upstream</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure></div><div class="view view-less"><figure class="code"><pre tabindex="0"><code id="c-2">forkguard pr [folder] [--upstream]</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-2" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure></div></section>
+<section class="man" id="requirements"><header class="man-head"><h2><a class="anchor" href="#requirements" aria-label="Link to this section">#</a>Requirements</h2>
+<label class="switch"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label></header>
+<div class="view view-more"><ul><li>The folder is a git repo whose <code>origin</code> is on GitHub.</li><li>No uncommitted changes to tracked files. Commit or stash them first, so your work never mixes into the fix. (Untracked files are fine.)</li><li>You are on a branch, not in a detached HEAD.</li><li>A way to talk to GitHub: the GitHub CLI (<code>gh auth login</code>) or a <code>GITHUB_TOKEN</code>. Without either, forkguard still pushes the branch and prints a link so you can open the pull request yourself.</li></ul></div><div class="view view-less"><ul><li>origin on github.com; clean tracked tree; on a branch.</li><li>gh auth, GITHUB_TOKEN or GH_TOKEN. Falls back to printing the compare URL.</li></ul></div></section>
+<section class="man" id="description"><header class="man-head"><h2><a class="anchor" href="#description" aria-label="Link to this section">#</a>Description</h2>
+<label class="switch"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label></header>
+<div class="view view-more"><p>Here is everything it does, in order:</p>
+<ol class="flow"><li>Creates a new branch called <code>forkguard/remove-malware</code> (or <code>-2</code>, <code>-3</code> if that name is taken).</li><li>Runs the same cleaning as <a href="../../commands/fix/">`forkguard fix`</a>.</li><li>Takes committed <code>.env</code> files out of git while keeping them on your disk.</li><li>Commits everything as “Remove injected malware”.</li><li>Pushes the branch to GitHub.</li><li>Opens the pull request with a description of what was removed and what to do next.</li><li>Switches you back to the branch you were on.</li></ol>
+<p>The pull request tells reviewers what the malware does and what to do after merging: rotate tokens and keys from another device, block force pushes on the default branch, and run an antivirus scan.</p>
+<h3 id="upstream"><a class="anchor" href="#upstream" aria-label="Link to this section">#</a>--upstream</h3>
+<p>Use this when you forked a repo and the <strong>original</strong> repo has the malware. The pull request goes to the original owner instead of your fork.</p>
+<p>forkguard builds the fix on top of the original repo’s default branch, not your fork. This matters: if your fork is the infected one, a normal pull request would carry the malicious commit along with the fix. Building from the original keeps the pull request to exactly one commit, the fix. If the repo is not a fork, you get an error telling you to run <code>forkguard pr</code> without <code>--upstream</code>.</p></div><div class="view view-less"><p>Creates forkguard/remove-malware[-N] from HEAD, or from the upstream default branch with --upstream. Runs scan and fix with untrackSecrets. Stages only changed paths, commits “Remove injected malware”, pushes to origin, opens a PR via gh or the API, then switches back. If no commit results, the branch is deleted and the tree is reset.</p></div></section>
+<section class="man" id="output"><header class="man-head"><h2><a class="anchor" href="#output" aria-label="Link to this section">#</a>Output</h2>
+<label class="switch"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label></header>
+<div class="view view-more"><figure class="code is-output"><figcaption>Output</figcaption><pre tabindex="0"><code id="c-3">forkguard  cleaning you/old-project on a new branch forkguard/remove-malware
+
+  done  init                deleted
+  done  postcss.config.mjs  restored your original from git history
+
+  Pushing forkguard/remove-malware to you/old-project
+
+  Pull request opened: https://github.com/you/old-project/pull/12</code></pre></figure>
+<p>If it could not open the pull request itself, it still pushes and prints a link:</p>
+<figure class="code is-output"><figcaption>Output</figcaption><pre tabindex="0"><code id="c-4">  Branch pushed. Open the pull request here:
+  https://github.com/you/old-project/compare/main...you:forkguard/remove-malware?expand=1</code></pre></figure></div><div class="view view-less"><figure class="code is-output"><figcaption>Output</figcaption><pre tabindex="0"><code id="c-5">Pull request opened: &lt;url&gt;
+Branch pushed. Open the pull request here: &lt;compare url&gt;</code></pre></figure></div></section>
+<section class="man" id="notes"><header class="man-head"><h2><a class="anchor" href="#notes" aria-label="Link to this section">#</a>Notes</h2>
+<label class="switch"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label></header>
+<div class="view view-more"><ul><li><strong>Nothing to clean:</strong> prints “has nothing to clean.” and leaves no branch behind.</li><li><strong>Only never-committed files:</strong> when the only problem was a dropped file that was never committed (for example an untracked <code>config.bat</code>), it is deleted from your folder and forkguard says there is nothing to put in a pull request.</li><li><strong>Your work is safe:</strong> the fix is built on a fresh branch. If anything fails before the commit, forkguard resets that branch, switches you back and deletes it.</li><li><strong>Secrets:</strong> committed <code>.env</code> files are removed from git (<code>git rm --cached</code>) but kept on your disk, and <code>.gitignore</code> is updated so they stay out.</li></ul>
+<h3 id="errors-you-may-see"><a class="anchor" href="#errors-you-may-see" aria-label="Link to this section">#</a>Errors you may see</h3>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Table"><table><thead><tr><th scope="col">Message</th><th scope="col">What to do</th></tr></thead><tbody><tr><th scope="row">This folder is not a git repo</th><td>Use <a href="../../commands/fix/">`forkguard fix`</a> instead.</td></tr><tr><th scope="row">The origin remote is not on GitHub</th><td><code>forkguard pr</code> only works with repos on GitHub. Use <code>forkguard fix</code>.</td></tr><tr><th scope="row">You have uncommitted changes</th><td>Run <code>git stash</code>, try again, then <code>git stash pop</code>.</td></tr><tr><th scope="row">You are not on a branch</th><td>Switch to the branch you want to clean first.</td></tr><tr><th scope="row">… is not a fork, so there is no upstream</th><td>Run <code>forkguard pr</code> without <code>--upstream</code>.</td></tr><tr><th scope="row">Nothing could be fixed automatically</th><td>The findings need a person. Run <code>forkguard</code> to read them.</td></tr></tbody></table></div></div><div class="view view-less"><ul><li>Branch deleted and tree reset if no commit is made.</li><li>Detached HEAD, dirty tracked tree and non-GitHub origins are rejected.</li></ul></div></section>
+<section class="man" id="exit-status"><header class="man-head"><h2><a class="anchor" href="#exit-status" aria-label="Link to this section">#</a>Exit status</h2>
+<label class="switch"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label></header>
+<div class="view view-more"><div class="table-wrap" tabindex="0" role="region" aria-label="Table"><table><thead><tr><th scope="col">Code</th><th scope="col">Meaning</th></tr></thead><tbody><tr><th scope="row"><code>0</code></th><td>Clean, or only MED findings.</td></tr><tr><th scope="row"><code>1</code></th><td>Something HIGH was found.</td></tr><tr><th scope="row"><code>2</code></th><td>forkguard itself could not run, for example a failed push.</td></tr></tbody></table></div>
+<p>The same codes work in scripts and CI. See <a href="../../reference/exit-codes/">Exit codes</a>.</p></div><div class="view view-less"><figure class="code"><pre tabindex="0"><code id="c-6">0   clean, or MED findings only
+1   a HIGH finding
+2   error (for example a failed push)</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-6" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure></div></section>
+<section class="man" id="examples"><header class="man-head"><h2><a class="anchor" href="#examples" aria-label="Link to this section">#</a>Examples</h2>
+<label class="switch"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label></header>
+<div class="view view-more"><p>Fix your own repo:</p>
+<figure class="code"><pre tabindex="0"><code id="c-7">gh auth login
+git stash          # only if you have unsaved work
+forkguard pr
+git stash pop</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-7" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure>
+<p>Send the fix to the repo you forked from:</p>
+<figure class="code"><pre tabindex="0"><code id="c-8">forkguard pr --upstream</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-8" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Table"><table><thead><tr><th scope="col">You want to…</th><th scope="col">Run</th></tr></thead><tbody><tr><th scope="row">Clean your own repo on GitHub</th><td><code>forkguard pr</code></td></tr><tr><th scope="row">Send the fix to the repo you forked from</th><td><code>forkguard pr --upstream</code></td></tr></tbody></table></div></div><div class="view view-less"><figure class="code"><pre tabindex="0"><code id="c-9">forkguard pr
+forkguard pr --upstream</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-9" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure></div></section>
+<section class="man" id="see-also"><header class="man-head"><h2><a class="anchor" href="#see-also" aria-label="Link to this section">#</a>See also</h2></header><div class="view"><ul><li><a href="../../commands/fix/">`forkguard fix`</a></li><li><a href="../../guides/cleaning/">Cleaning an infected project</a></li><li><a href="../../guides/github-action/">GitHub Action</a>: open the fix automatically</li></ul></div></section>
+<section class="next-steps" id="where-to-next" aria-labelledby="next-h"><h2 id="next-h">Where to next</h2><ul class="tasks"><li><a href="../../guides/cleaning/"><span class="task-t">Cleaning an infected project</span><span class="task-d">Rotate secrets, block force pushes.</span><span class="task-go" aria-hidden="true">→</span></a></li><li><a href="../../guides/github-action/"><span class="task-t">Check every push</span><span class="task-d">Open the fix automatically with the GitHub Action.</span><span class="task-go" aria-hidden="true">→</span></a></li><li><a href="../../commands/fix/"><span class="task-t">forkguard fix</span><span class="task-d">Clean locally only.</span><span class="task-go" aria-hidden="true">→</span></a></li></ul></section>
+<nav class="pager" aria-label="Previous and next page"><a class="prev" href="../../commands/fix/" rel="prev"><span>Previous</span>forkguard fix</a><a class="next" href="../../commands/setup/" rel="next"><span>Next</span>forkguard setup</a></nav>
+<p class="doc-foot"><a href="https://github.com/PRODHOSH/forkguard/edit/main/tools/docs/pages/commands.mjs">Edit this page on GitHub</a> <span aria-hidden="true">·</span> <a href="../../commands/pr.md">View as Markdown</a></p>
+</main>
+<aside class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="l2"><a href="#name">NAME</a></li><li class="l2"><a href="#synopsis">SYNOPSIS</a></li><li class="l2"><a href="#requirements">REQUIREMENTS</a></li><li class="l2"><a href="#description">DESCRIPTION</a></li><li class="l2"><a href="#output">OUTPUT</a></li><li class="l2"><a href="#notes">NOTES</a></li><li class="l2"><a href="#exit-status">EXIT STATUS</a></li><li class="l2"><a href="#examples">EXAMPLES</a></li><li class="l2"><a href="#see-also">SEE ALSO</a></li><li class="l2"><a href="#where-to-next">WHERE TO NEXT</a></li></ul></aside>
+</div>
+<footer class="foot">
+  <p>forkguard 0.3.2 · MIT license · <a href="https://github.com/PRODHOSH/forkguard">GitHub</a> · <a href="https://www.npmjs.com/package/forkguard">npm</a> · <a href="../../about/">About</a></p>
+</footer>
+<dialog id="search" class="search" aria-label="Search the documentation">
+  <div class="search-box"><svg width="18" height="18" aria-hidden="true" focusable="false"><use href="#i-search"/></svg><input id="q" type="search" placeholder="Search the docs" autocomplete="off" autocapitalize="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="results" aria-autocomplete="list"><button type="button" class="esc" id="close-search" aria-label="Close search">Esc</button></div>
+  <ul id="results" role="listbox" aria-label="Search results"></ul>
+  <p class="search-hint" id="search-hint">Type to search. Use the arrow keys and Enter.</p>
+</dialog>
+</body>
+</html>

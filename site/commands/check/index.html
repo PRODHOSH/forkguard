@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>forkguard · forkguard docs</title>
+<meta name="description" content="forkguard checks a folder for malware hidden in it. Read only. What it reads, what it skips, how to read the output, options and exit codes.">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
+<meta name="author" content="Prodhosh V.S">
+<link rel="canonical" href="https://forkguard.pages.dev/commands/check/">
+<link rel="alternate" type="text/markdown" href="https://forkguard.pages.dev/commands/check.md">
+<link rel="sitemap" type="application/xml" href="https://forkguard.pages.dev/sitemap.xml">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="forkguard docs">
+<meta property="og:title" content="forkguard · forkguard docs">
+<meta property="og:description" content="forkguard checks a folder for malware hidden in it. Read only. What it reads, what it skips, how to read the output, options and exit codes.">
+<meta property="og:url" content="https://forkguard.pages.dev/commands/check/">
+<meta property="og:image" content="https://forkguard.pages.dev/assets/social.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="forkguard documentation: Catch malware hidden in a repo before you install or run it.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://forkguard.pages.dev/assets/social.png">
+<link rel="icon" href="../../assets/brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="preload" href="../../assets/fonts/manrope.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../../assets/docs.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"forkguard docs","item":"https://forkguard.pages.dev/"},{"@type":"ListItem","position":2,"name":"Commands"},{"@type":"ListItem","position":3,"name":"forkguard","item":"https://forkguard.pages.dev/commands/check/"}]},{"@type":"TechArticle","headline":"forkguard","description":"forkguard checks a folder for malware hidden in it. Read only. What it reads, what it skips, how to read the output, options and exit codes.","url":"https://forkguard.pages.dev/commands/check/","inLanguage":"en","author":{"@type":"Person","name":"Prodhosh V.S","url":"https://prodhosh.me"},"publisher":{"@type":"Organization","name":"forkguard","logo":{"@type":"ImageObject","url":"https://forkguard.pages.dev/assets/brand/favicon.svg"}},"isPartOf":{"@type":"WebSite","name":"forkguard documentation","url":"https://forkguard.pages.dev/"}}]}</script>
+<script type="module" src="../../assets/docs.js" data-root="../../"></script>
+</head>
+<body>
+<svg class="sprite" aria-hidden="true" focusable="false">
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 16l4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-github" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.9.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.94.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z"/></symbol>
+</svg>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="top-inner">
+    <button class="icon-btn menu-btn" type="button" popovertarget="side" popovertargetaction="toggle" aria-controls="side" aria-label="Menu"><svg width="20" height="20" aria-hidden="true" focusable="false"><use href="#i-menu"/></svg></button>
+    <a class="brand" href="../../" aria-label="forkguard documentation, home"><picture><source media="(prefers-color-scheme: dark)" srcset="../../assets/brand/logo-on-dark.svg"><img src="../../assets/brand/logo.svg" alt="forkguard" width="117" height="30"></picture><span class="brand-sub">docs</span></a>
+    <div class="top-actions">
+      <button class="search-btn js-only" type="button" id="open-search" aria-keyshortcuts="/ Control+K Meta+K"><svg width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-search"/></svg><span>Search</span><kbd>/</kbd></button>
+      <label class="switch global-switch top-switch" title="Show every section as a short manual page"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label>
+      <a class="icon-link" href="https://github.com/PRODHOSH/forkguard" aria-label="forkguard on GitHub"><svg width="20" height="20" aria-hidden="true" focusable="false"><use href="#i-github"/></svg></a>
+    </div>
+  </div>
+</header>
+<div class="shell">
+<nav id="side" class="side" popover aria-label="Documentation"><div class="side-inner"><label class="switch global-switch side-switch" title="Show every section as a short manual page"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label><div class="group"><p class="group-title">Start</p><ul><li><a href="../../">Overview</a></li><li><a href="../../install/">Install</a></li><li><a href="../../quick-start/">Quick start</a></li></ul></div><div class="group"><p class="group-title">Commands</p><ul><li><a href="../../commands/check/" aria-current="page">forkguard [folder]</a></li><li><a href="../../commands/check-repo/">forkguard owner/repo</a></li><li><a href="../../commands/mine/">forkguard --mine</a></li><li><a href="../../commands/fix/">forkguard fix</a></li><li><a href="../../commands/pr/">forkguard pr</a></li><li><a href="../../commands/setup/">forkguard setup</a></li><li><a href="../../commands/agent/">forkguard agent<span class="badge">next release</span></a></li></ul></div><div class="group"><p class="group-title">Reference</p><ul><li><a href="../../reference/rules/">What it catches</a></li><li><a href="../../reference/json/">JSON output</a></li><li><a href="../../reference/options/">Options</a></li><li><a href="../../reference/exit-codes/">Exit codes</a></li><li><a href="../../reference/environment/">Environment</a></li></ul></div><div class="group"><p class="group-title">Guides</p><ul><li><a href="../../guides/read-results/">Reading the results</a></li><li><a href="../../guides/cleaning/">Cleaning an infected project</a></li><li><a href="../../guides/before-you-clone/">Before you clone</a></li><li><a href="../../guides/automatic-protection/">Automatic protection</a></li><li><a href="../../guides/github-action/">GitHub Action</a></li><li><a href="../../guides/ai-agents/">AI agents<span class="badge">next release</span></a></li><li><a href="../../guides/troubleshooting/">Troubleshooting &amp; FAQ</a></li></ul></div><div class="group"><p class="group-title">Internals</p><ul><li><a href="../../internals/how-it-works/">How it works</a></li><li><a href="../../internals/safety/">Safety and privacy</a></li></ul></div><div class="group"><p class="group-title">About</p><ul><li><a href="../../about/">About</a></li></ul></div></div></nav>
+<main id="main" class="doc">
+<nav class="crumbs" aria-label="Breadcrumb"><ol><li><a href="../../">Docs</a></li><li>Commands</li></ol></nav>
+
+<h1>forkguard</h1>
+<p class="lede">Check a folder for hidden malware. Read only.</p>
+<details class="mobile-toc"><summary>On this page</summary><ul><li class="l2"><a href="#name">NAME</a></li><li class="l2"><a href="#synopsis">SYNOPSIS</a></li><li class="l2"><a href="#description">DESCRIPTION</a></li><li class="l2"><a href="#output">OUTPUT</a></li><li class="l2"><a href="#options">OPTIONS</a></li><li class="l2"><a href="#exit-status">EXIT STATUS</a></li><li class="l2"><a href="#environment">ENVIRONMENT</a></li><li class="l2"><a href="#examples">EXAMPLES</a></li><li class="l2"><a href="#see-also">SEE ALSO</a></li><li class="l2"><a href="#where-to-next">WHERE TO NEXT</a></li></ul></details>
+<section class="man" id="name"><header class="man-head"><h2><a class="anchor" href="#name" aria-label="Link to this section">#</a>Name</h2>
+<label class="switch"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label></header>
+<div class="view view-more"><p><code>forkguard</code> checks a folder for malware hidden in it. It only reads files. It never changes anything.</p></div><div class="view view-less"><p>forkguard - check a folder for hidden malware</p></div></section>
+<section class="man" id="synopsis"><header class="man-head"><h2><a class="anchor" href="#synopsis" aria-label="Link to this section">#</a>Synopsis</h2>
+<label class="switch"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label></header>
+<div class="view view-more"><figure class="code"><pre tabindex="0"><code id="c">forkguard
+forkguard path/to/project
+forkguard path/to/project --json</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure>
+<dl><div><dt><code>folder</code></dt><dd>The folder to check. Optional. Defaults to the folder you are in.</dd></div><div><dt><code>--json</code></dt><dd>Print the results as JSON instead of text.</dd></div></dl></div><div class="view view-less"><figure class="code"><pre tabindex="0"><code id="c-2">forkguard [folder] [--json]</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-2" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure></div></section>
+<section class="man" id="description"><header class="man-head"><h2><a class="anchor" href="#description" aria-label="Link to this section">#</a>Description</h2>
+<label class="switch"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label></header>
+<div class="view view-more"><p>Checks every file in the folder that this malware is known to use, and reports each problem with a level, a file and a plain-words message. It takes well under a second for a typical project.</p>
+<h3 id="what-it-reads"><a class="anchor" href="#what-it-reads" aria-label="Link to this section">#</a>What it reads</h3>
+<ul><li>JavaScript and TypeScript files (<code>.js .mjs .cjs .ts .mts .cts .jsx .tsx .vue .svelte</code>) and any file named <code>init</code>.</li><li><code>package.json</code> and lockfiles (<code>package-lock.json</code>, <code>npm-shrinkwrap.json</code>, <code>yarn.lock</code>, <code>pnpm-lock.yaml</code>, <code>bun.lock</code>).</li><li><code>.vscode/tasks.json</code>, <code>.vscode/settings.json</code> and <code>.vscode/extension.json</code>.</li><li>Font files (<code>.woff .woff2 .ttf .otf .ttc .eot</code>) and <code>README.md</code> files inside fonts folders.</li><li>Dropped files such as <code>config.bat</code> and <code>temp_auto_push.bat</code>, and any <code>.bat</code>, <code>.cmd</code> or <code>.sh</code> script.</li><li><code>.gitignore</code>, and <code>.env</code> files.</li></ul>
+<h3 id="what-it-skips"><a class="anchor" href="#what-it-skips" aria-label="Link to this section">#</a>What it skips</h3>
+<p><code>node_modules</code>, <code>.git</code>, <code>.next</code>, <code>.nuxt</code>, <code>.svelte-kit</code>, <code>.turbo</code>, <code>.vercel</code>, <code>.output</code>, <code>dist</code>, <code>build</code>, <code>out</code>, <code>coverage</code>, <code>.cache</code>, <code>.parcel-cache</code>, <code>vendor</code>, <code>__pycache__</code>, <code>.venv</code> and <code>venv</code>. These hold generated code rather than yours, and skipping them is what keeps the check fast. Files larger than 6 MB are skipped too.</p>
+<h3 id="when-the-folder-is-a-git-repo"><a class="anchor" href="#when-the-folder-is-a-git-repo" aria-label="Link to this section">#</a>When the folder is a git repo</h3>
+<ul><li>Reports <code>.env</code> files that are already committed, and <code>.env</code> files git is not ignoring.</li><li>When a HIGH problem is found, also checks whether your latest commit was rewritten after it was made (same moment, different timezone).</li></ul>
+<h3 id="always"><a class="anchor" href="#always" aria-label="Link to this section">#</a>Always</h3>
+<p>Checks whether npm itself on your computer is infected, because an infected npm would bring the malware back after every cleanup. It reads npm’s files directly and never runs npm to do it.</p></div><div class="view view-less"><p>Scans the folder for known PolinRider artifacts. Read only.</p>
+<p>Reads source files, package.json, lockfiles, .vscode files, fonts, scripts, .gitignore and .env files. Skips node_modules, .git, build output and files over 6 MB.</p>
+<p>In a git repo, also reports committed or unignored .env files and a rewritten HEAD commit. Always checks the npm installation on this machine.</p></div></section>
+<section class="man" id="output"><header class="man-head"><h2><a class="anchor" href="#output" aria-label="Link to this section">#</a>Output</h2>
+<label class="switch"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label></header>
+<div class="view view-more"><p>A clean project prints one line:</p>
+<figure class="code is-output"><figcaption>Output</figcaption><pre tabindex="0"><code id="c-3">forkguard  my-app looks clean (433 files checked)</code></pre></figure>
+<p>A project with problems prints one line per problem:</p>
+<figure class="code is-output"><figcaption>Output</figcaption><pre tabindex="0"><code id="c-4">forkguard  my-app
+
+  HIGH  init          Code hidden after 776 blank spaces on line 35
+  HIGH  package.json  &quot;dev&quot; runs a hidden file called init before your real command
+  MED   .gitignore    Hides config.bat, a file this malware drops
+
+  3 problems found. Do not run npm install, npm run dev or open this folder in VS Code yet.
+  Run forkguard fix to clean it, or forkguard pr to clean it and open a pull request.</code></pre></figure>
+<p>Each line shows the <strong>level</strong>, the <strong>file</strong> and <strong>what is wrong</strong>. Problems are sorted with the most serious first.</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Table"><table><thead><tr><th scope="col">Level</th><th scope="col">Meaning</th></tr></thead><tbody><tr><th scope="row">HIGH</th><td>Can run by itself and steal from you. Do not install, run or open the project.</td></tr><tr><th scope="row">MED</th><td>Worth a look. Does not run by itself.</td></tr></tbody></table></div>
+<p>When a problem can be fixed automatically, the last line points you to <code>forkguard fix</code> and <code>forkguard pr</code>.</p></div><div class="view view-less"><figure class="code is-output"><figcaption>Output</figcaption><pre tabindex="0"><code id="c-5">LEVEL  FILE  MESSAGE
+
+HIGH  runs by itself; do not run the project
+MED   worth a look; does not run by itself</code></pre></figure>
+<p>The final line states the number of problems and what to do.</p></div></section>
+<section class="man" id="options"><header class="man-head"><h2><a class="anchor" href="#options" aria-label="Link to this section">#</a>Options</h2>
+<label class="switch"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label></header>
+<div class="view view-more"><dl><div><dt><code>--json</code></dt><dd>Print <code>{ root, checked, findings }</code> as JSON. See <a href="../../reference/json/">JSON output</a>.</dd></div><div><dt><code>--help</code>, <code>-h</code></dt><dd>Print all commands.</dd></div><div><dt><code>--version</code>, <code>-v</code></dt><dd>Print the version.</dd></div></dl></div><div class="view view-less"><dl><div><dt>--json</dt><dd>machine readable output</dd></div><div><dt>-h, --help</dt><dd>usage</dd></div><div><dt>-v, --version</dt><dd>version</dd></div></dl></div></section>
+<section class="man" id="exit-status"><header class="man-head"><h2><a class="anchor" href="#exit-status" aria-label="Link to this section">#</a>Exit status</h2>
+<label class="switch"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label></header>
+<div class="view view-more"><div class="table-wrap" tabindex="0" role="region" aria-label="Table"><table><thead><tr><th scope="col">Code</th><th scope="col">Meaning</th></tr></thead><tbody><tr><th scope="row"><code>0</code></th><td>Clean, or only MED findings.</td></tr><tr><th scope="row"><code>1</code></th><td>Something HIGH was found.</td></tr><tr><th scope="row"><code>2</code></th><td>forkguard itself could not run, for example a folder that does not exist.</td></tr></tbody></table></div>
+<p>The same codes work in scripts and CI. See <a href="../../reference/exit-codes/">Exit codes</a>.</p></div><div class="view view-less"><figure class="code"><pre tabindex="0"><code id="c-6">0   clean, or MED findings only
+1   a HIGH finding
+2   error (for example a folder that does not exist)</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-6" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure></div></section>
+<section class="man" id="environment"><header class="man-head"><h2><a class="anchor" href="#environment" aria-label="Link to this section">#</a>Environment</h2>
+<label class="switch"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label></header>
+<div class="view view-more"><dl><div><dt><code>NO_COLOR=1</code></dt><dd>Turn off colors in the output.</dd></div></dl></div><div class="view view-less"><dl><div><dt>NO_COLOR</dt><dd>disable colors</dd></div></dl></div></section>
+<section class="man" id="examples"><header class="man-head"><h2><a class="anchor" href="#examples" aria-label="Link to this section">#</a>Examples</h2>
+<label class="switch"><input type="checkbox" role="switch" class="sw"><span class="sw-track" aria-hidden="true"><span class="sw-knob"></span></span><span class="sw-label">Less comfortable</span></label></header>
+<div class="view view-more"><p>Check the folder you are in:</p>
+<figure class="code"><pre tabindex="0"><code id="c-7">forkguard</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-7" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure>
+<p>Check a folder you are not in:</p>
+<figure class="code"><pre tabindex="0"><code id="c-8">forkguard ~/projects/take-home-test</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-8" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure>
+<p>Use it in a script, and stop if something dangerous is found:</p>
+<figure class="code"><pre tabindex="0"><code id="c-9">forkguard --json &gt; report.json || echo &quot;stop: forkguard found something&quot;</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-9" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure>
+<aside class="note note-tip"><p class="note-label">Tip</p><p>Checking a repo you have not cloned yet? Use <a href="../../commands/check-repo/">`forkguard owner/repo`</a>. It does not need the files on your disk.</p></aside></div><div class="view view-less"><figure class="code"><pre tabindex="0"><code id="c-10">forkguard
+forkguard ./app
+forkguard ./app --json</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-10" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure></div></section>
+<section class="man" id="see-also"><header class="man-head"><h2><a class="anchor" href="#see-also" aria-label="Link to this section">#</a>See also</h2></header><div class="view"><ul><li><a href="../../commands/check-repo/">`forkguard owner/repo`</a>: check a repo without cloning it</li><li><a href="../../commands/fix/">`forkguard fix`</a>: clean what was found</li><li><a href="../../reference/rules/">What it catches</a>: every rule</li><li><a href="../../guides/read-results/">Reading the results</a></li></ul></div></section>
+<section class="next-steps" id="where-to-next" aria-labelledby="next-h"><h2 id="next-h">Where to next</h2><ul class="tasks"><li><a href="../../commands/check-repo/"><span class="task-t">Check a repo without cloning it</span><span class="task-d">forkguard owner/repo</span><span class="task-go" aria-hidden="true">→</span></a></li><li><a href="../../commands/fix/"><span class="task-t">Clean what was found</span><span class="task-d">forkguard fix</span><span class="task-go" aria-hidden="true">→</span></a></li><li><a href="../../guides/read-results/"><span class="task-t">Reading the results</span><span class="task-d">What each message means.</span><span class="task-go" aria-hidden="true">→</span></a></li><li><a href="../../reference/rules/"><span class="task-t">Every rule</span><span class="task-d">What it catches.</span><span class="task-go" aria-hidden="true">→</span></a></li></ul></section>
+<nav class="pager" aria-label="Previous and next page"><a class="prev" href="../../quick-start/" rel="prev"><span>Previous</span>Quick start</a><a class="next" href="../../commands/check-repo/" rel="next"><span>Next</span>forkguard owner/repo</a></nav>
+<p class="doc-foot"><a href="https://github.com/PRODHOSH/forkguard/edit/main/tools/docs/pages/commands.mjs">Edit this page on GitHub</a> <span aria-hidden="true">·</span> <a href="../../commands/check.md">View as Markdown</a></p>
+</main>
+<aside class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="l2"><a href="#name">NAME</a></li><li class="l2"><a href="#synopsis">SYNOPSIS</a></li><li class="l2"><a href="#description">DESCRIPTION</a></li><li class="l2"><a href="#output">OUTPUT</a></li><li class="l2"><a href="#options">OPTIONS</a></li><li class="l2"><a href="#exit-status">EXIT STATUS</a></li><li class="l2"><a href="#environment">ENVIRONMENT</a></li><li class="l2"><a href="#examples">EXAMPLES</a></li><li class="l2"><a href="#see-also">SEE ALSO</a></li><li class="l2"><a href="#where-to-next">WHERE TO NEXT</a></li></ul></aside>
+</div>
+<footer class="foot">
+  <p>forkguard 0.3.2 · MIT license · <a href="https://github.com/PRODHOSH/forkguard">GitHub</a> · <a href="https://www.npmjs.com/package/forkguard">npm</a> · <a href="../../about/">About</a></p>
+</footer>
+<dialog id="search" class="search" aria-label="Search the documentation">
+  <div class="search-box"><svg width="18" height="18" aria-hidden="true" focusable="false"><use href="#i-search"/></svg><input id="q" type="search" placeholder="Search the docs" autocomplete="off" autocapitalize="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="results" aria-autocomplete="list"><button type="button" class="esc" id="close-search" aria-label="Close search">Esc</button></div>
+  <ul id="results" role="listbox" aria-label="Search results"></ul>
+  <p class="search-hint" id="search-hint">Type to search. Use the arrow keys and Enter.</p>
+</dialog>
+</body>
+</html>

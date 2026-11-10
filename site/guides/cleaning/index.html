@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cleaning an infected project · forkguard docs</title>
+<meta name="description" content="What to do, in order, when forkguard finds malware: stop, clean, rotate secrets, block force pushes, check your other repos and make sure it does not come back.">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
+<meta name="author" content="Prodhosh V.S">
+<link rel="canonical" href="https://forkguard.pages.dev/guides/cleaning/">
+<link rel="alternate" type="text/markdown" href="https://forkguard.pages.dev/guides/cleaning.md">
+<link rel="sitemap" type="application/xml" href="https://forkguard.pages.dev/sitemap.xml">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="forkguard docs">
+<meta property="og:title" content="Cleaning an infected project · forkguard docs">
+<meta property="og:description" content="What to do, in order, when forkguard finds malware: stop, clean, rotate secrets, block force pushes, check your other repos and make sure it does not come back.">
+<meta property="og:url" content="https://forkguard.pages.dev/guides/cleaning/">
+<meta property="og:image" content="https://forkguard.pages.dev/assets/social.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="forkguard documentation: Catch malware hidden in a repo before you install or run it.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://forkguard.pages.dev/assets/social.png">
+<link rel="icon" href="../../assets/brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="preload" href="../../assets/fonts/manrope.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../../assets/docs.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"forkguard docs","item":"https://forkguard.pages.dev/"},{"@type":"ListItem","position":2,"name":"Guides"},{"@type":"ListItem","position":3,"name":"Cleaning an infected project","item":"https://forkguard.pages.dev/guides/cleaning/"}]},{"@type":"TechArticle","headline":"Cleaning an infected project","description":"What to do, in order, when forkguard finds malware: stop, clean, rotate secrets, block force pushes, check your other repos and make sure it does not come back.","url":"https://forkguard.pages.dev/guides/cleaning/","inLanguage":"en","author":{"@type":"Person","name":"Prodhosh V.S","url":"https://prodhosh.me"},"publisher":{"@type":"Organization","name":"forkguard","logo":{"@type":"ImageObject","url":"https://forkguard.pages.dev/assets/brand/favicon.svg"}},"isPartOf":{"@type":"WebSite","name":"forkguard documentation","url":"https://forkguard.pages.dev/"}}]}</script>
+<script type="module" src="../../assets/docs.js" data-root="../../"></script>
+</head>
+<body>
+<svg class="sprite" aria-hidden="true" focusable="false">
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 16l4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-github" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.9.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.94.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z"/></symbol>
+</svg>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="top-inner">
+    <button class="icon-btn menu-btn" type="button" popovertarget="side" popovertargetaction="toggle" aria-controls="side" aria-label="Menu"><svg width="20" height="20" aria-hidden="true" focusable="false"><use href="#i-menu"/></svg></button>
+    <a class="brand" href="../../" aria-label="forkguard documentation, home"><picture><source media="(prefers-color-scheme: dark)" srcset="../../assets/brand/logo-on-dark.svg"><img src="../../assets/brand/logo.svg" alt="forkguard" width="117" height="30"></picture><span class="brand-sub">docs</span></a>
+    <div class="top-actions">
+      <button class="search-btn js-only" type="button" id="open-search" aria-keyshortcuts="/ Control+K Meta+K"><svg width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-search"/></svg><span>Search</span><kbd>/</kbd></button>
+      
+      <a class="icon-link" href="https://github.com/PRODHOSH/forkguard" aria-label="forkguard on GitHub"><svg width="20" height="20" aria-hidden="true" focusable="false"><use href="#i-github"/></svg></a>
+    </div>
+  </div>
+</header>
+<div class="shell">
+<nav id="side" class="side" popover aria-label="Documentation"><div class="side-inner"><div class="group"><p class="group-title">Start</p><ul><li><a href="../../">Overview</a></li><li><a href="../../install/">Install</a></li><li><a href="../../quick-start/">Quick start</a></li></ul></div><div class="group"><p class="group-title">Commands</p><ul><li><a href="../../commands/check/">forkguard [folder]</a></li><li><a href="../../commands/check-repo/">forkguard owner/repo</a></li><li><a href="../../commands/mine/">forkguard --mine</a></li><li><a href="../../commands/fix/">forkguard fix</a></li><li><a href="../../commands/pr/">forkguard pr</a></li><li><a href="../../commands/setup/">forkguard setup</a></li><li><a href="../../commands/agent/">forkguard agent<span class="badge">next release</span></a></li></ul></div><div class="group"><p class="group-title">Reference</p><ul><li><a href="../../reference/rules/">What it catches</a></li><li><a href="../../reference/json/">JSON output</a></li><li><a href="../../reference/options/">Options</a></li><li><a href="../../reference/exit-codes/">Exit codes</a></li><li><a href="../../reference/environment/">Environment</a></li></ul></div><div class="group"><p class="group-title">Guides</p><ul><li><a href="../../guides/read-results/">Reading the results</a></li><li><a href="../../guides/cleaning/" aria-current="page">Cleaning an infected project</a></li><li><a href="../../guides/before-you-clone/">Before you clone</a></li><li><a href="../../guides/automatic-protection/">Automatic protection</a></li><li><a href="../../guides/github-action/">GitHub Action</a></li><li><a href="../../guides/ai-agents/">AI agents<span class="badge">next release</span></a></li><li><a href="../../guides/troubleshooting/">Troubleshooting &amp; FAQ</a></li></ul></div><div class="group"><p class="group-title">Internals</p><ul><li><a href="../../internals/how-it-works/">How it works</a></li><li><a href="../../internals/safety/">Safety and privacy</a></li></ul></div><div class="group"><p class="group-title">About</p><ul><li><a href="../../about/">About</a></li></ul></div></div></nav>
+<main id="main" class="doc">
+<nav class="crumbs" aria-label="Breadcrumb"><ol><li><a href="../../">Docs</a></li><li>Guides</li></ol></nav>
+
+<h1>Cleaning an infected project</h1>
+<p class="lede">Found something? Do this next. The order matters.</p>
+<details class="mobile-toc"><summary>On this page</summary><ul><li class="l2"><a href="#fix-or-pr">fix or pr?</a></li><li class="l2"><a href="#why-you-rotate-secrets-from-another-device">Why you rotate secrets from another device</a></li><li class="l2"><a href="#why-it-can-come-back">Why it can come back</a></li><li class="l2"><a href="#where-to-next">Where to next</a></li></ul></details>
+<ol><li><strong>Stop.</strong> Do not run <code>npm install</code> or <code>npm run dev</code>, and do not open the folder in VS Code.</li><li><strong>Clean it</strong> with <a href="../../commands/fix/">`forkguard fix`</a>, or <a href="../../commands/pr/">`forkguard pr`</a> to clean GitHub as well.</li><li><strong>From another device,</strong> change your passwords and keys: GitHub tokens, SSH keys, your npm token, cloud keys, and everything in your <code>.env</code> files. The malware steals these, so assume they are known.</li><li><strong>Stop history rewrites.</strong> In your GitHub repo go to Settings, then Rules, then Rulesets, and block force pushes on your main branch.</li><li><strong>If forkguard says npm itself is infected,</strong> reinstall Node.js from nodejs.org before running npm again.</li><li><strong>Check everything else:</strong> run <a href="../../commands/mine/">`forkguard --mine`</a> to check all your repos.</li><li><strong>Run a full antivirus scan,</strong> and tell anyone else who works on the same repos.</li></ol>
+<h2 id="fix-or-pr"><a class="anchor" href="#fix-or-pr" aria-label="Link to this section">#</a>fix or pr?</h2>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Table"><table><thead><tr><th scope="col">The malware is…</th><th scope="col">Use</th></tr></thead><tbody><tr><th scope="row">Only in a copy on your computer</th><td><code>forkguard fix</code></td></tr><tr><th scope="row">In a repo on GitHub (usually the case)</th><td><code>forkguard pr</code></td></tr><tr><th scope="row">In a repo you forked from someone else</th><td><code>forkguard pr --upstream</code></td></tr><tr><th scope="row">In a repo that is not on GitHub</th><td><code>forkguard fix</code>, then commit and push yourself</td></tr></tbody></table></div>
+<p>Remember the malware gets into GitHub, not your laptop. Run <code>git pull</code> before you check your own repos, so the copy you check is the one GitHub has.</p>
+<h2 id="why-you-rotate-secrets-from-another-device"><a class="anchor" href="#why-you-rotate-secrets-from-another-device" aria-label="Link to this section">#</a>Why you rotate secrets from another device</h2>
+<p>This malware steals tokens, keys and saved passwords, then uses your GitHub token to rewrite commits in every repo you can push to. If you change credentials on the infected machine, the malware may see the new ones too.</p>
+<h2 id="why-it-can-come-back"><a class="anchor" href="#why-it-can-come-back" aria-label="Link to this section">#</a>Why it can come back</h2>
+<ul><li><strong>Another repo is still infected.</strong> The malware spreads through repos you can push to. Check them all with <code>forkguard --mine</code>.</li><li><strong>npm is infected.</strong> An infected npm restarts the malware on every npm command. forkguard checks for this.</li><li><strong>A bad package is still in your dependencies.</strong> Look for <code>bad-package</code> findings, and remove the package.</li><li><strong>A newer variant.</strong> At least one repo was reinfected with the April 2026 variant after a cleanup of the original. Update forkguard and run it again.</li></ul>
+<aside class="note note-tip"><p class="note-label">Tip</p><p>Add the <a href="../../guides/github-action/">GitHub Action</a> with a nightly schedule, so a reinfection turns your build red within a day.</p></aside>
+<section class="next-steps" id="where-to-next" aria-labelledby="next-h"><h2 id="next-h">Where to next</h2><ul class="tasks"><li><a href="../../commands/pr/"><span class="task-t">forkguard pr</span><span class="task-d">Fix GitHub, not just your laptop.</span><span class="task-go" aria-hidden="true">→</span></a></li><li><a href="../../commands/mine/"><span class="task-t">Check all your repos</span><span class="task-d">forkguard --mine</span><span class="task-go" aria-hidden="true">→</span></a></li><li><a href="../../guides/automatic-protection/"><span class="task-t">Automatic protection</span><span class="task-d">Stop it happening again.</span><span class="task-go" aria-hidden="true">→</span></a></li></ul></section>
+<nav class="pager" aria-label="Previous and next page"><a class="prev" href="../../guides/read-results/" rel="prev"><span>Previous</span>Reading the results</a><a class="next" href="../../guides/before-you-clone/" rel="next"><span>Next</span>Before you clone</a></nav>
+<p class="doc-foot"><a href="https://github.com/PRODHOSH/forkguard/edit/main/tools/docs/pages/guides.mjs">Edit this page on GitHub</a> <span aria-hidden="true">·</span> <a href="../../guides/cleaning.md">View as Markdown</a></p>
+</main>
+<aside class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="l2"><a href="#fix-or-pr">fix or pr?</a></li><li class="l2"><a href="#why-you-rotate-secrets-from-another-device">Why you rotate secrets from another device</a></li><li class="l2"><a href="#why-it-can-come-back">Why it can come back</a></li><li class="l2"><a href="#where-to-next">Where to next</a></li></ul></aside>
+</div>
+<footer class="foot">
+  <p>forkguard 0.3.2 · MIT license · <a href="https://github.com/PRODHOSH/forkguard">GitHub</a> · <a href="https://www.npmjs.com/package/forkguard">npm</a> · <a href="../../about/">About</a></p>
+</footer>
+<dialog id="search" class="search" aria-label="Search the documentation">
+  <div class="search-box"><svg width="18" height="18" aria-hidden="true" focusable="false"><use href="#i-search"/></svg><input id="q" type="search" placeholder="Search the docs" autocomplete="off" autocapitalize="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="results" aria-autocomplete="list"><button type="button" class="esc" id="close-search" aria-label="Close search">Esc</button></div>
+  <ul id="results" role="listbox" aria-label="Search results"></ul>
+  <p class="search-hint" id="search-hint">Type to search. Use the arrow keys and Enter.</p>
+</dialog>
+</body>
+</html>

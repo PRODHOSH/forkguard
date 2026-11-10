@@ -1,0 +1,54 @@
+# forkguard
+
+> Catch malware hidden in a repo before you install or run it. Check a folder, a GitHub link or every repo you own, then clean what it finds and open a pull request.
+
+forkguard is a free, open source, zero-dependency Node.js command line tool (Node 18+, MIT) that finds malware hidden in repositories before you install or run them. It targets the PolinRider campaign: code hidden after hundreds of blank spaces, rewritten commits, fake font files, VS Code tasks that run on folder open, and poisoned npm packages. It can check a folder, a GitHub repo (every branch, without writing its files to disk) or every repo you own, clean what it finds (restoring original files from git history), open a pull request with the fix, and check automatically before npm install and after git clone. Exit codes: 0 clean, 1 dangerous finding, 2 error. Current npm version: 0.3.2.
+
+## Start
+
+- [Documentation](https://forkguard.pages.dev/index.md): forkguard finds malware hidden in repos before you install or run them, cleans it up and opens the pull request. Full documentation: every command, option, rule and guide.
+- [Install](https://forkguard.pages.dev/install.md): Install forkguard with npm, try it once with npx, update it and remove it. Requirements for Windows, macOS and Linux.
+- [Quick start](https://forkguard.pages.dev/quick-start.md): Your first forkguard check in two minutes: check a project, read the result, clean it, open a pull request and turn on automatic protection.
+
+## Commands
+
+- [forkguard](https://forkguard.pages.dev/commands/check.md): forkguard checks a folder for malware hidden in it. Read only. What it reads, what it skips, how to read the output, options and exit codes.
+- [forkguard owner/repo](https://forkguard.pages.dev/commands/check-repo.md): Check a GitHub repo for hidden malware, every branch, without downloading its files to your disk. Accepted link forms, how it stays safe, output and exit codes.
+- [forkguard --mine](https://forkguard.pages.dev/commands/mine.md): Check every repo you own on GitHub, every branch, with one command. Requirements, output, statuses and JSON.
+- [forkguard fix](https://forkguard.pages.dev/commands/fix.md): forkguard fix removes the malware it found from a folder and restores your original files from git history. What it deletes, cleans and restores, and what it leaves for you.
+- [forkguard pr](https://forkguard.pages.dev/commands/pr.md): forkguard pr cleans a repo on a new branch, pushes it and opens a pull request. Requirements, every step, the --upstream option for forks, and common errors.
+- [forkguard setup](https://forkguard.pages.dev/commands/setup.md): forkguard setup turns on automatic checks before npm, pnpm, yarn and bun run, and after git clone and pull. What it changes, what it checks, fail-open behaviour and how to turn it off.
+- [forkguard agent](https://forkguard.pages.dev/commands/agent.md): forkguard agent prints or installs safety rules for AI coding agents such as Claude Code, Cursor, Copilot and Codex, so they check a project before running it.
+
+## Reference
+
+- [What it catches](https://forkguard.pages.dev/reference/rules.md): Every forkguard rule: hidden code, signatures, env loaders, poisoned scripts, fake fonts, auto-run VS Code tasks, droppers, bad npm packages, rewritten commits and more. Level, detection and fix for each.
+- [JSON output](https://forkguard.pages.dev/reference/json.md): The JSON forkguard prints with --json for folders, GitHub repos and --mine: every field, rule id and fix value.
+- [Options](https://forkguard.pages.dev/reference/options.md): Every forkguard command-line option and which command it works with.
+- [Exit codes](https://forkguard.pages.dev/reference/exit-codes.md): forkguard exit codes for scripts and CI: 0 clean, 1 a dangerous finding, 2 an error.
+- [Environment variables](https://forkguard.pages.dev/reference/environment.md): Environment variables forkguard reads: FORKGUARD_SKIP, GITHUB_TOKEN, GH_TOKEN and NO_COLOR.
+
+## Guides
+
+- [Reading the results](https://forkguard.pages.dev/guides/read-results.md): How to read forkguard output: levels, files and messages, what each common message means and what to do about it.
+- [Cleaning an infected project](https://forkguard.pages.dev/guides/cleaning.md): What to do, in order, when forkguard finds malware: stop, clean, rotate secrets, block force pushes, check your other repos and make sure it does not come back.
+- [Check a repo before you clone it](https://forkguard.pages.dev/guides/before-you-clone.md): How to safely look at a repo you do not know, like a coding test from a recruiter: check the link first, then clone, and how VS Code trust fits in.
+- [Automatic protection](https://forkguard.pages.dev/guides/automatic-protection.md): How forkguard setup protects you every day: which npm, pnpm, yarn, bun and git commands are checked, what is skipped, how it fails open, and how to skip or remove it.
+- [GitHub Action](https://forkguard.pages.dev/guides/github-action.md): Use the forkguard GitHub Action to check every push and pull request, fail the build when malware lands, open the fix as a pull request, and schedule nightly checks.
+- [AI agents and vibe coding](https://forkguard.pages.dev/guides/ai-agents.md): Make AI coding agents such as Claude Code, Cursor, Copilot and Codex check a project with forkguard before running it. The rules, where they go, and why agents are a target.
+- [Troubleshooting and FAQ](https://forkguard.pages.dev/guides/troubleshooting.md): Fixes for common forkguard problems and answers to common questions: command not found, login errors, uncommitted changes, false alarms and more.
+
+## Internals
+
+- [How it works](https://forkguard.pages.dev/internals/how-it-works.md): How forkguard works under the hood: the attack it stops, how checking, fixing, pull requests, remote checks and automatic protection work, plus architecture and tech stack.
+- [Safety and privacy](https://forkguard.pages.dev/internals/safety.md): What forkguard never does, what it sends over the network, and what it cannot do: how it handles untrusted repos, git hooks, tokens and your code.
+
+## About
+
+- [About](https://forkguard.pages.dev/about.md): About forkguard and its author Prodhosh V.S: why it was built, the roadmap, license, how to contribute and where to find the author.
+
+## Optional
+
+- [Full documentation as one file](https://forkguard.pages.dev/llms-full.txt): every page, concatenated
+- [Source code](https://github.com/PRODHOSH/forkguard): GitHub repository
+- [npm package](https://www.npmjs.com/package/forkguard): install with npm install -g forkguard

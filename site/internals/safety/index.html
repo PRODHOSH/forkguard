@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Safety and privacy · forkguard docs</title>
+<meta name="description" content="What forkguard never does, what it sends over the network, and what it cannot do: how it handles untrusted repos, git hooks, tokens and your code.">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
+<meta name="author" content="Prodhosh V.S">
+<link rel="canonical" href="https://forkguard.pages.dev/internals/safety/">
+<link rel="alternate" type="text/markdown" href="https://forkguard.pages.dev/internals/safety.md">
+<link rel="sitemap" type="application/xml" href="https://forkguard.pages.dev/sitemap.xml">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="forkguard docs">
+<meta property="og:title" content="Safety and privacy · forkguard docs">
+<meta property="og:description" content="What forkguard never does, what it sends over the network, and what it cannot do: how it handles untrusted repos, git hooks, tokens and your code.">
+<meta property="og:url" content="https://forkguard.pages.dev/internals/safety/">
+<meta property="og:image" content="https://forkguard.pages.dev/assets/social.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="forkguard documentation: Catch malware hidden in a repo before you install or run it.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://forkguard.pages.dev/assets/social.png">
+<link rel="icon" href="../../assets/brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="preload" href="../../assets/fonts/manrope.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../../assets/docs.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"forkguard docs","item":"https://forkguard.pages.dev/"},{"@type":"ListItem","position":2,"name":"Internals"},{"@type":"ListItem","position":3,"name":"Safety and privacy","item":"https://forkguard.pages.dev/internals/safety/"}]},{"@type":"TechArticle","headline":"Safety and privacy","description":"What forkguard never does, what it sends over the network, and what it cannot do: how it handles untrusted repos, git hooks, tokens and your code.","url":"https://forkguard.pages.dev/internals/safety/","inLanguage":"en","author":{"@type":"Person","name":"Prodhosh V.S","url":"https://prodhosh.me"},"publisher":{"@type":"Organization","name":"forkguard","logo":{"@type":"ImageObject","url":"https://forkguard.pages.dev/assets/brand/favicon.svg"}},"isPartOf":{"@type":"WebSite","name":"forkguard documentation","url":"https://forkguard.pages.dev/"}}]}</script>
+<script type="module" src="../../assets/docs.js" data-root="../../"></script>
+</head>
+<body>
+<svg class="sprite" aria-hidden="true" focusable="false">
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 16l4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-github" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.9.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.94.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z"/></symbol>
+</svg>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="top-inner">
+    <button class="icon-btn menu-btn" type="button" popovertarget="side" popovertargetaction="toggle" aria-controls="side" aria-label="Menu"><svg width="20" height="20" aria-hidden="true" focusable="false"><use href="#i-menu"/></svg></button>
+    <a class="brand" href="../../" aria-label="forkguard documentation, home"><picture><source media="(prefers-color-scheme: dark)" srcset="../../assets/brand/logo-on-dark.svg"><img src="../../assets/brand/logo.svg" alt="forkguard" width="117" height="30"></picture><span class="brand-sub">docs</span></a>
+    <div class="top-actions">
+      <button class="search-btn js-only" type="button" id="open-search" aria-keyshortcuts="/ Control+K Meta+K"><svg width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-search"/></svg><span>Search</span><kbd>/</kbd></button>
+      
+      <a class="icon-link" href="https://github.com/PRODHOSH/forkguard" aria-label="forkguard on GitHub"><svg width="20" height="20" aria-hidden="true" focusable="false"><use href="#i-github"/></svg></a>
+    </div>
+  </div>
+</header>
+<div class="shell">
+<nav id="side" class="side" popover aria-label="Documentation"><div class="side-inner"><div class="group"><p class="group-title">Start</p><ul><li><a href="../../">Overview</a></li><li><a href="../../install/">Install</a></li><li><a href="../../quick-start/">Quick start</a></li></ul></div><div class="group"><p class="group-title">Commands</p><ul><li><a href="../../commands/check/">forkguard [folder]</a></li><li><a href="../../commands/check-repo/">forkguard owner/repo</a></li><li><a href="../../commands/mine/">forkguard --mine</a></li><li><a href="../../commands/fix/">forkguard fix</a></li><li><a href="../../commands/pr/">forkguard pr</a></li><li><a href="../../commands/setup/">forkguard setup</a></li><li><a href="../../commands/agent/">forkguard agent<span class="badge">next release</span></a></li></ul></div><div class="group"><p class="group-title">Reference</p><ul><li><a href="../../reference/rules/">What it catches</a></li><li><a href="../../reference/json/">JSON output</a></li><li><a href="../../reference/options/">Options</a></li><li><a href="../../reference/exit-codes/">Exit codes</a></li><li><a href="../../reference/environment/">Environment</a></li></ul></div><div class="group"><p class="group-title">Guides</p><ul><li><a href="../../guides/read-results/">Reading the results</a></li><li><a href="../../guides/cleaning/">Cleaning an infected project</a></li><li><a href="../../guides/before-you-clone/">Before you clone</a></li><li><a href="../../guides/automatic-protection/">Automatic protection</a></li><li><a href="../../guides/github-action/">GitHub Action</a></li><li><a href="../../guides/ai-agents/">AI agents<span class="badge">next release</span></a></li><li><a href="../../guides/troubleshooting/">Troubleshooting &amp; FAQ</a></li></ul></div><div class="group"><p class="group-title">Internals</p><ul><li><a href="../../internals/how-it-works/">How it works</a></li><li><a href="../../internals/safety/" aria-current="page">Safety and privacy</a></li></ul></div><div class="group"><p class="group-title">About</p><ul><li><a href="../../about/">About</a></li></ul></div></div></nav>
+<main id="main" class="doc">
+<nav class="crumbs" aria-label="Breadcrumb"><ol><li><a href="../../">Docs</a></li><li>Internals</li></ol></nav>
+
+<h1>Safety and privacy</h1>
+<p class="lede">What forkguard never does, and what it cannot do.</p>
+<details class="mobile-toc"><summary>On this page</summary><ul><li class="l2"><a href="#what-it-never-does">What it never does</a></li><li class="l2"><a href="#what-goes-over-the-network">What goes over the network</a></li><li class="l2"><a href="#what-it-changes-on-your-machine">What it changes on your machine</a></li><li class="l2"><a href="#what-it-cannot-do">What it cannot do</a></li><li class="l2"><a href="#reporting-a-problem-in-forkguard-itself">Reporting a problem in forkguard itself</a></li><li class="l2"><a href="#where-to-next">Where to next</a></li></ul></details>
+<h2 id="what-it-never-does"><a class="anchor" href="#what-it-never-does" aria-label="Link to this section">#</a>What it never does</h2>
+<ul><li><strong>It never runs code from the project it checks.</strong> It only reads files.</li><li><strong>It switches off git hooks</strong> every time it calls git, because an infected repo can ship its own.</li><li><strong>It never runs npm</strong> to check npm. It reads npm’s files directly.</li><li><strong>It never writes a downloaded repo’s files to disk.</strong> Link checks keep everything packed inside git and delete it afterwards.</li><li><strong>It never uploads your code.</strong> Nothing you check leaves your machine.</li><li><strong>It has no telemetry and no account.</strong></li><li><strong>It has zero dependencies.</strong> There is nothing between you and the check that could be compromised.</li></ul>
+<h2 id="what-goes-over-the-network"><a class="anchor" href="#what-goes-over-the-network" aria-label="Link to this section">#</a>What goes over the network</h2>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Table"><table><thead><tr><th scope="col">When</th><th scope="col">Where to</th><th scope="col">What</th></tr></thead><tbody><tr><th scope="row"><code>forkguard owner/repo</code>, <code>--mine</code></th><td>The git host of the repo (for example github.com)</td><td>A shallow clone of the repo you asked to check.</td></tr><tr><th scope="row"><code>--mine</code>, <code>pr</code></th><td><code>api.github.com</code></td><td>Listing your repos, and opening a pull request. Your token is sent only here.</td></tr><tr><th scope="row"><code>pr</code></th><td>Your <code>origin</code> remote</td><td>Pushing the fix branch.</td></tr><tr><th scope="row">Everything else</th><td>Nowhere</td><td>Folder checks, <code>fix</code>, <code>setup</code>, <code>agent</code> and <code>--help</code> are completely offline.</td></tr></tbody></table></div>
+<h2 id="what-it-changes-on-your-machine"><a class="anchor" href="#what-it-changes-on-your-machine" aria-label="Link to this section">#</a>What it changes on your machine</h2>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Table"><table><thead><tr><th scope="col">Command</th><th scope="col">Changes</th></tr></thead><tbody><tr><th scope="row"><code>forkguard</code>, <code>forkguard owner/repo</code>, <code>--mine</code></th><td>Nothing. Read only. (A link check uses a temporary folder that it deletes.)</td></tr><tr><th scope="row"><code>forkguard fix</code></th><td>Files in the folder you point it at, only the ones it reported.</td></tr><tr><th scope="row"><code>forkguard pr</code></th><td>A new branch and commit, a push to <code>origin</code>, and a pull request. Your starting branch is restored.</td></tr><tr><th scope="row"><code>forkguard setup</code></th><td>One marked block in your shell profile(s), and optionally one VS Code setting.</td></tr><tr><th scope="row"><code>forkguard agent --write</code></th><td>A marked block in AGENTS.md and similar files in the folder you point it at.</td></tr></tbody></table></div>
+<h2 id="what-it-cannot-do"><a class="anchor" href="#what-it-cannot-do" aria-label="Link to this section">#</a>What it cannot do</h2>
+<ul><li><strong>It only knows the tricks it knows.</strong> A clean result means none of those tricks are present. It is not a sandbox, and it does not replace antivirus.</li><li><strong>It skips generated folders.</strong> Malware committed only inside <code>dist</code>, <code>build</code>, <code>out</code>, <code>vendor</code> or <code>node_modules</code> is not seen.</li><li><strong>It cannot undo what already ran.</strong> If you ran an infected project before checking, rotate your tokens and keys from another device. See <a href="../../guides/cleaning/">Cleaning an infected project</a>.</li><li><strong>It cannot stop a command in git.</strong> The git hook checks after the command, so it warns, it does not block.</li><li><strong>Reading is not the same as understanding.</strong> Some findings (a bad package, an install script) need a person to decide.</li></ul>
+<h2 id="reporting-a-problem-in-forkguard-itself"><a class="anchor" href="#reporting-a-problem-in-forkguard-itself" aria-label="Link to this section">#</a>Reporting a problem in forkguard itself</h2>
+<p>If you find a security problem in forkguard, please email <strong>hello@prodhosh.me</strong> instead of opening a public issue. You will get a reply within a few days and credit in the release notes if you like. See the <a href="https://github.com/PRODHOSH/forkguard/blob/main/SECURITY.md">security policy</a>.</p>
+<section class="next-steps" id="where-to-next" aria-labelledby="next-h"><h2 id="next-h">Where to next</h2><ul class="tasks"><li><a href="../../guides/cleaning/"><span class="task-t">Cleaning an infected project</span><span class="task-d">If you already ran it.</span><span class="task-go" aria-hidden="true">→</span></a></li><li><a href="../../internals/how-it-works/"><span class="task-t">How it works</span><span class="task-d">The details.</span><span class="task-go" aria-hidden="true">→</span></a></li></ul></section>
+<nav class="pager" aria-label="Previous and next page"><a class="prev" href="../../internals/how-it-works/" rel="prev"><span>Previous</span>How it works</a><a class="next" href="../../about/" rel="next"><span>Next</span>About</a></nav>
+<p class="doc-foot"><a href="https://github.com/PRODHOSH/forkguard/edit/main/tools/docs/pages/internals.mjs">Edit this page on GitHub</a> <span aria-hidden="true">·</span> <a href="../../internals/safety.md">View as Markdown</a></p>
+</main>
+<aside class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="l2"><a href="#what-it-never-does">What it never does</a></li><li class="l2"><a href="#what-goes-over-the-network">What goes over the network</a></li><li class="l2"><a href="#what-it-changes-on-your-machine">What it changes on your machine</a></li><li class="l2"><a href="#what-it-cannot-do">What it cannot do</a></li><li class="l2"><a href="#reporting-a-problem-in-forkguard-itself">Reporting a problem in forkguard itself</a></li><li class="l2"><a href="#where-to-next">Where to next</a></li></ul></aside>
+</div>
+<footer class="foot">
+  <p>forkguard 0.3.2 · MIT license · <a href="https://github.com/PRODHOSH/forkguard">GitHub</a> · <a href="https://www.npmjs.com/package/forkguard">npm</a> · <a href="../../about/">About</a></p>
+</footer>
+<dialog id="search" class="search" aria-label="Search the documentation">
+  <div class="search-box"><svg width="18" height="18" aria-hidden="true" focusable="false"><use href="#i-search"/></svg><input id="q" type="search" placeholder="Search the docs" autocomplete="off" autocapitalize="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="results" aria-autocomplete="list"><button type="button" class="esc" id="close-search" aria-label="Close search">Esc</button></div>
+  <ul id="results" role="listbox" aria-label="Search results"></ul>
+  <p class="search-hint" id="search-hint">Type to search. Use the arrow keys and Enter.</p>
+</dialog>
+</body>
+</html>

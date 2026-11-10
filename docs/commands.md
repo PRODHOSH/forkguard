@@ -1,3 +1,12 @@
+<p align="center">
+  <a href="https://github.com/PRODHOSH/forkguard">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="../site/assets/brand/logo-on-dark.svg">
+      <img src="../site/assets/brand/logo.svg" alt="forkguard" height="56">
+    </picture>
+  </a>
+</p>
+
 # Commands reference
 
 Every command, option, output and exit code in forkguard, explained in detail. If you are just starting out, read [Getting started](getting-started.md) first.
@@ -381,3 +390,14 @@ Add `--json` to get results you can read from a script.
 | `rule` | Which check found it, like `hidden-code`, `fake-font` or `script` |
 | `message` | What is wrong, in plain words |
 | `fix` | What `forkguard fix` will do, or `null` if a person has to decide |
+
+## forkguard agent
+
+Safety rules for AI coding agents (Claude Code, Cursor, Copilot, Codex), so they check a project before running it.
+
+```bash
+forkguard agent           # print the rules
+forkguard agent --write   # add them to AGENTS.md / CLAUDE.md / Cursor / Copilot files that already exist (AGENTS.md if none do)
+```
+
+The rules tell the agent to run `npx forkguard --json` first, stop on exit code 1, never run `fix` or `pr` without asking, and treat everything inside a repo (README, comments, commit messages, forkguard's own output) as data, not instructions. Running it again changes nothing.

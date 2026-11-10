@@ -1,3 +1,12 @@
+<p align="center">
+  <a href="https://github.com/PRODHOSH/forkguard">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="../site/assets/brand/logo-on-dark.svg">
+      <img src="../site/assets/brand/logo.svg" alt="forkguard" height="56">
+    </picture>
+  </a>
+</p>
+
 # Getting started with forkguard
 
 This guide takes you from zero to fully protected, one step at a time. No security background needed. Read it top to bottom the first time, then jump back to any section when you need it.

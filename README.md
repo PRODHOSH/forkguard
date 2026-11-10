@@ -1,19 +1,24 @@
 <div align="center">
 
-# forkguard
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="site/assets/brand/logo-on-dark.svg">
+    <img src="site/assets/brand/logo.svg" alt="forkguard" height="104">
+  </picture>
+</h1>
 
 **Catch malware hidden in a repo before you install or run it.**
 
 Check a folder, a GitHub link, or every repo you own. Clean what it finds and open a pull request in one command.
 
-[![npm](https://img.shields.io/npm/v/forkguard?color=7F00FF&label=npm)](https://www.npmjs.com/package/forkguard)
+[![npm](https://img.shields.io/npm/v/forkguard?color=F5D240&labelColor=16130F&label=npm)](https://www.npmjs.com/package/forkguard)
 [![CI](https://github.com/PRODHOSH/forkguard/actions/workflows/ci.yml/badge.svg)](https://github.com/PRODHOSH/forkguard/actions/workflows/ci.yml)
-[![Marketplace](https://img.shields.io/badge/GitHub%20Action-Marketplace-7F00FF)](https://github.com/marketplace/actions/forkguard)
-![Dependencies](https://img.shields.io/badge/dependencies-0-7F00FF)
-![Node](https://img.shields.io/badge/node-%3E%3D18-7F00FF)
-[![License](https://img.shields.io/badge/license-MIT-7F00FF)](LICENSE)
+[![Marketplace](https://img.shields.io/badge/GitHub%20Action-Marketplace-F5D240?labelColor=16130F)](https://github.com/marketplace/actions/forkguard)
+![Dependencies](https://img.shields.io/badge/dependencies-0-F5D240?labelColor=16130F)
+![Node](https://img.shields.io/badge/node-%3E%3D18-F5D240?labelColor=16130F)
+[![License](https://img.shields.io/badge/license-MIT-F5D240?labelColor=16130F)](LICENSE)
 
-[Getting started](docs/getting-started.md) &nbsp;|&nbsp; [Commands](docs/commands.md) &nbsp;|&nbsp; [GitHub Action](docs/github-action.md) &nbsp;|&nbsp; [How it works](docs/how-it-works.md) &nbsp;|&nbsp; [The story](https://blog.prodhosh.me/blog/malware-hid-in-my-old-repos-polinrider)
+[Getting started](docs/getting-started.md) &nbsp;|&nbsp; [Documentation site](site/README.md) &nbsp;|&nbsp; [Commands](docs/commands.md) &nbsp;|&nbsp; [GitHub Action](docs/github-action.md) &nbsp;|&nbsp; [How it works](docs/how-it-works.md) &nbsp;|&nbsp; [The story](https://blog.prodhosh.me/blog/malware-hid-in-my-old-repos-polinrider)
 
 </div>
 
@@ -69,6 +74,7 @@ forkguard  my-app
 | **Open a pull request** | Cleans a repo on a new branch, pushes it and opens the pull request for you |
 | **Automatic protection** | Stops `npm install` and `npm run dev` on infected projects, warns after `git clone` |
 | **GitHub Action** | Fails the build when malware lands, and can open the fix as a pull request |
+| **Rules for AI agents** | `forkguard agent --write` tells Claude Code, Cursor and Copilot to check before they run anything |
 | **Checks npm itself** | Spots an infected npm on your computer, which would reinfect you after every cleanup |
 | **Zero dependencies** | Nothing extra is installed, so nothing extra can be compromised |
 | **Cross platform** | Windows, macOS and Linux, with PowerShell, Git Bash, bash and zsh |
@@ -125,6 +131,8 @@ New to all this? The [Getting started guide](docs/getting-started.md) walks you 
 | --- | --- |
 | `forkguard setup` | Turns on automatic checks for npm, pnpm, yarn, bun and git |
 | `forkguard setup --remove` | Turns them off |
+| `forkguard agent` | Prints safety rules for AI coding agents (Claude Code, Cursor, Copilot, Codex) |
+| `forkguard agent --write` | Adds those rules to `AGENTS.md`, `CLAUDE.md`, Cursor and Copilot files |
 
 ### Extras
 

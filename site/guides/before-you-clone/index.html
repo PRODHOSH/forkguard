@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Check a repo before you clone it · forkguard docs</title>
+<meta name="description" content="How to safely look at a repo you do not know, like a coding test from a recruiter: check the link first, then clone, and how VS Code trust fits in.">
+<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)">
+<meta name="author" content="Prodhosh V.S">
+<link rel="canonical" href="https://forkguard.pages.dev/guides/before-you-clone/">
+<link rel="alternate" type="text/markdown" href="https://forkguard.pages.dev/guides/before-you-clone.md">
+<link rel="sitemap" type="application/xml" href="https://forkguard.pages.dev/sitemap.xml">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="forkguard docs">
+<meta property="og:title" content="Check a repo before you clone it · forkguard docs">
+<meta property="og:description" content="How to safely look at a repo you do not know, like a coding test from a recruiter: check the link first, then clone, and how VS Code trust fits in.">
+<meta property="og:url" content="https://forkguard.pages.dev/guides/before-you-clone/">
+<meta property="og:image" content="https://forkguard.pages.dev/assets/social.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="forkguard documentation: Catch malware hidden in a repo before you install or run it.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://forkguard.pages.dev/assets/social.png">
+<link rel="icon" href="../../assets/brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="../../apple-touch-icon.png">
+<link rel="preload" href="../../assets/fonts/manrope.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../../assets/docs.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"forkguard docs","item":"https://forkguard.pages.dev/"},{"@type":"ListItem","position":2,"name":"Guides"},{"@type":"ListItem","position":3,"name":"Check a repo before you clone it","item":"https://forkguard.pages.dev/guides/before-you-clone/"}]},{"@type":"TechArticle","headline":"Check a repo before you clone it","description":"How to safely look at a repo you do not know, like a coding test from a recruiter: check the link first, then clone, and how VS Code trust fits in.","url":"https://forkguard.pages.dev/guides/before-you-clone/","inLanguage":"en","author":{"@type":"Person","name":"Prodhosh V.S","url":"https://prodhosh.me"},"publisher":{"@type":"Organization","name":"forkguard","logo":{"@type":"ImageObject","url":"https://forkguard.pages.dev/assets/brand/favicon.svg"}},"isPartOf":{"@type":"WebSite","name":"forkguard documentation","url":"https://forkguard.pages.dev/"}}]}</script>
+<script type="module" src="../../assets/docs.js" data-root="../../"></script>
+</head>
+<body>
+<svg class="sprite" aria-hidden="true" focusable="false">
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 16l4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+<symbol id="i-github" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.9.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.69-4.57 4.94.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z"/></symbol>
+</svg>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="top-inner">
+    <button class="icon-btn menu-btn" type="button" popovertarget="side" popovertargetaction="toggle" aria-controls="side" aria-label="Menu"><svg width="20" height="20" aria-hidden="true" focusable="false"><use href="#i-menu"/></svg></button>
+    <a class="brand" href="../../" aria-label="forkguard documentation, home"><picture><source media="(prefers-color-scheme: dark)" srcset="../../assets/brand/logo-on-dark.svg"><img src="../../assets/brand/logo.svg" alt="forkguard" width="117" height="30"></picture><span class="brand-sub">docs</span></a>
+    <div class="top-actions">
+      <button class="search-btn js-only" type="button" id="open-search" aria-keyshortcuts="/ Control+K Meta+K"><svg width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-search"/></svg><span>Search</span><kbd>/</kbd></button>
+      
+      <a class="icon-link" href="https://github.com/PRODHOSH/forkguard" aria-label="forkguard on GitHub"><svg width="20" height="20" aria-hidden="true" focusable="false"><use href="#i-github"/></svg></a>
+    </div>
+  </div>
+</header>
+<div class="shell">
+<nav id="side" class="side" popover aria-label="Documentation"><div class="side-inner"><div class="group"><p class="group-title">Start</p><ul><li><a href="../../">Overview</a></li><li><a href="../../install/">Install</a></li><li><a href="../../quick-start/">Quick start</a></li></ul></div><div class="group"><p class="group-title">Commands</p><ul><li><a href="../../commands/check/">forkguard [folder]</a></li><li><a href="../../commands/check-repo/">forkguard owner/repo</a></li><li><a href="../../commands/mine/">forkguard --mine</a></li><li><a href="../../commands/fix/">forkguard fix</a></li><li><a href="../../commands/pr/">forkguard pr</a></li><li><a href="../../commands/setup/">forkguard setup</a></li><li><a href="../../commands/agent/">forkguard agent<span class="badge">next release</span></a></li></ul></div><div class="group"><p class="group-title">Reference</p><ul><li><a href="../../reference/rules/">What it catches</a></li><li><a href="../../reference/json/">JSON output</a></li><li><a href="../../reference/options/">Options</a></li><li><a href="../../reference/exit-codes/">Exit codes</a></li><li><a href="../../reference/environment/">Environment</a></li></ul></div><div class="group"><p class="group-title">Guides</p><ul><li><a href="../../guides/read-results/">Reading the results</a></li><li><a href="../../guides/cleaning/">Cleaning an infected project</a></li><li><a href="../../guides/before-you-clone/" aria-current="page">Before you clone</a></li><li><a href="../../guides/automatic-protection/">Automatic protection</a></li><li><a href="../../guides/github-action/">GitHub Action</a></li><li><a href="../../guides/ai-agents/">AI agents<span class="badge">next release</span></a></li><li><a href="../../guides/troubleshooting/">Troubleshooting &amp; FAQ</a></li></ul></div><div class="group"><p class="group-title">Internals</p><ul><li><a href="../../internals/how-it-works/">How it works</a></li><li><a href="../../internals/safety/">Safety and privacy</a></li></ul></div><div class="group"><p class="group-title">About</p><ul><li><a href="../../about/">About</a></li></ul></div></div></nav>
+<main id="main" class="doc">
+<nav class="crumbs" aria-label="Breadcrumb"><ol><li><a href="../../">Docs</a></li><li>Guides</li></ol></nav>
+
+<h1>Check a repo before you clone it</h1>
+<p class="lede">The safest way to look at a repo you do not know yet.</p>
+<details class="mobile-toc"><summary>On this page</summary><ul><li class="l2"><a href="#check-the-link-first">Check the link first</a></li><li class="l2"><a href="#clone-only-if-it-was-clean">Clone only if it was clean</a></li><li class="l2"><a href="#open-it-carefully">Open it carefully</a></li><li class="l2"><a href="#things-to-look-at-yourself">Things to look at yourself</a></li><li class="l2"><a href="#where-to-next">Where to next</a></li></ul></details>
+<p>A common way this malware reaches developers is a coding test or “take-home project” sent by a recruiter, or a repo you found online. It arrives as a normal-looking repo. You clone it, open it in VS Code or run <code>npm install</code>, and it runs.</p>
+<h2 id="check-the-link-first"><a class="anchor" href="#check-the-link-first" aria-label="Link to this section">#</a>Check the link first</h2>
+<figure class="code"><pre tabindex="0"><code id="c">forkguard recruiter/take-home-test</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure>
+<p>That downloads only the latest commit of every branch into a temporary folder, reads it from git’s database without unpacking the files, and deletes the download. <a href="../../commands/check-repo/">Details</a>.</p>
+<ul><li>Result says <strong>looks clean</strong>: you can clone and open it.</li><li>Result shows anything <strong>HIGH</strong>: do not clone it, do not open it and do not run it.</li></ul>
+<h2 id="clone-only-if-it-was-clean"><a class="anchor" href="#clone-only-if-it-was-clean" aria-label="Link to this section">#</a>Clone only if it was clean</h2>
+<figure class="code"><pre tabindex="0"><code id="c-2">forkguard recruiter/take-home-test &amp;&amp; git clone https://github.com/recruiter/take-home-test</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-2" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure>
+<p>Then check the folder once more after cloning:</p>
+<figure class="code"><pre tabindex="0"><code id="c-3">cd take-home-test
+forkguard</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-3" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure>
+<h2 id="open-it-carefully"><a class="anchor" href="#open-it-carefully" aria-label="Link to this section">#</a>Open it carefully</h2>
+<ul><li>When VS Code asks whether you trust the authors of the folder, choose <strong>No</strong> unless you have checked it. Untrusted folders open in Restricted Mode, where tasks do not run. Reports on this campaign describe that prompt as the main gate.</li><li>Turn off automatic tasks for good with <a href="../../commands/setup/">`forkguard setup`</a>. It sets <code>task.allowAutomaticTasks</code> to <code>&quot;off&quot;</code>.</li><li>To only read the code, you can open a repo in the browser with github.dev, which does not run local tasks.</li><li>Do not run install or start scripts until you have read <code>package.json</code>.</li></ul>
+<h2 id="things-to-look-at-yourself"><a class="anchor" href="#things-to-look-at-yourself" aria-label="Link to this section">#</a>Things to look at yourself</h2>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Table"><table><thead><tr><th scope="col">Where</th><th scope="col">What looks wrong</th></tr></thead><tbody><tr><th scope="row"><code>package.json</code> scripts</th><td>A script that runs <code>node init</code>, or a file from a fonts or assets folder, before the real command</td></tr><tr><th scope="row"><code>.vscode/tasks.json</code></th><td>Any task with <code>&quot;runOn&quot;: &quot;folderOpen&quot;</code></td></tr><tr><th scope="row"><code>public/fonts</code>, <code>static</code>, <code>assets</code></th><td>A font file you cannot open as a font</td></tr><tr><th scope="row">Config files (<code>postcss.config.mjs</code>, <code>tailwind.config.js</code>, <code>next.config.mjs</code>, <code>vite.config.js</code>)</th><td>Scroll all the way to the right on the longest line</td></tr><tr><th scope="row">Dependencies</th><td>An unfamiliar “tailwind-something” or “style-animate” package</td></tr></tbody></table></div>
+<aside class="note note-warning"><p class="note-label">Warning</p><p>forkguard checks for the tricks it knows. It is not a sandbox. If a repo comes from someone you do not trust, run it in a throwaway virtual machine or container even when it looks clean.</p></aside>
+<section class="next-steps" id="where-to-next" aria-labelledby="next-h"><h2 id="next-h">Where to next</h2><ul class="tasks"><li><a href="../../commands/check-repo/"><span class="task-t">forkguard owner/repo</span><span class="task-d">The command in full.</span><span class="task-go" aria-hidden="true">→</span></a></li><li><a href="../../guides/automatic-protection/"><span class="task-t">Automatic protection</span><span class="task-d">Check after every git clone.</span><span class="task-go" aria-hidden="true">→</span></a></li><li><a href="../../internals/safety/"><span class="task-t">Safety and privacy</span><span class="task-d">What forkguard cannot do.</span><span class="task-go" aria-hidden="true">→</span></a></li></ul></section>
+<nav class="pager" aria-label="Previous and next page"><a class="prev" href="../../guides/cleaning/" rel="prev"><span>Previous</span>Cleaning an infected project</a><a class="next" href="../../guides/automatic-protection/" rel="next"><span>Next</span>Automatic protection</a></nav>
+<p class="doc-foot"><a href="https://github.com/PRODHOSH/forkguard/edit/main/tools/docs/pages/guides.mjs">Edit this page on GitHub</a> <span aria-hidden="true">·</span> <a href="../../guides/before-you-clone.md">View as Markdown</a></p>
+</main>
+<aside class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="l2"><a href="#check-the-link-first">Check the link first</a></li><li class="l2"><a href="#clone-only-if-it-was-clean">Clone only if it was clean</a></li><li class="l2"><a href="#open-it-carefully">Open it carefully</a></li><li class="l2"><a href="#things-to-look-at-yourself">Things to look at yourself</a></li><li class="l2"><a href="#where-to-next">Where to next</a></li></ul></aside>
+</div>
+<footer class="foot">
+  <p>forkguard 0.3.2 · MIT license · <a href="https://github.com/PRODHOSH/forkguard">GitHub</a> · <a href="https://www.npmjs.com/package/forkguard">npm</a> · <a href="../../about/">About</a></p>
+</footer>
+<dialog id="search" class="search" aria-label="Search the documentation">
+  <div class="search-box"><svg width="18" height="18" aria-hidden="true" focusable="false"><use href="#i-search"/></svg><input id="q" type="search" placeholder="Search the docs" autocomplete="off" autocapitalize="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="results" aria-autocomplete="list"><button type="button" class="esc" id="close-search" aria-label="Close search">Esc</button></div>
+  <ul id="results" role="listbox" aria-label="Search results"></ul>
+  <p class="search-hint" id="search-hint">Type to search. Use the arrow keys and Enter.</p>
+</dialog>
+</body>
+</html>

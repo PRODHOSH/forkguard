@@ -16,7 +16,8 @@
   },
   "scripts": {
     "test": "node --test",
-    "scan": "node bin/forkguard.js"
+    "scan": "node bin/forkguard.js",
+    "docs": "node tools/build-docs.mjs"
   },
   "keywords": [
     "security",
