@@ -7,6 +7,8 @@
   </a>
 </p>
 
+> This page is also on the [documentation site](https://forkguard.pages.dev/internals/how-it-works/), with search and a short and a plain-words version of every command.
+
 # How forkguard works
 
 The details behind the scenes. You do not need any of this to use forkguard. For that, see [Getting started](getting-started.md).

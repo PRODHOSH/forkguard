@@ -7,6 +7,8 @@
   </a>
 </p>
 
+> This page is also on the [documentation site](https://forkguard.pages.dev/guides/github-action/), with search and a short and a plain-words version of every command.
+
 # Using forkguard in GitHub Actions
 
 Let GitHub check your repo on every push and pull request, so you find out the moment something bad lands, even if you are not at your computer.

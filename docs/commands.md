@@ -7,6 +7,8 @@
   </a>
 </p>
 
+> This page is also on the [documentation site](https://forkguard.pages.dev/commands/check/), with search and a short and a plain-words version of every command.
+
 # Commands reference
 
 Every command, option, output and exit code in forkguard, explained in detail. If you are just starting out, read [Getting started](getting-started.md) first.

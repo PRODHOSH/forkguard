@@ -6,3 +6,6 @@ contact_links:
   - name: The story behind forkguard
     url: https://blog.prodhosh.me/blog/malware-hid-in-my-old-repos-polinrider
     about: How this malware hid in my repos and how I found it.
+  - name: Documentation
+    url: https://forkguard.pages.dev
+    about: Every command, option and rule, with search.

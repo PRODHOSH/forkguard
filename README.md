@@ -11,14 +11,15 @@
 
 Check a folder, a GitHub link, or every repo you own. Clean what it finds and open a pull request in one command.
 
-[![npm](https://img.shields.io/npm/v/forkguard?color=F5D240&labelColor=16130F&label=npm)](https://www.npmjs.com/package/forkguard)
+[![npm](https://img.shields.io/npm/v/forkguard?color=2F5BFF&labelColor=0B1B33&label=npm)](https://www.npmjs.com/package/forkguard)
 [![CI](https://github.com/PRODHOSH/forkguard/actions/workflows/ci.yml/badge.svg)](https://github.com/PRODHOSH/forkguard/actions/workflows/ci.yml)
-[![Marketplace](https://img.shields.io/badge/GitHub%20Action-Marketplace-F5D240?labelColor=16130F)](https://github.com/marketplace/actions/forkguard)
-![Dependencies](https://img.shields.io/badge/dependencies-0-F5D240?labelColor=16130F)
-![Node](https://img.shields.io/badge/node-%3E%3D18-F5D240?labelColor=16130F)
-[![License](https://img.shields.io/badge/license-MIT-F5D240?labelColor=16130F)](LICENSE)
+[![Marketplace](https://img.shields.io/badge/GitHub%20Action-Marketplace-2F5BFF?labelColor=0B1B33)](https://github.com/marketplace/actions/forkguard)
+![Dependencies](https://img.shields.io/badge/dependencies-0-2F5BFF?labelColor=0B1B33)
+![Node](https://img.shields.io/badge/node-%3E%3D18-2F5BFF?labelColor=0B1B33)
+[![License](https://img.shields.io/badge/license-MIT-2F5BFF?labelColor=0B1B33)](LICENSE)
+[![Docs](https://img.shields.io/badge/docs-forkguard.pages.dev-2F5BFF?labelColor=0B1B33)](https://forkguard.pages.dev)
 
-[Getting started](docs/getting-started.md) &nbsp;|&nbsp; [Documentation site](site/README.md) &nbsp;|&nbsp; [Commands](docs/commands.md) &nbsp;|&nbsp; [GitHub Action](docs/github-action.md) &nbsp;|&nbsp; [How it works](docs/how-it-works.md) &nbsp;|&nbsp; [The story](https://blog.prodhosh.me/blog/malware-hid-in-my-old-repos-polinrider)
+[**Documentation**](https://forkguard.pages.dev) &nbsp;|&nbsp; [Quick start](https://forkguard.pages.dev/quick-start/) &nbsp;|&nbsp; [Commands](https://forkguard.pages.dev/commands/check/) &nbsp;|&nbsp; [GitHub Action](https://forkguard.pages.dev/guides/github-action/) &nbsp;|&nbsp; [How it works](https://forkguard.pages.dev/internals/how-it-works/) &nbsp;|&nbsp; [The story](https://blog.prodhosh.me/blog/malware-hid-in-my-old-repos-polinrider)
 
 </div>
 
@@ -30,6 +31,7 @@ Check a folder, a GitHub link, or every repo you own. Clean what it finds and op
 - [Features](#features)
 - [Quick start](#quick-start)
 - [Commands](#commands)
+- [Documentation](#documentation)
 - [Which one are you?](#which-one-are-you)
 - [What it catches](#what-it-catches)
 - [Automatic protection](#automatic-protection)
@@ -103,7 +105,7 @@ forkguard setup
 
 Open a new terminal and you are protected from then on. Just want to try it without installing? Run `npx forkguard`.
 
-New to all this? The [Getting started guide](docs/getting-started.md) walks you through every step.
+New to all this? The [Getting started guide](https://forkguard.pages.dev/quick-start/) walks you through every step.
 
 ## Commands
 
@@ -143,7 +145,23 @@ New to all this? The [Getting started guide](docs/getting-started.md) walks you 
 | `--help` | Shows all commands |
 | `FORKGUARD_SKIP=1` | Skips the automatic check once |
 
-Every command, option and exit code is explained in detail in the [Commands reference](docs/commands.md).
+Every command, option and exit code is explained in detail in the [Commands reference](https://forkguard.pages.dev/commands/check/).
+
+## Documentation
+
+**Full documentation: [forkguard.pages.dev](https://forkguard.pages.dev)** with search, a plain-words and a short version of every command, and every rule explained.
+
+| I want to… | Read |
+| --- | --- |
+| Get started in two minutes | [Quick start](https://forkguard.pages.dev/quick-start/) |
+| Check a repo before I clone it | [Check a repo before you clone it](https://forkguard.pages.dev/guides/before-you-clone/) |
+| Understand every command | [`forkguard`](https://forkguard.pages.dev/commands/check/), [`fix`](https://forkguard.pages.dev/commands/fix/), [`pr`](https://forkguard.pages.dev/commands/pr/), [`setup`](https://forkguard.pages.dev/commands/setup/) |
+| Clean an infected project | [Cleaning an infected project](https://forkguard.pages.dev/guides/cleaning/) |
+| See every rule it checks | [What it catches](https://forkguard.pages.dev/reference/rules/) |
+| Use it from a script or an AI agent | [JSON output](https://forkguard.pages.dev/reference/json/), [AI agents](https://forkguard.pages.dev/guides/ai-agents/) |
+| Fix a problem | [Troubleshooting](https://forkguard.pages.dev/guides/troubleshooting/) |
+
+Machine readable: [`llms.txt`](https://forkguard.pages.dev/llms.txt) and [`llms-full.txt`](https://forkguard.pages.dev/llms-full.txt).
 
 ## Which one are you?
 
@@ -323,7 +341,7 @@ jobs:
 | `path` | `.` | Folder to check |
 | `open-pr` | `false` | Also open a pull request that removes what was found |
 
-The build fails when anything HIGH is found. See the [GitHub Action guide](docs/github-action.md) for every option.
+The build fails when anything HIGH is found. See the [GitHub Action guide](https://forkguard.pages.dev/guides/github-action/) for every option.
 
 ## How it works
 
@@ -342,7 +360,7 @@ flowchart LR
 - **Fixing** deletes files that are pure malware, cuts the hidden code out of your own files, and restores your exact original from git history when it can.
 - **Pull requests** are built on a fresh branch, so your work in progress is never touched.
 
-The full picture, with diagrams of every part, is in [How it works](docs/how-it-works.md).
+The full picture, with diagrams of every part, is in [How it works](https://forkguard.pages.dev/internals/how-it-works/).
 
 ## Safety and privacy
 
@@ -394,7 +412,7 @@ Skip it once with <code>FORKGUARD_SKIP=1</code>, and <a href="https://github.com
 No. It is built to catch this family of attacks very well, before code runs. Keep your antivirus too.
 </details>
 
-More questions are answered in the [Getting started guide](docs/getting-started.md#12-troubleshooting).
+More questions are answered in the [Troubleshooting guide](https://forkguard.pages.dev/guides/troubleshooting/).
 
 ## Contributing
 

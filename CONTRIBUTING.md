@@ -52,4 +52,4 @@ npm run docs
 python3 -m http.server 4173 --directory site
 ```
 
-Then open http://localhost:4173. Commit the regenerated `site/` together with your change: CI fails if they disagree. See [`site/README.md`](site/README.md) for the full picture.
+Then open http://localhost:4173. Commit the regenerated `site/` together with your change: CI fails if they disagree. See [`tools/docs/README.md`](tools/docs/README.md) for the full picture. The live site is [forkguard.pages.dev](https://forkguard.pages.dev).

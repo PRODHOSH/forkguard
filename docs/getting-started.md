@@ -7,6 +7,8 @@
   </a>
 </p>
 
+> This page is also on the [documentation site](https://forkguard.pages.dev/quick-start/), with search and a short and a plain-words version of every command.
+
 # Getting started with forkguard
 
 This guide takes you from zero to fully protected, one step at a time. No security background needed. Read it top to bottom the first time, then jump back to any section when you need it.

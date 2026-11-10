@@ -1,5 +1,7 @@
 # forkguard documentation site
 
+Live at **https://forkguard.pages.dev**.
+
 Static documentation for forkguard: black and white, Manrope, built to be read. No framework, no third-party requests, no inline scripts or styles.
 
 Every page is generated, so the site is always consistent with itself.

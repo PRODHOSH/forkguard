@@ -24,3 +24,5 @@ Only the latest release gets fixes. Update with:
 ```bash
 npm install -g forkguard@latest
 ```
+
+What forkguard does, what it never does and what it cannot do: [Safety and privacy](https://forkguard.pages.dev/internals/safety/).
