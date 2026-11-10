@@ -16,8 +16,12 @@ function __fg_real([string]$name) {
     Where-Object { $_.Extension -in '.exe', '.cmd', '.bat' } | Select-Object -First 1).Source
 }
 function __fg_pm([string]$tool, [object[]]$rest) {
-  forkguard --gate $tool @rest
-  if ($LASTEXITCODE -ne 0) { return }
+  # Fail open: only an explicit "infected" answer (exit code 1) stops the command.
+  if (Get-Command forkguard -ErrorAction SilentlyContinue) {
+    $global:LASTEXITCODE = 0
+    forkguard --gate $tool @rest
+    if ($LASTEXITCODE -eq 1) { return }
+  }
   & (__fg_real $tool) @rest
 }
 function npm  { __fg_pm npm  $args }
@@ -27,7 +31,7 @@ function bun  { __fg_pm bun  $args }
 function git {
   & (__fg_real git) @args
   $code = $LASTEXITCODE
-  if ($code -eq 0 -and $args.Count -gt 0 -and @('clone', 'pull', 'merge', 'checkout', 'switch') -contains $args[0]) {
+  if ($code -eq 0 -and $args.Count -gt 0 -and @('clone', 'pull', 'merge', 'checkout', 'switch') -contains $args[0] -and (Get-Command forkguard -ErrorAction SilentlyContinue)) {
     forkguard --gate git @args
   }
   $global:LASTEXITCODE = $code
@@ -37,15 +41,22 @@ ${END}`;
 const POSIX = `${START}
 # Checks a project before npm, pnpm, yarn or bun installs or runs it, and after git clone or pull.
 # Skip once with: FORKGUARD_SKIP=1 npm install
-npm()  { forkguard --gate npm "$@"  && command npm "$@"; }
-pnpm() { forkguard --gate pnpm "$@" && command pnpm "$@"; }
-yarn() { forkguard --gate yarn "$@" && command yarn "$@"; }
-bun()  { forkguard --gate bun "$@"  && command bun "$@"; }
+# Fail open: if forkguard is missing (another Node version, uninstalled) or crashes, your command still runs.
+# Only an explicit "infected" answer (exit code 1) stops it.
+__fg_gate() {
+  command -v forkguard >/dev/null 2>&1 || return 0
+  forkguard --gate "$@"
+  [ $? -ne 1 ]
+}
+npm()  { __fg_gate npm "$@"  && command npm "$@"; }
+pnpm() { __fg_gate pnpm "$@" && command pnpm "$@"; }
+yarn() { __fg_gate yarn "$@" && command yarn "$@"; }
+bun()  { __fg_gate bun "$@"  && command bun "$@"; }
 git() {
   command git "$@"
   local code=$?
   if [ $code -eq 0 ]; then
-    case " clone pull merge checkout switch " in *" $1 "*) forkguard --gate git "$@" ;; esac
+    case " clone pull merge checkout switch " in *" $1 "*) __fg_gate git "$@" ;; esac
   fi
   return $code
 }
@@ -53,7 +64,8 @@ ${END}`;
 
 function removeBlock(text) {
   const re = new RegExp(`\\r?\\n?${START.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s\\S]*?${END.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\r?\\n?`, 'g');
-  return text.replace(re, '\n').replace(/\n{3,}$/, '\n');
+  const out = text.replace(re, '\n');
+  return out === text ? text : out.replace(/\n{3,}$/, '\n'); // never touch a profile that has no forkguard block
 }
 
 function writeBlock(file, block) {

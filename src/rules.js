@@ -21,6 +21,13 @@ export const MARKERS = [
   j('vscode-bootstrapper', '.vercel.app'),
   j('vscode-load-config', '.vercel.app'),
   j('260120', '.vercel.app'),
+  // April 2026 variant and its keys (OpenSourceMalware PolinRider dossier).
+  j('function M', 'Dy(f)'),
+  j('2[gWfGj;<:', '-93Z^C'),
+  j('m6:tTh^D', ')cBz?NM]'),
+  j('TMfKQEd7TJJa5xNZJZ2', 'Lep838vrzrs7mAP'),
+  j('TXfxHUet9pJVU1BgVkBAbrES4', 'YUc1nGzcG'),
+  j('e9b53a7c-2342-4b15', '-b02d-bd8b8f6a03f9'),
 ];
 
 // npm packages that are known to carry this payload.
@@ -50,7 +57,18 @@ export const DROPPER_EXT = ['.orc'];
 export const CODE_EXT = ['.js', '.mjs', '.cjs', '.ts', '.mts', '.cts', '.jsx', '.tsx', '.vue', '.svelte'];
 export const FONT_EXT = ['.woff', '.woff2', '.ttf', '.otf', '.ttc', '.eot'];
 
-export const CONFIG_RE = /(^|\/)(postcss|tailwind|eslint|next|vite|babel|jest|webpack|astro|vue|nuxt|svelte|rollup|tsup|vitest)\.config\.[cm]?[jt]s$/;
+export const CONFIG_RE = /(^|\/)((postcss|tailwind|eslint|next|vite|babel|jest|webpack|astro|vue|nuxt|svelte|rollup|tsup|vitest|gridsome)\.config\.[cm]?[jt]s|truffle\.js)$/;
+
+// A config file has no reason to hold a line this long. Injected payloads are one enormous line.
+export const LONG_LINE = 2000;
+export const longestLine = (text) => text.split('\n').reduce((m, l) => Math.max(m, l.length), 0);
+
+// Scripts that rewrite your last commit and force push it: the malware's way of hiding and spreading.
+export const SCRIPT_EXT = ['.bat', '.cmd', '.sh'];
+export function isHistoryRewriter(text) {
+  return /LAST_COMMIT_(DATE|TIME)/.test(text) ||
+    (/commit\s+[^\n]*--amend/.test(text) && /--no-verify/.test(text) && /push\s+[^\n]*(-\w*f\b|--force)/.test(text));
+}
 
 export const SKIP_DIRS = new Set([
   '.git', 'node_modules', '.next', '.nuxt', '.svelte-kit', '.turbo', '.vercel', '.output',
@@ -131,9 +149,14 @@ export function looksLikeText(buf) {
 }
 
 /** Script commands in package.json that run the hidden loader before the real command. */
+// `node init`, `node ./init` or `node init.js` as a whole word. Not `node init-db.js` or `node initialize.js`.
+export const INIT_CMD = String.raw`node\s+(?:\.\/)?init(?:\.js)?(?=\s|&|;|\||$|["'])`;
+// Running a font file, or anything inside a fonts folder, as code. Not `node public/make-sitemap.js`.
+export const FONT_CMD = String.raw`node\s+\S*(?:fonts?\/\S+|\.(?:ttf|woff2?|otf|eot|ttc)(?=\s|&|;|\||$|["']))`;
+
 export function badScript(cmd) {
-  if (/\bnode\s+(\.\/)?init(\.js)?\b/.test(cmd)) return 'runs a hidden file called init before your real command';
-  if (/\bnode\s+\S*(fonts?|assets|public)\/\S+/.test(cmd)) return 'runs a file from a fonts or assets folder';
+  if (new RegExp(INIT_CMD).test(cmd)) return 'runs a hidden file called init before your real command';
+  if (new RegExp(FONT_CMD).test(cmd)) return 'runs a font file or a file from a fonts folder as code';
   return null;
 }
 

@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { CODE_EXT, CONFIG_RE, MARKERS, SKIP_DIRS } from './rules.js';
-import { finish, inspect, isEnvFile, isInteresting } from './scan.js';
+import { MAX_SIZE, finish, inspect, isEnvFile, isInteresting } from './scan.js';
 import { ghCommand, git, run } from './git.js';
 import { c, label } from './report.js';
 
@@ -73,12 +73,12 @@ export function scanRef(dir, ref) {
   const fontDirs = new Map();
 
   const entries = [];
-  for (const rec of git(dir, ['ls-tree', '-r', '-z', ref], { raw: true }).toString().split('\0')) {
+  for (const rec of git(dir, ['ls-tree', '-r', '-z', '-l', ref], { raw: true }).toString().split('\0')) {
     if (!rec) continue;
     const tab = rec.indexOf('\t');
-    const [, type, sha] = rec.slice(0, tab).split(' ');
+    const [, type, sha, size] = rec.slice(0, tab).trim().split(/\s+/);
     const rel = rec.slice(tab + 1);
-    if (type !== 'blob' || skipped(rel)) continue;
+    if (type !== 'blob' || skipped(rel) || Number(size) > MAX_SIZE) continue; // same size limit as the folder scan
     const name = path.posix.basename(rel);
     entries.push({ sha, rel, name, ext: path.posix.extname(name).toLowerCase() });
   }

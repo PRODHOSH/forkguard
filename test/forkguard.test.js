@@ -276,3 +276,117 @@ test('scan exits 1 when something dangerous is found', () => {
   assert.ok(JSON.parse(res.stdout).findings.length >= 8);
   rmSync(root, { recursive: true, force: true });
 });
+
+// ---- regression tests for bugs found in the audit, and for the PolinRider research ----
+
+test('script rules never touch a neighbouring command', () => {
+  const root = tmp();
+  const scripts = { build: 'node public/make-sitemap.js && next build', seed: 'next dev && node init-db.js', setup: 'node initialize.js' };
+  put(root, 'package.json', JSON.stringify({ name: 'ok', scripts }));
+  assert.deepEqual(scan(root).findings, [], 'legit scripts must not be flagged');
+  const bad = { dev: 'node init && next dev', start: 'next start && node ./init.js', font: 'node public/fonts/a.ttf && next build' };
+  put(root, 'package.json', JSON.stringify({ name: 'bad', scripts: { ...scripts, ...bad } }));
+  assert.equal(scan(root).findings.filter((f) => f.rule === 'script').length, 3);
+  fix(scan(root));
+  assert.deepEqual(JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8')).scripts,
+    { ...scripts, dev: 'next dev', start: 'next start', font: 'next build' });
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('folders starting with .forkguard are still scanned', () => {
+  const root = tmp();
+  put(root, '.forkguard-cache/x.js', `${MARKERS[0]}\n`);
+  assert.ok(scan(root).findings.some((f) => f.file === '.forkguard-cache/x.js'));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('the gate follows --prefix and does not mistake its value for the subcommand', () => {
+  const root = infectedProject();
+  const elsewhere = tmp();
+  const run = (cwd, ...a) => spawnSync(process.execPath, [BIN, '--gate', ...a], { cwd, encoding: 'utf8', env: { ...process.env, FORKGUARD_SKIP: '' } });
+  assert.equal(run(elsewhere, 'npm', '--prefix', root, 'install').status, 1);
+  assert.equal(run(root, 'npm', '--prefix', root, 'install').status, 1);
+  assert.equal(run(root, 'npm', '--prefix=' + root, 'run', 'dev').status, 1);
+  assert.equal(run(elsewhere, 'pnpm', '-C', root, 'install').status, 1);
+  rmSync(root, { recursive: true, force: true });
+  rmSync(elsewhere, { recursive: true, force: true });
+});
+
+test('the shell hook fails open: only an explicit "infected" answer stops the command', { skip: process.platform === 'win32' }, async () => {
+  const { HOOKS } = await import('../src/setup.js');
+  const bin = tmp();
+  const fake = (name, body) => { writeFileSync(path.join(bin, name), `#!/bin/sh\n${body}\n`, { mode: 0o755 }); };
+  fake('npm', 'echo REAL-NPM');
+  const attempt = (forkguardBody) => {
+    if (existsSync(path.join(bin, 'forkguard'))) rmSync(path.join(bin, 'forkguard'));
+    if (forkguardBody !== null) fake('forkguard', forkguardBody);
+    const sh = spawnSync('bash', ['-c', `${HOOKS.POSIX}\nnpm install`], { encoding: 'utf8', env: { PATH: `${bin}:/usr/bin:/bin` } });
+    return sh.stdout.includes('REAL-NPM');
+  };
+  assert.equal(attempt(null), true, 'forkguard missing: npm must still run');
+  assert.equal(attempt('exit 0'), true, 'clean: npm runs');
+  assert.equal(attempt('exit 2'), true, 'forkguard crashed: npm must still run');
+  assert.equal(attempt('exit 1'), false, 'infected: npm is stopped');
+  rmSync(bin, { recursive: true, force: true });
+});
+
+test('a mistyped folder says so instead of pretending it is a GitHub repo', () => {
+  const res = spawnSync(process.execPath, [BIN, 'fix', 'no-such/folder'], { encoding: 'utf8' });
+  assert.equal(res.status, 2);
+  assert.match(res.stderr, /No such folder/);
+});
+
+test('pr leaves no stray branch and no error when only never-committed files needed removing', async () => {
+  const { openPr } = await import('../src/pr.js');
+  const root = tmp();
+  const g = gitInit(root);
+  put(root, 'a.txt', 'hi\n');
+  g('add', '.');
+  g('commit', '-q', '-m', 'first');
+  g('remote', 'add', 'origin', 'https://github.com/example/never-pushed.git');
+  put(root, 'config.bat', '@echo off\n'); // untracked dropper: deleting it leaves git with nothing to commit
+  const out = await openPr(root);
+  assert.equal(out, null);
+  assert.ok(!existsSync(path.join(root, 'config.bat')));
+  assert.equal(g('branch', '--show-current').stdout.trim(), 'main');
+  assert.equal(g('branch', '--list', 'forkguard/*').stdout.trim(), '');
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('catches the April variant, renamed droppers, odd VS Code files and installed bad packages', () => {
+  const root = tmp();
+  put(root, 'gridsome.config.js', `module.exports = {};\n${['function M', 'Dy(f){}'].join('')}\n`);
+  put(root, 'push.bat', '@echo off\nset LAST_COMMIT_DATE=1\ngit commit --amend --no-verify\ngit push -uf --no-verify\n');
+  put(root, '.vscode/extension.json', '{}');
+  put(root, 'package.json', JSON.stringify({ name: 'x' }));
+  mkdirSync(path.join(root, 'node_modules', 'tailwind-' + 'mainanimation'), { recursive: true });
+  put(root, 'vite.config.js', `export default {};\n${'a'.repeat(2500)}\n`);
+  const rules = scan(root).findings.map((f) => `${f.rule}:${f.file}`);
+  for (const expected of ['hidden-code:gridsome.config.js', 'dropper:push.bat', 'odd-vscode-file:.vscode/extension.json',
+    'bad-package-installed:node_modules/tailwind-mainanimation', 'config-long-line:vite.config.js']) {
+    assert.ok(rules.includes(expected), `missing ${expected}\n${rules.join('\n')}`);
+  }
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('normal build scripts and short config files stay clean', () => {
+  const root = tmp();
+  put(root, 'deploy.sh', '#!/bin/sh\ngit commit -m "release"\ngit push origin main\n');
+  put(root, 'vite.config.js', 'export default { plugins: [] };\n');
+  assert.deepEqual(scan(root).findings, []);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('agent --write adds the rules once, keeps your own text, and is safe to repeat', () => {
+  const root = tmp();
+  put(root, 'CLAUDE.md', '# My notes\n\nUse tabs.\n');
+  const run = () => spawnSync(process.execPath, [BIN, 'agent', root, '--write'], { encoding: 'utf8' });
+  assert.equal(run().status, 0);
+  const once = readFileSync(path.join(root, 'CLAUDE.md'), 'utf8');
+  assert.match(once, /Use tabs\./);
+  assert.match(once, /npx forkguard --json/);
+  run();
+  assert.equal(readFileSync(path.join(root, 'CLAUDE.md'), 'utf8'), once, 'a second run changes nothing');
+  assert.ok(!existsSync(path.join(root, 'AGENTS.md')), 'only files that already exist are touched');
+  rmSync(root, { recursive: true, force: true });
+});

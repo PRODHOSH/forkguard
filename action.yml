@@ -3,7 +3,7 @@ description: Fail the build when a repo carries hidden malware, and optionally o
 author: Prodhosh V.S
 branding:
   icon: shield
-  color: red
+  color: black
 
 inputs:
   path:
@@ -22,9 +22,11 @@ runs:
 
     - id: scan
       shell: bash
+      env:
+        FG_PATH: ${{ inputs.path }}
       run: |
         set +e
-        node "$GITHUB_ACTION_PATH/bin/forkguard.js" "${{ inputs.path }}"
+        node "$GITHUB_ACTION_PATH/bin/forkguard.js" "$FG_PATH"
         code=$?
         echo "infected=$([ $code -eq 1 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
         [ $code -le 1 ] || exit $code
@@ -33,10 +35,11 @@ runs:
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
+        FG_PATH: ${{ inputs.path }}
       run: |
         git config user.name "github-actions[bot]"
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        node "$GITHUB_ACTION_PATH/bin/forkguard.js" pr "${{ inputs.path }}"
+        node "$GITHUB_ACTION_PATH/bin/forkguard.js" pr "$FG_PATH"
 
     - if: steps.scan.outputs.infected == 'true'
       shell: bash

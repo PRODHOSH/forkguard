@@ -1,12 +1,12 @@
 import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import {
-  BAD_PACKAGES, CODE_EXT, CONFIG_RE, DROPPER_EXT, DROPPER_NAMES, FONT_EXT, LOCKFILES, SKIP_DIRS,
-  badScript, findHiddenTail, findLoader, findMarker, hasPrelude, isRealFont, looksLikeText, riskyLifecycle,
+  BAD_PACKAGES, CODE_EXT, CONFIG_RE, DROPPER_EXT, DROPPER_NAMES, FONT_EXT, LOCKFILES, LONG_LINE, SCRIPT_EXT, SKIP_DIRS,
+  badScript, findHiddenTail, findLoader, findMarker, hasPrelude, isHistoryRewriter, isRealFont, longestLine, looksLikeText, riskyLifecycle,
 } from './rules.js';
 import { isIgnored, realPath, repoRoot, rewrittenHead, toPosix, trackedFiles } from './git.js';
 
-const MAX_SIZE = 6 * 1024 * 1024;
+export const MAX_SIZE = 6 * 1024 * 1024;
 
 function* walk(root, dir = root) {
   let entries;
@@ -18,7 +18,7 @@ function* walk(root, dir = root) {
   for (const e of entries) {
     const full = path.join(dir, e.name);
     if (e.isDirectory()) {
-      if (!SKIP_DIRS.has(e.name) && !e.name.startsWith('.forkguard')) yield* walk(root, full);
+      if (!SKIP_DIRS.has(e.name)) yield* walk(root, full);
     } else if (e.isFile()) {
       yield { full, rel: toPosix(path.relative(root, full)), name: e.name, ext: path.extname(e.name).toLowerCase() };
     }
@@ -72,7 +72,7 @@ export const isEnvFile = (name) => /^\.env(\.[^/]*)?$/.test(name) && !/example|s
 /** Whether forkguard needs to look inside a file with this name at all. */
 export function isInteresting(name, ext) {
   return CODE_EXT.includes(ext) || name === 'init' || FONT_EXT.includes(ext) || DROPPER_NAMES.has(name.toLowerCase()) ||
-    DROPPER_EXT.includes(ext) || ['package.json', '.gitignore', 'tasks.json', 'settings.json', 'README.md'].includes(name) ||
+    DROPPER_EXT.includes(ext) || SCRIPT_EXT.includes(ext) || ['package.json', '.gitignore', 'tasks.json', 'settings.json', 'extension.json', 'README.md'].includes(name) ||
     LOCKFILES.has(name);
 }
 
@@ -125,7 +125,19 @@ export function inspect(f, buf, add, fontDirs) {
       add('high', f.rel, 'hidden-code', where, isInit ? 'delete' : 'strip');
     } else if (CONFIG_RE.test(f.rel) && hasPrelude(text) && text.includes('exports: {}')) {
       add('medium', f.rel, 'prelude', 'Has the fake require() lines this malware adds to configs', 'strip');
+    } else if (CONFIG_RE.test(f.rel) && longestLine(text) >= LONG_LINE) {
+      add('medium', f.rel, 'config-long-line', `Config file has a ${longestLine(text)} character line. Real configs do not, injected code does`);
     }
+    return;
+  }
+
+  if (SCRIPT_EXT.includes(f.ext)) {
+    if (isHistoryRewriter(text)) add('high', f.rel, 'dropper', 'Script that rewrites your last commit and force pushes it, how this malware spreads', 'delete');
+    return;
+  }
+
+  if (f.name === 'extension.json' && f.rel.includes('.vscode/')) {
+    add('medium', f.rel, 'odd-vscode-file', 'Not a real VS Code file (the real one is extensions.json). Seen in infected repos');
     return;
   }
 
@@ -156,7 +168,7 @@ export function inspect(f, buf, add, fontDirs) {
 
   if (f.name === 'tasks.json' && f.rel.includes('.vscode/')) {
     if (/folderOpen/.test(text)) {
-      const runs = /"(node|curl|wget|powershell|pwsh|cmd|bash|sh|python3?)"|\b(node|curl|wget|powershell)\s|fonts?\//.test(text);
+      const runs = /"(node|curl|wget|powershell|pwsh|cmd|bash|sh|python3?)"|\b(node|curl|wget|powershell)\s|fonts?\/|vercel\.app|onrender\.com|railway\.app|\|\s*(ba)?sh\b/.test(text);
       add(runs ? 'high' : 'medium', f.rel, 'autorun',
         runs ? 'VS Code task runs a hidden command the moment you open the folder' : 'VS Code task runs when you open the folder', 'autorun');
     }
@@ -215,6 +227,17 @@ export function scan(target) {
     checked++;
     const needsBytes = !DROPPER_NAMES.has(f.name.toLowerCase()) && !DROPPER_EXT.includes(f.ext);
     inspect(f, needsBytes ? read(f.full) : null, add, fontDirs);
+
+    // A bad package that is already installed has probably run its install step.
+    if (f.name === 'package.json') {
+      for (const bad of BAD_PACKAGES) {
+        const installed = path.join(path.dirname(f.full), 'node_modules', bad);
+        if (existsSync(installed)) {
+          add('high', toPosix(path.relative(root, installed)), 'bad-package-installed',
+            `${bad} is installed here, so its install step may already have run. Delete node_modules, drop it from package.json and treat this computer as exposed`);
+        }
+      }
+    }
   }
 
   if (gitRoot) {

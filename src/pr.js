@@ -1,11 +1,11 @@
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { scan } from './scan.js';
 import { fix } from './fix.js';
 import { c, printChanges } from './report.js';
 import {
-  currentBranch, ghCommand, git, githubSlug, hasTrackedChanges, remoteUrl, repoRoot, run,
+  currentBranch, ghCommand, git, githubSlug, hasTrackedChanges, remoteUrl, repoRoot, run, trackedFiles,
 } from './git.js';
 
 const BRANCH = 'forkguard/remove-malware';
@@ -93,6 +93,7 @@ export async function openPr(target, { upstream = false } = {}) {
 
   const branch = freeBranchName(root);
   git(root, ['switch', '-q', '-c', branch, startPoint]);
+  let committed = false; // an abandoned branch is cleaned up in `finally`
   try {
     const result = scan(root);
     const fixable = result.findings.filter((f) => f.fix);
@@ -107,10 +108,18 @@ export async function openPr(target, { upstream = false } = {}) {
 
     // .env files were already taken out of git with `git rm --cached`; adding them back would undo that.
     const toAdd = changes.filter((x) => !x.failed && !x.action.startsWith('removed from git')).map((x) => x.file.replace(/\/$/, ''));
-    if (toAdd.length) git(root, ['add', '-A', '--', ...new Set(toAdd)]);
+    // Droppers are often untracked and ignored: they are gone from disk now and git has nothing to add for them.
+    const tracked = trackedFiles(root);
+    const addable = [...new Set(toAdd)].filter((f) => existsSync(path.join(root, f)) || tracked.some((t) => t === f || t.startsWith(`${f}/`)));
+    if (addable.length) git(root, ['add', '-A', '--', ...addable]);
+    if (git(root, ['diff', '--cached', '--quiet'], { allowFail: true }) !== null) {
+      console.log(`\n  Only files that were never committed needed removing, so there is nothing to put in a pull request. They are already deleted from this folder.`);
+      return null;
+    }
     const msgFile = path.join(mkdtempSync(path.join(tmpdir(), 'forkguard-')), 'msg.txt');
     writeFileSync(msgFile, `Remove injected malware\n\n${changes.filter((x) => !x.failed).map((x) => `- ${x.file}: ${x.action}`).join('\n')}\n`);
     git(root, ['commit', '-q', '-F', msgFile]);
+    committed = true;
     rmSync(path.dirname(msgFile), { recursive: true, force: true });
 
     console.log(`\n  Pushing ${branch} to ${originSlug}`);
@@ -142,7 +151,9 @@ export async function openPr(target, { upstream = false } = {}) {
     }
     return url;
   } finally {
+    if (!committed) git(root, ['reset', '-q', '--hard'], { allowFail: true }); // the tree was clean when we started
     git(root, ['switch', '-q', startBranch || '-'], { allowFail: true });
+    if (!committed) git(root, ['branch', '-q', '-D', branch], { allowFail: true });
     if (upstream) git(root, ['update-ref', '-d', 'refs/forkguard/upstream'], { allowFail: true });
   }
 }

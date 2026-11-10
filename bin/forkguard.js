@@ -7,6 +7,7 @@ import { scan } from '../src/scan.js';
 import { fix } from '../src/fix.js';
 import { openPr } from '../src/pr.js';
 import { setup } from '../src/setup.js';
+import { agent } from '../src/agent.js';
 import { c, printChanges, printScan } from '../src/report.js';
 import { GATED } from '../src/rules.js';
 import { isGitRepo, repoRoot } from '../src/git.js';
@@ -26,6 +27,8 @@ Catch malware hidden in a repo before you install or run it.
   forkguard fix [folder]    remove what it found
   forkguard pr [folder]     remove it on a new branch and open a pull request
                             add --upstream to send the fix to the repo you forked from
+  forkguard agent           print safety rules for AI coding agents (add --write to put
+                            them in AGENTS.md, CLAUDE.md, Cursor and Copilot files)
   forkguard setup           check automatically before npm install, npm run dev, git clone
                             add --remove to undo
 
@@ -71,17 +74,41 @@ function cloneTarget(rest) {
   return path.resolve(dir);
 }
 
+// Package manager options that take their value as the next argument, so that value is not mistaken for the subcommand.
+const PM_VALUE_FLAGS = new Set(['--prefix', '-C', '--dir', '--cwd', '-w', '--workspace', '-F', '--filter', '--registry',
+  '--loglevel', '--userconfig', '--cache', '--tag', '--otp']);
+// The ones that also say which project the command runs in.
+const PM_DIR_FLAGS = new Set(['--prefix', '-C', '--dir', '--cwd']);
+
+/** Finds the real subcommand and the project folder the package manager was pointed at, if any. */
+function parsePm(rest) {
+  let sub = null;
+  let dir = null;
+  for (let i = 0; i < rest.length; i++) {
+    const a = rest[i];
+    const [flag, inline] = a.startsWith('--') ? a.split(/=(.*)/s) : [a, undefined];
+    if (a.startsWith('-')) {
+      const value = inline ?? (PM_VALUE_FLAGS.has(flag) ? rest[++i] : undefined);
+      if (PM_DIR_FLAGS.has(flag) && value) dir = path.resolve(value);
+      continue;
+    }
+    if (sub === null) sub = a;
+  }
+  return { sub: sub ?? '', dir };
+}
+
 /** Called by the shell hooks from `forkguard setup`. Exit 1 stops the package manager. */
 async function gate(tool, rest) {
   if (process.env.FORKGUARD_SKIP === '1' || !GATED[tool]) return 0;
-  const sub = rest.find((a) => !a.startsWith('-')) ?? '';
+  const parsed = tool === 'git' ? { sub: rest.find((a) => !a.startsWith('-')) ?? '', dir: null } : parsePm(rest);
+  const sub = parsed.sub;
   if (!GATED[tool].has(sub)) return 0;
   // A global install runs that package's own scripts, not the project you happen to be standing in.
   if (tool !== 'git' && rest.some((a) => a === '-g' || a === '--global' || a === '--location=global')) return 0;
 
   let dir;
   if (tool === 'git') dir = sub === 'clone' ? cloneTarget(rest.slice(rest.indexOf('clone') + 1)) : repoRoot(process.cwd());
-  else dir = findProjectRoot(process.cwd());
+  else dir = findProjectRoot(parsed.dir ?? process.cwd());
   if (!dir || !existsSync(dir)) return 0;
 
   const result = scan(dir);
@@ -120,7 +147,7 @@ async function main() {
     return results.some(hasHigh) ? 1 : 0;
   }
 
-  const [cmd, folder] = ['fix', 'pr', 'setup'].includes(words[0]) ? [words[0], words[1]] : ['scan', words[0]];
+  const [cmd, folder] = ['fix', 'pr', 'setup', 'agent'].includes(words[0]) ? [words[0], words[1]] : ['scan', words[0]];
 
   const remote = parseRemote(folder);
   if (remote && cmd === 'scan') {
@@ -131,9 +158,17 @@ async function main() {
     if (result.error) return 2;
     return hasHigh(result) ? 1 : 0;
   }
-  if (remote) throw new Error(`"forkguard ${cmd}" works on a folder. Clone the repo first, then run it inside the folder.`);
+  if (remote) {
+    if (/^[\w.-]+\/[\w.-]+$/.test(folder)) throw new Error(`No such folder: ${folder}`);
+    throw new Error(`"forkguard ${cmd}" works on a folder. Clone the repo first, then run it inside the folder.`);
+  }
 
   const target = path.resolve(folder || '.');
+
+  if (cmd === 'agent') {
+    agent(folder ? target : process.cwd(), { write: flags.has('--write') });
+    return 0;
+  }
 
   if (cmd === 'setup') {
     await setup({ remove: flags.has('--remove') });

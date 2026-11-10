@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, rmSync, existsSync, readdirSync, rmdirSync } from 'node:fs';
 import path from 'node:path';
-import { PRELUDE, findHiddenTail, findLoader, findMarker, hasPrelude, stripLoader } from './rules.js';
+import { FONT_CMD, INIT_CMD, PRELUDE, findHiddenTail, findLoader, findMarker, hasPrelude, stripLoader } from './rules.js';
 import { fileHistory, git, repoRoot, showFile, toPosix } from './git.js';
 
 /** Cuts the hidden tail off every line that has one. */
@@ -90,11 +90,13 @@ function originalFromHistory(gitRoot, rel, cleaned) {
   return null;
 }
 
+/** Takes only the injected `node init` / `node fonts/x.ttf` step out of a script, never a neighbouring command. */
 function cleanScripts(text) {
+  const lead = (cmd) => new RegExp(`${cmd}\\s*&&\\s*`, 'g');
+  const trail = (cmd) => new RegExp(`\\s*&&\\s*${cmd}`, 'g');
   return text
-    .replace(/node\s+(\.\/)?init(\.js)?\s*&&\s*/g, '')
-    .replace(/\s*&&\s*node\s+(\.\/)?init(\.js)?\b/g, '')
-    .replace(/node\s+\S*(fonts?|assets|public)\/\S+\s*&&\s*/g, '');
+    .replace(lead(INIT_CMD), '').replace(trail(INIT_CMD), '')
+    .replace(lead(FONT_CMD), '').replace(trail(FONT_CMD), '');
 }
 
 function cleanGitignore(text, hasEnvFiles) {
