@@ -1,57 +1,7 @@
 import { readFileSync, writeFileSync, rmSync, existsSync, readdirSync, rmdirSync } from 'node:fs';
 import path from 'node:path';
-import { FONT_CMD, INIT_CMD, PRELUDE, findHiddenTail, findLoader, findMarker, hasPrelude, stripLoader } from './rules.js';
+import { cleanGitignore, cleanScripts, cleanSettings, cleanSource, cleanTasks, isOriginalOf } from './clean.js';
 import { fileHistory, git, repoRoot, showFile, toPosix } from './git.js';
-
-/** Cuts the hidden tail off every line that has one. */
-function cutHiddenTails(text) {
-  let changed = false;
-  const lines = text.split('\n').map((line) => {
-    if (line.length < 1530) return line;
-    const m = /[ \t]{30,}\S/.exec(line);
-    if (m && m.index < 400 && line.length - (m.index + m[0].length) >= 1500) {
-      changed = true;
-      return line.slice(0, m.index).replace(/[ \t]+$/, '') + (line.endsWith('\r') ? '\r' : '');
-    }
-    return line;
-  });
-  return changed ? lines.join('\n') : null;
-}
-
-/** Removes the fake require() lines and only the blank lines that sit between them. */
-function dropPrelude(text) {
-  const crlf = text.includes('\r\n');
-  const lines = text.replace(/\r\n/g, '\n').split('\n');
-  const out = [];
-  let removed = false;
-  let lastWasPrelude = false;
-  lines.forEach((l, i) => {
-    if (PRELUDE.has(l.trim())) {
-      removed = lastWasPrelude = true;
-      return;
-    }
-    if (!l.trim() && lastWasPrelude) {
-      const next = lines.slice(i + 1).find((x) => x.trim());
-      if (next && PRELUDE.has(next.trim())) return;
-    }
-    if (l.trim()) lastWasPrelude = false;
-    out.push(l);
-  });
-  if (removed) while (out.length && !out[0].trim()) out.shift();
-  while (out.length && !out[out.length - 1].trim()) out.pop();
-  const result = out.join('\n') + '\n';
-  return crlf ? result.replace(/\n/g, '\r\n') : result;
-}
-
-export function cleanSource(text) {
-  const loader = findLoader(text);
-  const base = loader ? stripLoader(text) : text;
-  const cut = cutHiddenTails(base);
-  if (cut === null && !hasPrelude(base) && !loader) return null;
-  return dropPrelude(cut ?? base);
-}
-
-const squash = (s) => s.replace(/\s+/g, '');
 
 /** After deleting a file, remove folders it leaves empty, up to the project root. */
 function pruneEmpty(full, root) {
@@ -82,51 +32,14 @@ function originalFromHistory(gitRoot, rel, cleaned) {
   for (const commit of fileHistory(gitRoot, rel)) {
     const old = showFile(gitRoot, commit, rel);
     if (!old) continue;
-    const text = old.toString('utf8');
-    if (findHiddenTail(text) || findMarker(text) || findLoader(text) || hasPrelude(text) && text.includes('exports: {}')) continue;
-    const plain = (s) => squash(s.replace(/^\s*import\s+['"]dotenv\/config['"];?\s*$/m, ''));
-    return squash(text) === squash(cleaned) || plain(text) === plain(cleaned) ? old : null;
+    const verdict = isOriginalOf(old.toString('utf8'), cleaned);
+    if (verdict === null) continue; // that version is infected too, look further back
+    return verdict ? old : null;
   }
   return null;
 }
 
-/** Takes only the injected `node init` / `node fonts/x.ttf` step out of a script, never a neighbouring command. */
-function cleanScripts(text) {
-  const lead = (cmd) => new RegExp(`${cmd}\\s*&&\\s*`, 'g');
-  const trail = (cmd) => new RegExp(`\\s*&&\\s*${cmd}`, 'g');
-  return text
-    .replace(lead(INIT_CMD), '').replace(trail(INIT_CMD), '')
-    .replace(lead(FONT_CMD), '').replace(trail(FONT_CMD), '');
-}
-
-function cleanGitignore(text, hasEnvFiles) {
-  const nl = text.includes('\r\n') ? '\r\n' : '\n';
-  let lines = text.split(/\r?\n/).filter((l) => !/^\s*(config\.bat|temp_auto_push\.bat)\s*$/.test(l));
-  while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
-  if (hasEnvFiles && !lines.some((l) => /^\s*\.env/.test(l))) lines.push('', '# env files', '.env*', '!.env.example');
-  return lines.join(nl) + nl;
-}
-
-function stripJsonComments(s) {
-  return s.replace(/("(?:\\.|[^"\\])*")|\/\/[^\n]*|\/\*[\s\S]*?\*\//g, (m, str) => str ?? '').replace(/,(\s*[}\]])/g, '$1');
-}
-
-/** Drops only the tasks that run on folder open. Deletes the file if nothing else is left. */
-function cleanTasks(text) {
-  try {
-    const data = JSON.parse(stripJsonComments(text));
-    const keep = (data.tasks || []).filter((t) => t?.runOptions?.runOn !== 'folderOpen');
-    if (!keep.length) return { remove: true };
-    return { text: JSON.stringify({ ...data, tasks: keep }, null, 2) + '\n' };
-  } catch {
-    return { remove: true };
-  }
-}
-
-function cleanSettings(text) {
-  if (/compile-hero/.test(text) && /allowAutomaticTasks/.test(text)) return { remove: true }; // the malware's own template
-  return { text: text.replace(/("task\.allowAutomaticTasks"\s*:\s*)("on"|true)/, '$1"off"') };
-}
+export { cleanSource };
 
 /**
  * Applies the fixes for a scan result. Returns a list of { file, action } for what changed.

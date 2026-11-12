@@ -6,6 +6,11 @@
   "bin": {
     "forkguard": "bin/forkguard.js"
   },
+  "exports": {
+    "./core": "./src/core.js",
+    "./clean": "./src/clean.js",
+    "./package.json": "./package.json"
+  },
   "files": [
     "bin",
     "src",

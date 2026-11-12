@@ -390,3 +390,51 @@ test('agent --write adds the rules once, keeps your own text, and is safe to rep
   assert.ok(!existsSync(path.join(root, 'AGENTS.md')), 'only files that already exist are touched');
   rmSync(root, { recursive: true, force: true });
 });
+
+// ---- the pure core, for embedding (a GitHub App, a browser, a Worker) ----
+
+test('the core runs on plain bytes and has no Node-only imports', async () => {
+  const src = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'src');
+  for (const f of ['core.js', 'clean.js', 'rules.js']) {
+    const text = readFileSync(path.join(src, f), 'utf8');
+    const importsBuiltin = /(?:^|\n)\s*import\b[^;]*?\bfrom\s*['"](?:node:|fs['"]|path['"]|os['"]|child_process['"])|\bimport\s*\(\s*['"]node:|\brequire\s*\(\s*['"](?:node:|fs['"]|path['"]|child_process['"])/.test(text);
+    assert.ok(!importsBuiltin, `${f} must stay free of Node built-ins so it runs in a Worker`);
+  }
+  const { inspect, describe, finish } = await import('forkguard/core');
+  const bytes = (s) => new Uint8Array(Buffer.from(s)); // a plain Uint8Array, not a Buffer
+  const findings = [];
+  const add = (level, file, rule, message, fix = null) => findings.push({ level, file, rule, message, fix });
+  const fontDirs = new Map();
+  inspect(describe('postcss.config.mjs'), bytes(`export default config;${payload()}\n`), add, fontDirs);
+  inspect(describe('public/fonts/a.ttf'), bytes('(function () { return 1; })();'), add, fontDirs);
+  inspect(describe('public/fonts/a.woff2'), bytes('wOF2realfontbytes'), add, fontDirs);
+  inspect(describe('package.json'), bytes(JSON.stringify({ scripts: { dev: 'node init && next dev' } })), add, fontDirs);
+  inspect(describe('src/app.js'), bytes('export const ok = true;\n'), add, fontDirs);
+  finish(findings, fontDirs, add);
+  const rules = findings.map((f) => `${f.rule}:${f.file}`);
+  assert.deepEqual(rules.sort(), ['fake-font:public/fonts/a.ttf', 'hidden-code:postcss.config.mjs', 'script:package.json'].sort());
+});
+
+test('the core describes paths the way the scanner does', async () => {
+  const { describe } = await import('forkguard/core');
+  assert.deepEqual(describe('a/b/Init.JS'), { rel: 'a/b/Init.JS', name: 'Init.JS', ext: '.js' });
+  assert.deepEqual(describe('.gitignore'), { rel: '.gitignore', name: '.gitignore', ext: '' });
+  assert.deepEqual(describe('init'), { rel: 'init', name: 'init', ext: '' });
+});
+
+test('applyFix turns infected text into clean text, and says when it has nothing safe to do', async () => {
+  const { applyFix, isOriginalOf } = await import('forkguard/clean');
+  assert.equal(applyFix('strip', `a;${payload()}\n`).text, 'a;\n');
+  assert.deepEqual(applyFix('strip', 'const a = 1;\n'), { skip: true });
+  assert.match(applyFix('script', '{"dev":"node init && next dev"}').text, /"dev":"next dev"/);
+  assert.deepEqual(applyFix('delete', 'x'), { remove: true });
+  assert.deepEqual(applyFix('untrack', 'x'), { skip: true });
+  assert.match(applyFix('gitignore', 'node_modules\nconfig.bat\n').text, /^node_modules\n$/);
+  const tasks = JSON.stringify({ tasks: [{ label: 'build' }, { label: 'x', runOptions: { runOn: 'folderOpen' } }] });
+  assert.deepEqual(JSON.parse(applyFix('autorun', tasks).text).tasks.map((t) => t.label), ['build']);
+  // history: an older clean version with the same code is the user's original; an infected one means keep looking
+  assert.equal(isOriginalOf('a;\n', 'a;\n'), true);
+  assert.equal(isOriginalOf('a;   \n\n', 'a;\n'), true);
+  assert.equal(isOriginalOf('different();\n', 'a;\n'), false);
+  assert.equal(isOriginalOf(`a;${payload()}\n`, 'a;\n'), null);
+});

@@ -133,7 +133,7 @@ export function hasPrelude(text) {
 /** True when the bytes start like a real font file. */
 export function isRealFont(buf, ext) {
   if (buf.length === 0) return true; // an empty placeholder is odd but harmless
-  const head = buf.subarray(0, 4).toString('latin1');
+  const head = String.fromCharCode(...buf.subarray(0, 4)); // works for a Buffer and a plain Uint8Array
   if (['wOFF', 'wOF2', 'OTTO', 'true', 'ttcf', '\x00\x01\x00\x00'].includes(head)) return true;
   if (ext === '.eot' && buf.length > 36 && buf[34] === 0x4c && buf[35] === 0x50) return true;
   return false;
