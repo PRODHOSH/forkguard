@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.3.2
+      - uses: PRODHOSH/forkguard@v0.4.1
 ```
 
 Open the **Actions** tab of your repo to see it run.
@@ -61,7 +61,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.3.2
+      - uses: PRODHOSH/forkguard@v0.4.1
         with:
           open-pr: true
 ```
@@ -75,7 +75,7 @@ When something is found, the Action creates a branch called `forkguard/remove-ma
 ### Check one folder of a monorepo
 
 ```yaml
-      - uses: PRODHOSH/forkguard@v0.3.2
+      - uses: PRODHOSH/forkguard@v0.4.1
         with:
           path: apps/web
 ```
@@ -100,7 +100,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.3.2
+      - uses: PRODHOSH/forkguard@v0.4.1
 ```
 
 ### Use the CLI directly
@@ -115,7 +115,7 @@ jobs:
 
 ## Pin a version
 
-`PRODHOSH/forkguard@v0.3.2` always runs that exact version, so nothing changes under you. When a new version comes out, update the number. All versions are on the [releases page](https://github.com/PRODHOSH/forkguard/releases).
+`PRODHOSH/forkguard@v0.4.1` always runs that exact version, so nothing changes under you. When a new version comes out, update the number. All versions are on the [releases page](https://github.com/PRODHOSH/forkguard/releases).
 
 ## Troubleshooting
 

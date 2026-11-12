@@ -76,7 +76,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.3.2</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure>
+      - uses: PRODHOSH/forkguard@v0.4.1</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure>
 <p>Open the <strong>Actions</strong> tab of your repo to see it run.</p>
 <h2 id="inputs"><a class="anchor" href="#inputs" aria-label="Link to this section">#</a>Inputs</h2>
 <div class="table-wrap" tabindex="0" role="region" aria-label="Table"><table><thead><tr><th scope="col">Input</th><th scope="col">Default</th><th scope="col">What it does</th></tr></thead><tbody><tr><th scope="row"><code>path</code></th><td><code>.</code></td><td>Which folder to check. Useful for monorepos.</td></tr><tr><th scope="row"><code>open-pr</code></th><td><code>false</code></td><td>When something is found, also open a pull request that removes it.</td></tr></tbody></table></div>
@@ -97,14 +97,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.3.2
+      - uses: PRODHOSH/forkguard@v0.4.1
         with:
           open-pr: true</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-2" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure>
 <p>When something is found, the Action creates a branch called <code>forkguard/remove-malware</code>, commits the fix and opens a pull request on your repo. Review it and merge it.</p>
 <aside class="note note-note"><p class="note-label">Note</p><p>Use the <code>push</code> event for <code>open-pr</code>. A <code>pull_request</code> run checks out a detached commit, and forkguard needs to be on a branch to create the fix branch. Some repos also block Actions from creating pull requests: allow it under Settings, Actions, General.</p></aside>
 <h2 id="more-examples"><a class="anchor" href="#more-examples" aria-label="Link to this section">#</a>More examples</h2>
 <h3 id="check-one-folder-of-a-monorepo"><a class="anchor" href="#check-one-folder-of-a-monorepo" aria-label="Link to this section">#</a>Check one folder of a monorepo</h3>
-<figure class="code"><pre tabindex="0"><code id="c-3">      - uses: PRODHOSH/forkguard@v0.3.2
+<figure class="code"><pre tabindex="0"><code id="c-3">      - uses: PRODHOSH/forkguard@v0.4.1
         with:
           path: apps/web</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-3" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure>
 <h3 id="check-every-night-not-just-on-push"><a class="anchor" href="#check-every-night-not-just-on-push" aria-label="Link to this section">#</a>Check every night, not just on push</h3>
@@ -124,7 +124,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.3.2</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-4" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure>
+      - uses: PRODHOSH/forkguard@v0.4.1</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-4" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure>
 <h3 id="use-the-cli-directly"><a class="anchor" href="#use-the-cli-directly" aria-label="Link to this section">#</a>Use the CLI directly</h3>
 <figure class="code"><pre tabindex="0"><code id="c-5">      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -132,7 +132,7 @@ jobs:
           node-version: 20
       - run: npx forkguard</code></pre><span class="copy"><button type="button" class="copy-button" command="--copy" commandfor="c-5" aria-label="Copy this code"><svg class="icon-copy" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg><svg class="icon-check" width="16" height="16" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></button><span class="tip" role="status"></span></span></figure>
 <h2 id="pin-a-version"><a class="anchor" href="#pin-a-version" aria-label="Link to this section">#</a>Pin a version</h2>
-<p><code>PRODHOSH/forkguard@v0.3.2</code> always runs that exact version, so nothing changes under you. When a new version comes out, update the number. All versions are on the <a href="https://github.com/PRODHOSH/forkguard/releases">releases page</a>.</p>
+<p><code>PRODHOSH/forkguard@v0.4.1</code> always runs that exact version, so nothing changes under you. When a new version comes out, update the number. All versions are on the <a href="https://github.com/PRODHOSH/forkguard/releases">releases page</a>.</p>
 <h2 id="troubleshooting"><a class="anchor" href="#troubleshooting" aria-label="Link to this section">#</a>Troubleshooting</h2>
 <dl><div><dt>The build fails but I do not see why</dt><dd>Open the failed run in the Actions tab and expand the forkguard step. The findings are listed there, the same as in your terminal.</dd></div><div><dt>Permission errors when opening a pull request</dt><dd>Make sure the workflow has <code>contents: write</code> and <code>pull-requests: write</code>, and that Actions are allowed to create pull requests in your repo settings.</dd></div><div><dt>It flagged something that is fine</dt><dd><a href="https://github.com/PRODHOSH/forkguard/issues/new?template=false-alarm.yml">Report a false alarm</a> with the file and the message.</dd></div></dl>
 <section class="next-steps" id="where-to-next" aria-labelledby="next-h"><h2 id="next-h">Where to next</h2><ul class="tasks"><li><a href="../../guides/automatic-protection/"><span class="task-t">Automatic protection</span><span class="task-d">Protect your own computer too.</span><span class="task-go" aria-hidden="true">→</span></a></li><li><a href="../../guides/cleaning/"><span class="task-t">Cleaning an infected project</span><span class="task-d">When the build turns red.</span><span class="task-go" aria-hidden="true">→</span></a></li><li><a href="../../commands/pr/"><span class="task-t">forkguard pr</span><span class="task-d">The same fix, from the terminal.</span><span class="task-go" aria-hidden="true">→</span></a></li></ul></section>
@@ -142,7 +142,7 @@ jobs:
 <aside class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="l2"><a href="#why-use-it">Why use it</a></li><li class="l2"><a href="#set-it-up-in-two-minutes">Set it up in two minutes</a></li><li class="l2"><a href="#inputs">Inputs</a></li><li class="l2"><a href="#what-happens-when-it-finds-something">What happens when it finds something</a></li><li class="l2"><a href="#open-the-fix-as-a-pull-request">Open the fix as a pull request</a></li><li class="l2"><a href="#more-examples">More examples</a></li><li class="l3"><a href="#check-one-folder-of-a-monorepo">Check one folder of a monorepo</a></li><li class="l3"><a href="#check-every-night-not-just-on-push">Check every night, not just on push</a></li><li class="l3"><a href="#use-the-cli-directly">Use the CLI directly</a></li><li class="l2"><a href="#pin-a-version">Pin a version</a></li><li class="l2"><a href="#troubleshooting">Troubleshooting</a></li><li class="l2"><a href="#where-to-next">Where to next</a></li></ul></aside>
 </div>
 <footer class="foot">
-  <p>forkguard 0.3.2 · MIT license · <a href="https://github.com/PRODHOSH/forkguard">GitHub</a> · <a href="https://www.npmjs.com/package/forkguard">npm</a> · <a href="../../about/">About</a></p>
+  <p>forkguard 0.4.1 · MIT license · <a href="https://github.com/PRODHOSH/forkguard">GitHub</a> · <a href="https://www.npmjs.com/package/forkguard">npm</a> · <a href="../../about/">About</a></p>
 </footer>
 <dialog id="search" class="search" aria-label="Search the documentation">
   <div class="search-box"><svg width="18" height="18" aria-hidden="true" focusable="false"><use href="#i-search"/></svg><input id="q" type="search" placeholder="Search the docs" autocomplete="off" autocapitalize="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="results" aria-autocomplete="list"><button type="button" class="esc" id="close-search" aria-label="Close search">Esc</button></div>

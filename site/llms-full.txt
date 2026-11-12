@@ -2,9 +2,9 @@
 
 > Catch malware hidden in a repo before you install or run it.
 
-forkguard is a free, open source, zero-dependency Node.js command line tool (Node 18+, MIT) that finds malware hidden in repositories before you install or run them. It targets the PolinRider campaign: code hidden after hundreds of blank spaces, rewritten commits, fake font files, VS Code tasks that run on folder open, and poisoned npm packages. It can check a folder, a GitHub repo (every branch, without writing its files to disk) or every repo you own, clean what it finds (restoring original files from git history), open a pull request with the fix, and check automatically before npm install and after git clone. Exit codes: 0 clean, 1 dangerous finding, 2 error. Current npm version: 0.3.2.
+forkguard is a free, open source, zero-dependency Node.js command line tool (Node 18+, MIT) that finds malware hidden in repositories before you install or run them. It targets the PolinRider campaign: code hidden after hundreds of blank spaces, rewritten commits, fake font files, VS Code tasks that run on folder open, and poisoned npm packages. It can check a folder, a GitHub repo (every branch, without writing its files to disk) or every repo you own, clean what it finds (restoring original files from git history), open a pull request with the fix, and check automatically before npm install and after git clone. Exit codes: 0 clean, 1 dangerous finding, 2 error. Current npm version: 0.4.1.
 
-Site: https://forkguard.pages.dev/  ·  Source: https://github.com/PRODHOSH/forkguard  ·  Version: 0.3.2
+Site: https://forkguard.pages.dev/  ·  Source: https://github.com/PRODHOSH/forkguard  ·  Version: 0.4.1
 
 ---
 
@@ -1759,7 +1759,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.3.2
+      - uses: PRODHOSH/forkguard@v0.4.1
 ```
 
 Open the **Actions** tab of your repo to see it run.
@@ -1796,7 +1796,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.3.2
+      - uses: PRODHOSH/forkguard@v0.4.1
         with:
           open-pr: true
 ```
@@ -1810,7 +1810,7 @@ When something is found, the Action creates a branch called `forkguard/remove-ma
 ### Check one folder of a monorepo
 
 ```yaml
-      - uses: PRODHOSH/forkguard@v0.3.2
+      - uses: PRODHOSH/forkguard@v0.4.1
         with:
           path: apps/web
 ```
@@ -1835,7 +1835,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.3.2
+      - uses: PRODHOSH/forkguard@v0.4.1
 ```
 
 ### Use the CLI directly
@@ -1850,7 +1850,7 @@ jobs:
 
 ## Pin a version
 
-`PRODHOSH/forkguard@v0.3.2` always runs that exact version, so nothing changes under you. When a new version comes out, update the number. All versions are on the [releases page](https://github.com/PRODHOSH/forkguard/releases).
+`PRODHOSH/forkguard@v0.4.1` always runs that exact version, so nothing changes under you. When a new version comes out, update the number. All versions are on the [releases page](https://github.com/PRODHOSH/forkguard/releases).
 
 ## Troubleshooting
 
