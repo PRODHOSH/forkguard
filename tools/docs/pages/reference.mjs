@@ -14,7 +14,7 @@ export const reference = [
         ['`--mine`', 'on its own', 'Check every repo you own on GitHub. See [`forkguard --mine`](page:commands/mine).'],
         ['`--upstream`', '`pr`', 'Send the pull request to the repo you forked from. See [`forkguard pr`](page:commands/pr).'],
         ['`--remove`', '`setup`', 'Take the automatic checks back out of your shell profile.'],
-        ['`--write`', '`agent`', 'Add the agent rules to AGENTS.md, CLAUDE.md and similar files instead of printing them. Next release.'],
+        ['`--write`', '`agent`', 'Add the agent rules to AGENTS.md, CLAUDE.md and similar files instead of printing them.'],
         ['`--version`, `-v`', 'anything', 'Print the version.'],
         ['`--help`, `-h`', 'anything', 'Print all commands.'],
       ]),
@@ -135,7 +135,6 @@ export const reference = [
     lede: 'Every rule, what triggers it, and what fix does about it.',
     blocks: [
       p('forkguard was built against a malware campaign researchers call **PolinRider**, tied to North Korean threat actors. Every rule comes from real infected repos and public research. [OpenSourceMalware’s dossier](https://github.com/OpenSourceMalware/PolinRider) tracked 1,951 infected public repos across 1,047 owners as of April 11, 2026.'),
-      note('Rules marked **next release** are in the repository but not in the version on npm yet (0.3.2).'),
 
       h2('At a glance'),
       table(['Rule', 'Level', 'Looks for', 'Fix'], [
@@ -143,7 +142,7 @@ export const reference = [
         ['[`loader`](#loader)', 'HIGH', 'A block that decodes a URL from an env variable, downloads code and runs it', 'remove the block'],
         ['[`script`](#script)', 'HIGH', 'A package.json script running `node init` or a font file first', 'remove that step'],
         ['[`bad-package`](#bad-package)', 'HIGH', 'A known malicious npm package, in package.json or a lockfile', 'a person decides'],
-        ['[`bad-package-installed`](#bad-package-installed)', 'HIGH', 'A known malicious package already in `node_modules` (next release)', 'a person decides'],
+        ['[`bad-package-installed`](#bad-package-installed)', 'HIGH', 'A known malicious package already in `node_modules`', 'a person decides'],
         ['[`fake-font`](#fake-font)', 'HIGH / MED', 'A font file that is really JavaScript, or not a font at all', 'delete'],
         ['[`decoy-folder`](#decoy-folder)', 'HIGH', 'A fonts folder planted to make the fake font look normal', 'delete the folder'],
         ['[`autorun`](#autorun)', 'HIGH / MED', 'A VS Code task that runs when you open the folder', 'remove the task'],
@@ -153,8 +152,8 @@ export const reference = [
         ['[`prelude`](#prelude)', 'MED', 'Fake `createRequire` lines at the top of a config file', 'remove the lines'],
         ['[`gitignore`](#gitignore)', 'MED', '`.gitignore` hiding the dropped `config.bat`', 'remove the line'],
         ['[`lifecycle`](#lifecycle)', 'MED', 'An install script that downloads or decodes something', 'a person decides'],
-        ['[`config-long-line`](#config-long-line)', 'MED', 'A config file with a line of 2,000+ characters (next release)', 'a person decides'],
-        ['[`odd-vscode-file`](#odd-vscode-file)', 'MED', '`.vscode/extension.json`, which VS Code does not use (next release)', 'a person decides'],
+        ['[`config-long-line`](#config-long-line)', 'MED', 'A config file with a line of 2,000+ characters', 'a person decides'],
+        ['[`odd-vscode-file`](#odd-vscode-file)', 'MED', '`.vscode/extension.json`, which VS Code does not use', 'a person decides'],
         ['[`env-not-ignored`](#env-not-ignored)', 'MED', 'A `.env` file git is not ignoring', 'add it to `.gitignore`'],
         ['[`secret`](#secret)', 'MED', 'A `.env` file that is committed', '`pr` removes it from git'],
         ['[`rewritten`](#rewritten)', 'MED', 'Your latest commit was rewritten after it was made', 'a person decides'],
@@ -181,7 +180,7 @@ export const reference = [
       p('**Fix:** none automatically. Remove the dependency and reinstall, and treat the machine that installed it as exposed.'),
 
       h3('bad-package-installed', 'bad-package-installed'),
-      p('**Next release.** One of those packages is already in `node_modules`, next to a `package.json`. Its install step has probably already run.'),
+      p('One of those packages is already in `node_modules`, next to a `package.json`. Its install step has probably already run.'),
       p('**Fix:** none automatically. Delete `node_modules`, drop the package from `package.json`, and treat the computer as exposed: rotate your tokens and keys.'),
 
       h3('fake-font', 'fake-font'),
@@ -197,7 +196,7 @@ export const reference = [
       p('**Fix:** removes only the folder-open task and keeps your other tasks. If nothing else is left, the file is deleted.'),
 
       h3('dropper', 'dropper'),
-      p('Files this malware drops to spread itself: `config.bat`, `temp_auto_push.bat` and `.orc` files. **Next release:** any `.bat`, `.cmd` or `.sh` script that rewrites your last commit and force pushes (it reads the commit’s date, resets the clock, runs `git commit --amend --no-verify` and `git push` with force), even when it has been renamed.'),
+      p('Files this malware drops to spread itself: `config.bat`, `temp_auto_push.bat` and `.orc` files. It also catches any `.bat`, `.cmd` or `.sh` script that rewrites your last commit and force pushes (it reads the commit’s date, resets the clock, runs `git commit --amend --no-verify` and `git push` with force), even when it has been renamed.'),
       p('**Fix:** deletes the file.'),
 
       h3('npm-infected', 'npm-infected'),
@@ -214,9 +213,9 @@ export const reference = [
       h3('lifecycle', 'lifecycle'),
       p('An install-time script (`preinstall`, `install`, `postinstall`, `prepare`, `prepublish`) that uses `curl`, `wget`, `powershell`, `iwr`, `Invoke-WebRequest`, `certutil`, `base64`, `eval` or pipes into a shell. Plenty of legitimate packages do some of this, so it is MED. **Fix:** none. Read it and decide.'),
       h3('config-long-line', 'config-long-line'),
-      p('**Next release.** A config file with a line of 2,000 characters or more. Real configs do not have lines like that; injected code does. This catches new variants that no signature knows yet. **Fix:** none. Read the file.'),
+      p('A config file with a line of 2,000 characters or more. Real configs do not have lines like that; injected code does. This catches new variants that no signature knows yet. **Fix:** none. Read the file.'),
       h3('odd-vscode-file', 'odd-vscode-file'),
-      p('**Next release.** `.vscode/extension.json` is not a VS Code file (the real one is `extensions.json`). It has been seen in infected repos. **Fix:** none. Read it and delete it if it is not yours.'),
+      p('`.vscode/extension.json` is not a VS Code file (the real one is `extensions.json`). It has been seen in infected repos. **Fix:** none. Read it and delete it if it is not yours.'),
       h3('env-not-ignored', 'env-not-ignored'),
       p('A `.env` file (not `.env.example`) that git would happily commit. The malware has been seen taking `.env` out of `.gitignore`. **Fix:** adds `.env*` and `!.env.example` to `.gitignore`.'),
       h3('secret', 'secret'),

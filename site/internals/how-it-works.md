@@ -87,7 +87,7 @@ Afterwards it checks again and tells you what is left.
 | `src/fix.js` | Removes problems and restores original files. |
 | `src/pr.js` | Creates the branch, commit, push and pull request. |
 | `src/setup.js` | Installs and removes the shell hooks. |
-| `src/agent.js` | Prints and writes the agent rules (next release). |
+| `src/agent.js` | Prints and writes the agent rules. |
 | `src/git.js` | Talks to git, always with hooks switched off. |
 | `src/report.js` | Prints the results. |
 

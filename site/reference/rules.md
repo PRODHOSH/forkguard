@@ -4,8 +4,6 @@
 
 forkguard was built against a malware campaign researchers call **PolinRider**, tied to North Korean threat actors. Every rule comes from real infected repos and public research. [OpenSourceMalware’s dossier](https://github.com/OpenSourceMalware/PolinRider) tracked 1,951 infected public repos across 1,047 owners as of April 11, 2026.
 
-> **Note:** Rules marked **next release** are in the repository but not in the version on npm yet (0.3.2).
-
 ## At a glance
 
 | Rule | Level | Looks for | Fix |
@@ -14,7 +12,7 @@ forkguard was built against a malware campaign researchers call **PolinRider**, 
 | [`loader`](https://forkguard.pages.dev/reference/rules/#loader) | HIGH | A block that decodes a URL from an env variable, downloads code and runs it | remove the block |
 | [`script`](https://forkguard.pages.dev/reference/rules/#script) | HIGH | A package.json script running `node init` or a font file first | remove that step |
 | [`bad-package`](https://forkguard.pages.dev/reference/rules/#bad-package) | HIGH | A known malicious npm package, in package.json or a lockfile | a person decides |
-| [`bad-package-installed`](https://forkguard.pages.dev/reference/rules/#bad-package-installed) | HIGH | A known malicious package already in `node_modules` (next release) | a person decides |
+| [`bad-package-installed`](https://forkguard.pages.dev/reference/rules/#bad-package-installed) | HIGH | A known malicious package already in `node_modules` | a person decides |
 | [`fake-font`](https://forkguard.pages.dev/reference/rules/#fake-font) | HIGH / MED | A font file that is really JavaScript, or not a font at all | delete |
 | [`decoy-folder`](https://forkguard.pages.dev/reference/rules/#decoy-folder) | HIGH | A fonts folder planted to make the fake font look normal | delete the folder |
 | [`autorun`](https://forkguard.pages.dev/reference/rules/#autorun) | HIGH / MED | A VS Code task that runs when you open the folder | remove the task |
@@ -24,8 +22,8 @@ forkguard was built against a malware campaign researchers call **PolinRider**, 
 | [`prelude`](https://forkguard.pages.dev/reference/rules/#prelude) | MED | Fake `createRequire` lines at the top of a config file | remove the lines |
 | [`gitignore`](https://forkguard.pages.dev/reference/rules/#gitignore) | MED | `.gitignore` hiding the dropped `config.bat` | remove the line |
 | [`lifecycle`](https://forkguard.pages.dev/reference/rules/#lifecycle) | MED | An install script that downloads or decodes something | a person decides |
-| [`config-long-line`](https://forkguard.pages.dev/reference/rules/#config-long-line) | MED | A config file with a line of 2,000+ characters (next release) | a person decides |
-| [`odd-vscode-file`](https://forkguard.pages.dev/reference/rules/#odd-vscode-file) | MED | `.vscode/extension.json`, which VS Code does not use (next release) | a person decides |
+| [`config-long-line`](https://forkguard.pages.dev/reference/rules/#config-long-line) | MED | A config file with a line of 2,000+ characters | a person decides |
+| [`odd-vscode-file`](https://forkguard.pages.dev/reference/rules/#odd-vscode-file) | MED | `.vscode/extension.json`, which VS Code does not use | a person decides |
 | [`env-not-ignored`](https://forkguard.pages.dev/reference/rules/#env-not-ignored) | MED | A `.env` file git is not ignoring | add it to `.gitignore` |
 | [`secret`](https://forkguard.pages.dev/reference/rules/#secret) | MED | A `.env` file that is committed | `pr` removes it from git |
 | [`rewritten`](https://forkguard.pages.dev/reference/rules/#rewritten) | MED | Your latest commit was rewritten after it was made | a person decides |
@@ -72,7 +70,7 @@ tailwindcss-animate-style
 
 ### bad-package-installed
 
-**Next release.** One of those packages is already in `node_modules`, next to a `package.json`. Its install step has probably already run.
+One of those packages is already in `node_modules`, next to a `package.json`. Its install step has probably already run.
 
 **Fix:** none automatically. Delete `node_modules`, drop the package from `package.json`, and treat the computer as exposed: rotate your tokens and keys.
 
@@ -96,7 +94,7 @@ A task in `.vscode/tasks.json` with `runOn: "folderOpen"`, so it runs the moment
 
 ### dropper
 
-Files this malware drops to spread itself: `config.bat`, `temp_auto_push.bat` and `.orc` files. **Next release:** any `.bat`, `.cmd` or `.sh` script that rewrites your last commit and force pushes (it reads the commit’s date, resets the clock, runs `git commit --amend --no-verify` and `git push` with force), even when it has been renamed.
+Files this malware drops to spread itself: `config.bat`, `temp_auto_push.bat` and `.orc` files. It also catches any `.bat`, `.cmd` or `.sh` script that rewrites your last commit and force pushes (it reads the commit’s date, resets the clock, runs `git commit --amend --no-verify` and `git push` with force), even when it has been renamed.
 
 **Fix:** deletes the file.
 
@@ -126,11 +124,11 @@ An install-time script (`preinstall`, `install`, `postinstall`, `prepare`, `prep
 
 ### config-long-line
 
-**Next release.** A config file with a line of 2,000 characters or more. Real configs do not have lines like that; injected code does. This catches new variants that no signature knows yet. **Fix:** none. Read the file.
+A config file with a line of 2,000 characters or more. Real configs do not have lines like that; injected code does. This catches new variants that no signature knows yet. **Fix:** none. Read the file.
 
 ### odd-vscode-file
 
-**Next release.** `.vscode/extension.json` is not a VS Code file (the real one is `extensions.json`). It has been seen in infected repos. **Fix:** none. Read it and delete it if it is not yours.
+`.vscode/extension.json` is not a VS Code file (the real one is `extensions.json`). It has been seen in infected repos. **Fix:** none. Read it and delete it if it is not yours.
 
 ### env-not-ignored
 

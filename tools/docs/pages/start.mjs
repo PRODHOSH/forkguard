@@ -44,7 +44,7 @@ export const start = [
         ['[`forkguard fix`](page:commands/fix)', 'Removes what it found, on your computer', 'Yes, your files'],
         ['[`forkguard pr`](page:commands/pr)', 'Removes it on a new branch and opens a pull request', 'Yes, a branch and a pull request'],
         ['[`forkguard setup`](page:commands/setup)', 'Checks automatically before npm install and after git clone', 'Yes, your shell profile'],
-        ['[`forkguard agent`](page:commands/agent)', 'Safety rules for AI coding agents (next release)', 'Only with `--write`'],
+        ['[`forkguard agent`](page:commands/agent)', 'Safety rules for AI coding agents', 'Only with `--write`'],
       ]),
       p('Only `fix`, `pr`, `setup` and `agent --write` ever change anything. Checking is always read only.'),
 
@@ -165,7 +165,7 @@ export const start = [
         ['Turn automatic checks off', '`forkguard setup --remove`'],
         ['Skip the check once', '`FORKGUARD_SKIP=1 npm install`'],
         ['Get results as JSON', '`forkguard --json`'],
-        ['Add safety rules for AI agents (next release)', '`forkguard agent --write`'],
+        ['Add safety rules for AI agents', '`forkguard agent --write`'],
         ['See the version', '`forkguard --version`'],
       ]),
     ],

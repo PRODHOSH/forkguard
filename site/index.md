@@ -42,7 +42,7 @@ Already know what you need? Jump straight to it.
 | [`forkguard fix`](https://forkguard.pages.dev/commands/fix/) | Removes what it found, on your computer | Yes, your files |
 | [`forkguard pr`](https://forkguard.pages.dev/commands/pr/) | Removes it on a new branch and opens a pull request | Yes, a branch and a pull request |
 | [`forkguard setup`](https://forkguard.pages.dev/commands/setup/) | Checks automatically before npm install and after git clone | Yes, your shell profile |
-| [`forkguard agent`](https://forkguard.pages.dev/commands/agent/) | Safety rules for AI coding agents (next release) | Only with `--write` |
+| [`forkguard agent`](https://forkguard.pages.dev/commands/agent/) | Safety rules for AI coding agents | Only with `--write` |
 
 Only `fix`, `pr`, `setup` and `agent --write` ever change anything. Checking is always read only.
 

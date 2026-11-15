@@ -376,7 +376,6 @@ export const commands = [
     kind: 'command',
     group: 'Commands',
     title: 'forkguard agent',
-    status: 'next release',
     nav: 'forkguard agent',
     description: 'forkguard agent prints or installs safety rules for AI coding agents such as Claude Code, Cursor, Copilot and Codex, so they check a project before running it.',
     lede: 'Safety rules for AI coding agents, so they check a project before running it.',

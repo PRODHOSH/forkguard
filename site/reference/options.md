@@ -8,7 +8,7 @@
 | `--mine` | on its own | Check every repo you own on GitHub. See [`forkguard --mine`](https://forkguard.pages.dev/commands/mine/). |
 | `--upstream` | `pr` | Send the pull request to the repo you forked from. See [`forkguard pr`](https://forkguard.pages.dev/commands/pr/). |
 | `--remove` | `setup` | Take the automatic checks back out of your shell profile. |
-| `--write` | `agent` | Add the agent rules to AGENTS.md, CLAUDE.md and similar files instead of printing them. Next release. |
+| `--write` | `agent` | Add the agent rules to AGENTS.md, CLAUDE.md and similar files instead of printing them. |
 | `--version`, `-v` | anything | Print the version. |
 | `--help`, `-h` | anything | Print all commands. |
 

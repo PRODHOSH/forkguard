@@ -99,7 +99,7 @@ Close the terminal and open a new one. From now on forkguard checks a project be
 | Turn automatic checks off | `forkguard setup --remove` |
 | Skip the check once | `FORKGUARD_SKIP=1 npm install` |
 | Get results as JSON | `forkguard --json` |
-| Add safety rules for AI agents (next release) | `forkguard agent --write` |
+| Add safety rules for AI agents | `forkguard agent --write` |
 | See the version | `forkguard --version` |
 
 ## Where to next

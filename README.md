@@ -338,7 +338,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.4.1
+      - uses: PRODHOSH/forkguard@v0.5.0
         with:
           open-pr: true
 ```
