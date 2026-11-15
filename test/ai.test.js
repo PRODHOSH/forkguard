@@ -233,7 +233,7 @@ test('--ai without a key explains how to set one, and exits 2', async () => {
   try {
     const r = await run(['skills', dir, '--ai']);
     assert.equal(r.status, 2);
-    assert.match(r.stderr, /export ANTHROPIC_API_KEY=/);
+    assert.match(r.stderr, process.platform === 'win32' ? /\$env:ANTHROPIC_API_KEY = / : /export ANTHROPIC_API_KEY=/);
     assert.match(r.stderr, /never saves or prints it/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
