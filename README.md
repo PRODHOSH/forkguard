@@ -38,6 +38,7 @@ Check a folder, a GitHub link, or every repo you own. Clean what it finds and op
 - [GitHub Action](#github-action)
 - [How it works](#how-it-works)
 - [Safety and privacy](#safety-and-privacy)
+- [Using AI agent skills? Check them too](#using-ai-agent-skills-check-them-too)
 - [Why I built this](#why-i-built-this)
 - [FAQ](#faq)
 - [Contributing](#contributing)
@@ -434,6 +435,16 @@ The full picture, with diagrams of every part, is in [How it works](https://fork
 - **It never runs npm** to check npm. It reads npm's files directly.
 - **It sends nothing anywhere.** The only network calls are downloading a repo you asked it to check, and talking to GitHub when you run `forkguard pr` or `--mine`.
 - **Zero dependencies.** There is nothing between you and the check that could be compromised.
+
+## Using AI agent skills? Check them too
+
+forkguard checks your code projects. It does not check the skills you give to AI coding tools like Claude Code. A skill is a folder of instructions and scripts that your AI agent follows with your permissions, so a bad one can do the same damage as a bad npm package.
+
+If you use skills, it is worth scanning them before you use them. NVIDIA's open source [SkillSpector](https://github.com/NVIDIA/SkillSpector) is built for exactly that. The two tools cover different ground, so use both.
+
+Checking skills is also coming to forkguard itself, so one tool can cover both your code and your skills.
+
+Right now there are outages, cyber attacks and AI-powered attacks in the news almost every week. Staying safe takes a few minutes.
 
 ## Why I built this
 
