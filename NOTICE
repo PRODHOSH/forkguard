@@ -15,7 +15,7 @@ What was taken from SkillSpector, and what was changed:
 
   - The rules: the regular expressions, their confidences, severities, messages, explanations and
     remediations, and the five YARA rule files. The regular expressions were copied out of the Python
-    source by a script (tools/skillspector/extract_tables.py) so none of them was retyped, then rewritten
+    source by a script (tools/skillspector/extract_tables.py, run by tools/skillspector/build-data.mjs) so none of them was retyped, then rewritten
     only where Python and JavaScript spell the same thing differently (src/skills/pyregex.js).
     They are stored in src/skills/data/tables.json and src/skills/data/yara/.
   - The method: how files are read, the "security view" that folds look-alike letters and drops invisible

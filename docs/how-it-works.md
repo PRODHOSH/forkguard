@@ -7,7 +7,7 @@
   </a>
 </p>
 
-> This page is also on the [documentation site](https://forkguard.pages.dev/internals/how-it-works/), with search and a short and a plain-words version of every command.
+> This page is also on the [documentation site](https://forkguard.pages.dev/internals/how-it-works/), with search and a short and a plain-words version of every command. All docs: [index](README.md).
 
 # How forkguard works
 
@@ -20,10 +20,11 @@ The details behind the scenes. You do not need any of this to use forkguard. For
 3. [How fixing works](#3-how-fixing-works)
 4. [How the pull request works](#4-how-the-pull-request-works)
 5. [How checking a GitHub link works](#5-how-checking-a-github-link-works)
-6. [How automatic checks work](#6-how-automatic-checks-work)
-7. [Architecture](#7-architecture)
-8. [Tech stack](#8-tech-stack)
-9. [Safety and privacy](#9-safety-and-privacy)
+6. [How checking an AI agent skill works](#6-how-checking-an-ai-agent-skill-works)
+7. [How automatic checks work](#7-how-automatic-checks-work)
+8. [Architecture](#8-architecture)
+9. [Tech stack](#9-tech-stack)
+10. [Safety and privacy](#10-safety-and-privacy)
 
 ---
 
@@ -142,9 +143,38 @@ Step by step:
 
 ---
 
-## 6. How automatic checks work
+## 6. How checking an AI agent skill works
 
-`forkguard setup` adds a small, clearly marked block to your shell profile. It wraps `npm`, `pnpm`, `yarn`, `bun` and `git`:
+`forkguard skills` applies [NVIDIA SkillSpector's](https://github.com/NVIDIA/SkillSpector) rules, translated to JavaScript, to skill folders (a `SKILL.md` plus its scripts and references).
+
+```mermaid
+flowchart TD
+    A["Skill folder, owner/repo,<br/>or every installed skill"] --> B["List the text files<br/>skip binaries, symlinks, files over 1 MB"]
+    B --> C["Run 15 pattern modules<br/>on the raw text"]
+    B --> D["Fold look-alike letters, drop invisible<br/>characters, run them again"]
+    C --> E["Run the 28 YARA rules"]
+    D --> E
+    E --> F["Merge repeats, keep every place"]
+    F --> G["Score 0 to 100"]
+    G --> H{"Over 50 and a<br/>clear attack?"}
+    H -- "Yes" --> I["Do not install<br/>exit code 1"]
+    H -- "No" --> J["Fine or worth a look<br/>exit code 0"]
+```
+
+- **The rules** are SkillSpector's regular expressions, severities, confidences and YARA rule files. A script copied them out of its Python source, so none was retyped.
+- **The cleaned view** is how a model would read the text: look-alike letters folded to ASCII and invisible characters dropped. It stops an instruction spelled with a Cyrillic letter that looks like a Latin one, or one split by hidden zero-width characters, from slipping past.
+- **Exemptions.** A sentence that forbids something, like "never reveal the system prompt", is not flagged as if it asked for it. License text, quoted examples and a few documentation patterns are recognised too.
+- **The score** counts each rule in full once, half the second time and a quarter the third, scaled by how sure the rule is, with 1.3 times for executable files.
+- **The decision** is SkillSpector's score plus forkguard's own check for a clear attack, because SkillSpector relies on an AI review to drop false alarms and forkguard has none.
+- **Downloading** a skill from GitHub is a shallow clone into a temporary folder with git hooks switched off and symlinks off. Nothing in it is run, and the folder is deleted afterwards.
+
+Everything about coverage, numbers and where the JavaScript differs from the Python is in [AI agent skills](skills.md).
+
+---
+
+## 7. How automatic checks work
+
+`forkguard setup` adds a small, clearly marked block to your shell profile. It wraps `npm`, `pnpm`, `yarn`, `bun`, `npx`, `bunx`, `pnpx` and `git`:
 
 ```mermaid
 flowchart LR
@@ -155,12 +185,14 @@ flowchart LR
 ```
 
 - For package managers it checks **before** install, run, dev, start, build and test, and can stop the command.
+- For `npx skills add` (and `bunx`, `pnpx`, `pnpm dlx`, `yarn dlx`, `npm exec`) it downloads the skill to a temporary folder and checks it **before** anything is installed.
 - For git it checks **after** clone, pull, merge, checkout and switch, and warns you.
-- Other commands like `npm --version` or `git status` pass straight through without a check.
+- Other commands like `npm --version`, `npx cowsay` or `git status` pass straight through without a check.
+- If forkguard is missing or crashes, your command still runs. Only an explicit "dangerous" answer (exit code 1) stops anything.
 
 ---
 
-## 7. Architecture
+## 8. Architecture
 
 ```mermaid
 flowchart TD
@@ -172,7 +204,10 @@ flowchart TD
     PR["src/pr.js<br/>branch, push, pull request"]
     SETUP["src/setup.js<br/>shell hooks and VS Code"]
     GIT["src/git.js<br/>git with hooks switched off"]
+    SKILLS["src/skills<br/>SkillSpector's rules in JavaScript"]
 
+    CLI --> SKILLS
+    SKILLS --> GIT
     CLI --> SCAN
     CLI --> REMOTE
     REMOTE --> SCAN
@@ -198,12 +233,14 @@ flowchart TD
 | `src/fix.js` | Removes problems and restores original files |
 | `src/pr.js` | Creates the branch, commit, push and pull request |
 | `src/setup.js` | Installs and removes the shell hooks |
+| `src/skills/` | The skill checks: `scan.js` (read, run, score), `modules/` (the 15 rule modules and the YARA runner), `data/` (the rule tables and YARA files copied from SkillSpector), `pyregex.js` (Python regex to JavaScript) |
+| `skills/forkguard/` | The forkguard skill that you give your AI agent |
 | `src/git.js` | Talks to git, always with hooks switched off |
 | `src/report.js` | Prints the results |
 
 ---
 
-## 8. Tech stack
+## 9. Tech stack
 
 | Part | Choice | Why |
 | --- | --- | --- |
@@ -211,16 +248,18 @@ flowchart TD
 | Dependencies | None | A tool you run before `npm install` should not need `npm install` |
 | Git | The `git` you already have | Reads history to restore your files |
 | Pull requests | GitHub CLI or the GitHub API | Works with however you are logged in |
+| Skill rules | NVIDIA SkillSpector's, translated | One tool for code and skills, with no Python and no AI key |
+| License | Apache 2.0 | Keeps the credit and the patent grant that SkillSpector's own license carries |
 | Tests | `node:test` | Built into Node |
 | CI | Linux, Windows and macOS on Node 18, 20 and 22 | The malware targets all three |
 
 ---
 
-## 9. Safety and privacy
+## 10. Safety and privacy
 
 - **It never runs project code.** It only reads files.
 - **It switches off git hooks** whenever it calls git, because an infected repo can ship its own.
 - **It never runs npm** to check npm. It reads npm's files directly.
-- **It never writes downloaded repo files to disk.** Link checks keep everything packed inside git and delete it afterwards.
-- **It sends nothing anywhere.** The only network calls are downloading a repo you asked it to check, and talking to GitHub for `forkguard pr` and `--mine`.
+- **It never writes downloaded repo files to disk.** Link checks keep everything packed inside git and delete it afterwards. A skill source is the one exception: it is cloned to a temporary folder, read and deleted, because its files must be read as files.
+- **It sends nothing anywhere.** The only network calls are downloading a repo or skill you asked it to check, and talking to GitHub for `forkguard pr` and `--mine`.
 - **Zero dependencies.** There is nothing in between you and the check that could be compromised.

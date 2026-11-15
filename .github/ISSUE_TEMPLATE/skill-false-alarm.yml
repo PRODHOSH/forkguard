@@ -1,0 +1,57 @@
+name: Skill false alarm
+description: forkguard skills flagged an AI agent skill that is actually fine, or missed a bad one
+title: "Skill: "
+labels: ["skills"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks. The skill rules come from NVIDIA SkillSpector, so a wrong rule may be worth reporting to both projects, but forkguard bugs belong here, not with NVIDIA.
+
+  - type: input
+    id: skill
+    attributes:
+      label: Which skill?
+      description: The owner/repo or a link, if it is public.
+      placeholder: owner/repo
+    validations:
+      required: true
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What went wrong?
+      options:
+        - A harmless skill was flagged or blocked
+        - A bad skill was not caught
+        - Something else
+    validations:
+      required: true
+
+  - type: textarea
+    id: output
+    attributes:
+      label: What forkguard printed
+      description: Copy the lines for the finding, or the score. Please do not paste malicious text, describe it.
+      render: text
+      placeholder: |
+        HIGH  AR2  references/checklist.md:69  Anti-Refusal Statement  "Never judge"
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why is that wrong?
+      placeholder: It is a design tip, not an instruction to the agent.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: forkguard version
+      description: Run `forkguard --version`
+      placeholder: 0.7.0
+    validations:
+      required: true

@@ -7,11 +7,19 @@
   </a>
 </p>
 
-> This page is also on the [documentation site](https://forkguard.pages.dev/quick-start/), with search and a short and a plain-words version of every command.
+> This page is also on the [documentation site](https://forkguard.pages.dev/quick-start/), with search and a short and a plain-words version of every command. All docs: [index](README.md).
 
 # Getting started with forkguard
 
 This guide takes you from zero to fully protected, one step at a time. No security background needed. Read it top to bottom the first time, then jump back to any section when you need it.
+
+```mermaid
+flowchart LR
+    A["Install"] --> B["Check<br/>folder, link, all repos"]
+    B --> C["Clean<br/>fix and pull request"]
+    C --> D["Check AI skills<br/>and teach your agent"]
+    D --> E["Protect<br/>setup and GitHub Action"]
+```
 
 ## Contents
 
@@ -23,11 +31,13 @@ This guide takes you from zero to fully protected, one step at a time. No securi
 6. [Read the results](#6-read-the-results)
 7. [Clean a project](#7-clean-a-project)
 8. [Fix it on GitHub with a pull request](#8-fix-it-on-github-with-a-pull-request)
-9. [Turn on automatic protection](#9-turn-on-automatic-protection)
-10. [Add it to GitHub Actions](#10-add-it-to-github-actions)
-11. [Found something? Do this next](#11-found-something-do-this-next)
-12. [Troubleshooting](#12-troubleshooting)
-13. [Cheat sheet](#13-cheat-sheet)
+9. [Check an AI agent skill](#9-check-an-ai-agent-skill)
+10. [Teach your AI agent](#10-teach-your-ai-agent)
+11. [Turn on automatic protection](#11-turn-on-automatic-protection)
+12. [Add it to GitHub Actions](#12-add-it-to-github-actions)
+13. [Found something? Do this next](#13-found-something-do-this-next)
+14. [Troubleshooting](#14-troubleshooting)
+15. [Cheat sheet](#15-cheat-sheet)
 
 ---
 
@@ -39,7 +49,7 @@ Some malware hides inside ordinary looking repos. Three things make it dangerous
 - **It runs on its own.** It starts the moment you open the folder in VS Code, or type `npm install` or `npm run dev`.
 - **It spreads.** It steals your GitHub token and uses it to quietly rewrite commits in every repo you can push to.
 
-forkguard looks for every trick this malware uses, **before** anything runs. If it finds something, it can clean it up, both on your computer and on GitHub.
+forkguard looks for every trick this malware uses, **before** anything runs. If it finds something, it can clean it up, both on your computer and on GitHub. It also checks **AI agent skills** (the instruction folders Claude Code, Codex and Cursor load) before you install them.
 
 It never runs code from the project it checks, and it never uploads your code anywhere.
 
@@ -74,7 +84,7 @@ The `-g` means "global": you can now type `forkguard` in any folder. Check it wo
 forkguard --version
 ```
 
-> **Just want to try it once?** Skip installing and put `npx` in front of any command, like `npx forkguard`. You do need the global install for automatic protection (section 9).
+> **Just want to try it once?** Skip installing and put `npx` in front of any command, like `npx forkguard`. You do need the global install for automatic protection (section 11).
 
 > **"forkguard is not recognized" after installing?** Close your terminal and open a new one.
 
@@ -93,6 +103,8 @@ To check a folder without moving into it, give the path:
 ```bash
 forkguard path/to/project
 ```
+
+**Check everything at once.** Run it in the folder that holds all your projects (for example `~/Developer`). forkguard checks every project inside, however deep, and changes nothing.
 
 A clean project looks like this:
 
@@ -140,19 +152,21 @@ Only clone and open it if it says **looks clean**. If it shows anything HIGH, do
 
 ## 5. Check every repo you own
 
-One command checks all of your GitHub repos, every branch.
+One command checks all of your GitHub repos, every branch:
 
-First, log in to GitHub once. Install the [GitHub CLI](https://cli.github.com), then:
+```bash
+forkguard --mine
+```
+
+**You do not need to log in to look.** Not logged in, forkguard finds your GitHub name from settings already on your computer, asks you to confirm it and checks your **public** repos. It then shows how to log in for the private ones. Logged in, it checks everything you own.
+
+To log in once, install the [GitHub CLI](https://cli.github.com) and run:
 
 ```bash
 gh auth login
 ```
 
-Then:
-
-```bash
-forkguard --mine
-```
+(No GitHub CLI? Set a `GITHUB_TOKEN` instead. forkguard prints the exact steps for your computer when a login would help.)
 
 You get one line per repo while it works:
 
@@ -168,6 +182,12 @@ forkguard  checking 54 of your repos on GitHub, every branch
 ```
 
 Then the full details for every repo that needs attention. About 50 repos takes a minute or two.
+
+To check a friend's or a team's public repos, give a name instead. Nothing is downloaded to your disk and nothing changes on their side:
+
+```bash
+forkguard @their-name
+```
 
 > Do this once now, and again whenever you hear about a new attack. It is the fastest way to know your whole GitHub is clean.
 
@@ -204,7 +224,7 @@ Want to know what each message means? The [How it works](how-it-works.md#2-what-
 
 ## 7. Clean a project
 
-Inside the project folder, run:
+Inside the project folder, or in the big folder that holds many projects, run:
 
 ```bash
 forkguard fix
@@ -230,6 +250,8 @@ What each word means:
 | **cleaned** | The file is yours. Only the bad part was removed. Your code is untouched. |
 | **restored your original from git history** | forkguard found the clean version you wrote before the attack and put it back exactly |
 
+Run from a folder with many projects, `fix` cleans every infected one, restoring each file from **that project's own** git history. If more than one project is affected it asks once before changing anything (add `--yes` to skip the question), and prints one summary at the end.
+
 Now look at what changed and save it:
 
 ```bash
@@ -249,7 +271,7 @@ git commit -m "Remove injected malware"
 
 ## 8. Fix it on GitHub with a pull request
 
-`forkguard fix` cleans your computer. `forkguard pr` cleans **GitHub** too, by opening a pull request with the fix. This is what you want when the malware is in a repo on GitHub, which it usually is.
+`forkguard fix` cleans your computer. A **pull request** cleans **GitHub** too, and that is what you want when the malware is in a repo on GitHub, which it usually is. Nothing changes on GitHub until you merge.
 
 ### Before you start
 
@@ -259,7 +281,7 @@ git commit -m "Remove injected malware"
    gh auth login
    ```
 
-   No GitHub CLI? A `GITHUB_TOKEN` environment variable works too. Without either, forkguard still pushes the branch and gives you a link to open the pull request yourself.
+   No GitHub CLI? A `GITHUB_TOKEN` environment variable works too. Without either, `forkguard pr` still pushes the branch and gives you a link to open the pull request yourself.
 
 2. **Commit or stash any work in progress.** forkguard refuses to run with uncommitted changes, so your work never ends up mixed into the fix:
 
@@ -286,11 +308,21 @@ flowchart LR
     E --> F["Switch you back<br/>to your branch"]
 ```
 
-At the end you get a link. Open it, look at the changes, and click **Merge**. Then bring your stashed work back:
+At the end you get a link. Open it, look at the changes and click **Merge**. Then bring your stashed work back:
 
 ```bash
 git stash pop
 ```
+
+### Fix every infected repo at once
+
+Do not want to clone them one by one? After `forkguard --mine` shows what is infected:
+
+```bash
+forkguard --mine --fix
+```
+
+It opens **one pull request per infected repo**, never pushes to your main branch, skips repos that already have a forkguard pull request, and asks once before it starts. It needs a login with permission to write to your repos (Contents and Pull requests, Read and write).
 
 ### Fix the repo you forked from
 
@@ -305,11 +337,68 @@ forkguard builds the fix on top of the original repo, not your fork. That way th
 | You want to... | Run |
 | --- | --- |
 | Clean your own repo on GitHub | `forkguard pr` |
+| Fix all your infected repos | `forkguard --mine --fix` |
 | Send the fix to the repo you forked from | `forkguard pr --upstream` |
 
 ---
 
-## 9. Turn on automatic protection
+## 9. Check an AI agent skill
+
+Claude Code, Codex, Cursor and other AI coding tools load **skills**: folders with a `SKILL.md` and sometimes scripts. Your agent follows them with your permissions, so a bad skill can tell it to ignore its safety rules, read your keys or send your files out. Look before you install, the same way you look at a dependency.
+
+```bash
+forkguard skills owner/repo
+```
+
+It downloads the source to a temporary folder, reads it (it never runs anything in it), deletes it and shows a verdict:
+
+```text
+  owner/repo  looks fine  score 0/100, low risk
+```
+
+or, for a dangerous one:
+
+```text
+  evil  do not install  score 100/100, critical risk
+    HIGH     P1    SKILL.md:6  Instruction Override  "Ignore all previous instructions"
+    HIGH     AS1   SKILL.md:7  Agent Config Directory Access  "~/.claude/settings.json"
+    ...
+```
+
+Other ways to use it:
+
+| You want to check | Run |
+| --- | --- |
+| Every skill already installed on this computer | `forkguard skills` |
+| One skill, or a folder of skills | `forkguard skills ./my-skill` |
+| A skill on GitHub, before you install it | `forkguard skills owner/repo` |
+
+With [automatic protection](#11-turn-on-automatic-protection) on, `npx skills add owner/repo` does this check for you and stops the install if the skill is dangerous. Everything about scores, coverage and the NVIDIA SkillSpector rules behind it is in [AI agent skills](skills.md).
+
+---
+
+## 10. Teach your AI agent
+
+Your AI agent will run `npm install` on anything you point it at. Instead of explaining forkguard to it, give it the forkguard **skill**:
+
+```bash
+npx skills add PRODHOSH/forkguard
+```
+
+That installs the skill into Claude Code, Codex, Cursor and the other agents the [skills CLI](https://github.com/vercel-labs/skills) supports. From then on your agent:
+
+- runs `npx forkguard --json` before it installs, builds or opens anything it did not write;
+- stops when the exit code is `1` and tells you what it found;
+- never runs `forkguard fix`, `pr` or `FORKGUARD_SKIP` without asking you;
+- checks a skill before it installs one.
+
+It also knows every forkguard command, so you can just ask it, "check my repos" or "is this skill safe?".
+
+Prefer just a few lines in `AGENTS.md` or `CLAUDE.md`? `forkguard agent --write` adds the short rules there.
+
+---
+
+## 11. Turn on automatic protection
 
 This is the part that protects you every day without you thinking about it. You need forkguard installed globally (section 2).
 
@@ -333,6 +422,7 @@ Then **close your terminal and open a new one**. From now on:
 | --- | --- |
 | `npm install`, `npm run dev`, `npm start`, `npm test`, `npm run build` | checks first, and **stops the command** if the project is dangerous |
 | the same with `pnpm`, `yarn` or `bun` | does the same |
+| `npx skills add owner/repo` (also `bunx`, `pnpx`, `pnpm dlx`, `yarn dlx`, `npm exec`) | checks the skill first, and **stops the install** if it is dangerous |
 | `git clone`, `git pull`, `git merge`, `git checkout`, `git switch` | checks what you just pulled in and warns you |
 | anything else, like `npm --version` or `git status` | runs normally, no check |
 
@@ -368,11 +458,11 @@ forkguard setup --remove
 
 Open a new terminal and it is gone.
 
-> Works with PowerShell, Git Bash, bash and zsh. Setup only adds one clearly marked block to your shell profile, and `--remove` takes it out again.
+> Works with PowerShell, Git Bash, bash and zsh. Setup only adds one clearly marked block to your shell profile, and `--remove` takes it out again. If forkguard is ever missing or crashes, your command still runs.
 
 ---
 
-## 10. Add it to GitHub Actions
+## 12. Add it to GitHub Actions
 
 Your computer is protected. Now protect GitHub too, so every push gets checked even when you are not around.
 
@@ -395,11 +485,11 @@ jobs:
 
 Commit and push it. If malware ever lands, the build turns red and GitHub emails you.
 
-The [GitHub Action guide](github-action.md) covers everything else: opening the fix as a pull request, nightly checks, monorepos and more.
+The [GitHub Action guide](github-action.md) covers everything else: opening the fix as a pull request, nightly checks, monorepos, and checking skills in CI.
 
 ---
 
-## 11. Found something? Do this next
+## 13. Found something? Do this next
 
 The order matters.
 
@@ -413,7 +503,7 @@ The order matters.
 
 ---
 
-## 12. Troubleshooting
+## 14. Troubleshooting
 
 **"forkguard is not recognized" or "command not found"**
 Install it globally with `npm install -g forkguard`, then open a new terminal.
@@ -422,7 +512,10 @@ Install it globally with `npm install -g forkguard`, then open a new terminal.
 Close the terminal and open a new one. Setup only takes effect in new terminals.
 
 **"You are not logged in to GitHub yet"**
-Only `--fix` and private repos need a login. forkguard prints the steps for your computer: install the GitHub CLI and run `gh auth login`, or set a `GITHUB_TOKEN`.
+Only `--fix`, `pr` and private repos need a login. forkguard prints the steps for your computer: install the GitHub CLI and run `gh auth login`, or set a `GITHUB_TOKEN`.
+
+**`forkguard @name` says GitHub is rate limiting you**
+Without a login GitHub allows about 60 lookups an hour. Log in with `gh auth login` and the limit becomes 5,000.
 
 **"could not download" when checking a link**
 Check the link is right. For a private repo, make sure you are logged in with `gh auth login`.
@@ -434,26 +527,32 @@ Check the link is right. For a private repo, make sure you are logged in with `g
 `forkguard pr` only works with repos on GitHub. Use `forkguard fix` instead.
 
 **It flagged something that is fine**
-Skip it once with `FORKGUARD_SKIP=1`, then [report a false alarm](https://github.com/PRODHOSH/forkguard/issues/new?template=false-alarm.yml) so the rule gets better.
+Skip it once with `FORKGUARD_SKIP=1`, then [report a false alarm](https://github.com/PRODHOSH/forkguard/issues/new?template=false-alarm.yml) so the rule gets better. For a skill, use the [skill false alarm form](https://github.com/PRODHOSH/forkguard/issues/new?template=skill-false-alarm.yml).
+
+**A skill got a high score but looks harmless**
+SkillSpector's static rules also flag harmless words, and forkguard has no AI review to drop them. By default forkguard blocks only when something looks like a real attack. The findings show the exact text, so you can judge. See [AI agent skills](skills.md#how-to-read-a-score).
 
 **It missed something**
 [Tell us what it looked like](https://github.com/PRODHOSH/forkguard/issues/new?template=missed-malware.yml). Please describe it rather than pasting the malicious code.
 
 ---
 
-## 13. Cheat sheet
+## 15. Cheat sheet
 
 | I want to... | Run |
 | --- | --- |
-| Check this folder | `forkguard` |
-| Check another folder | `forkguard path/to/project` |
+| Check this folder and every project in it | `forkguard` |
 | Check a GitHub repo without cloning | `forkguard owner/repo` |
 | Check all my repos on GitHub | `forkguard --mine` |
+| Check a friend's public repos | `forkguard @name` |
 | Clean this folder | `forkguard fix` |
 | Clean it on GitHub with a pull request | `forkguard pr` |
+| Fix every infected repo of mine | `forkguard --mine --fix` |
 | Send the fix to the repo I forked from | `forkguard pr --upstream` |
-| Check automatically before npm and after git | `forkguard setup` |
-| Check an AI agent skill before you install it | `forkguard skills owner/repo` |
+| Check my AI agent skills | `forkguard skills` |
+| Check a skill before I install it | `forkguard skills owner/repo` |
+| Teach my AI agent forkguard | `npx skills add PRODHOSH/forkguard` |
+| Check automatically from now on | `forkguard setup` |
 | Turn automatic checks off | `forkguard setup --remove` |
 | Skip the check once | `FORKGUARD_SKIP=1 npm install` |
 | Get results as JSON | `forkguard --json` |

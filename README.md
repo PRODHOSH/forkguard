@@ -7,9 +7,9 @@
   </picture>
 </h1>
 
-**Catch malware hidden in a repo before you install or run it.**
+**Catch malware hidden in a repo or an AI agent skill, before you install or run it.**
 
-Check a folder, a GitHub link, or every repo you own. Clean what it finds and open a pull request in one command. Also checks AI agent skills before you install them.
+Check a folder, a GitHub link or every repo you own. Clean what it finds and open the pull request in one command.
 
 [![npm](https://img.shields.io/npm/v/forkguard?color=2F5BFF&labelColor=0B1B33&label=npm)](https://www.npmjs.com/package/forkguard)
 [![CI](https://github.com/PRODHOSH/forkguard/actions/workflows/ci.yml/badge.svg)](https://github.com/PRODHOSH/forkguard/actions/workflows/ci.yml)
@@ -19,7 +19,7 @@ Check a folder, a GitHub link, or every repo you own. Clean what it finds and op
 [![License](https://img.shields.io/badge/license-Apache%202.0-2F5BFF?labelColor=0B1B33)](LICENSE)
 [![Docs](https://img.shields.io/badge/docs-forkguard.pages.dev-2F5BFF?labelColor=0B1B33)](https://forkguard.pages.dev)
 
-[**Documentation**](https://forkguard.pages.dev) &nbsp;|&nbsp; [Quick start](https://forkguard.pages.dev/quick-start/) &nbsp;|&nbsp; [Commands](https://forkguard.pages.dev/commands/check/) &nbsp;|&nbsp; [GitHub Action](https://forkguard.pages.dev/guides/github-action/) &nbsp;|&nbsp; [How it works](https://forkguard.pages.dev/internals/how-it-works/) &nbsp;|&nbsp; [The story](https://blog.prodhosh.me/blog/malware-hid-in-my-old-repos-polinrider)
+[**Documentation**](https://forkguard.pages.dev) &nbsp;|&nbsp; [Getting started](docs/getting-started.md) &nbsp;|&nbsp; [Commands](docs/commands.md) &nbsp;|&nbsp; [AI agent skills](docs/skills.md) &nbsp;|&nbsp; [GitHub Action](docs/github-action.md) &nbsp;|&nbsp; [How it works](docs/how-it-works.md) &nbsp;|&nbsp; [The story](https://blog.prodhosh.me/blog/malware-hid-in-my-old-repos-polinrider)
 
 </div>
 
@@ -27,31 +27,19 @@ Check a folder, a GitHub link, or every repo you own. Clean what it finds and op
 
 ## Contents
 
-- [What is forkguard](#what-is-forkguard)
-- [Features](#features)
-- [Quick start](#quick-start)
-- [Commands](#commands)
-- [Documentation](#documentation)
-- [Which one are you?](#which-one-are-you)
-- [What it catches](#what-it-catches)
-- [Automatic protection](#automatic-protection)
-- [GitHub Action](#github-action)
-- [How it works](#how-it-works)
-- [Safety and privacy](#safety-and-privacy)
-- [Check AI agent skills](#check-ai-agent-skills)
-- [The forkguard skill](#the-forkguard-skill)
-- [Why I built this](#why-i-built-this)
-- [FAQ](#faq)
-- [Contributing](#contributing)
-- [Developer](#developer)
+[What](#what-is-forkguard) · [Why](#why-it-exists) · [How it works](#how-it-works) · [Install](#install-and-first-run) · [Commands](#commands) · [Which one are you?](#which-one-are-you) · [AI agent skills](#ai-agent-skills) · [Stay protected](#stay-protected) · [Safety](#safety-and-privacy) · [FAQ](#faq) · [Docs](#documentation) · [Contributing](#contributing) · [Developer](#developer) · [License](#license-and-credits)
 
 ---
 
 ## What is forkguard
 
-Some malware hides inside ordinary looking GitHub repos. It sits after hundreds of spaces at the end of a normal line, so your editor shows nothing. It rewrites commits without changing the author or date, so git shows nothing either. The moment you open the folder in VS Code or type `npm install` or `npm run dev`, it runs, steals your tokens, keys and saved passwords, and spreads to every repo you can push to.
+forkguard is a free command line tool that does three jobs:
 
-forkguard finds it **before** any of that happens, and cleans it up for you.
+1. **Finds** the PolinRider malware in your code, in a folder, in a GitHub repo (every branch, without downloading its files) or across every repo you own.
+2. **Cleans** it: removes the malware, restores your original files from git history and can open the pull request for you.
+3. **Checks AI agent skills** (Claude Code, Codex, Cursor and more) before you install them, and stops `npx skills add` when a skill is dangerous.
+
+It never runs the code it checks, sends nothing anywhere and has **zero dependencies**.
 
 ```text
 $ forkguard
@@ -67,289 +55,107 @@ forkguard  my-app
   Run forkguard fix to clean it, or forkguard pr to clean it and open a pull request.
 ```
 
-## Features
+## Why it exists
 
-| | |
-| --- | --- |
-| **Check a folder** | Scans a project in well under a second |
-| **Check a GitHub link** | Checks every branch of any repo without writing its files to your disk |
-| **Check all your repos** | One command checks every repo you own on GitHub |
-| **Clean it** | Removes the malware and restores your original files from git history |
-| **Open a pull request** | Cleans a repo on a new branch, pushes it and opens the pull request for you |
-| **Automatic protection** | Stops `npm install` and `npm run dev` on infected projects, warns after `git clone` |
-| **GitHub Action** | Fails the build when malware lands, and can open the fix as a pull request |
-| **Check AI agent skills** | `forkguard skills` checks skills for Claude Code, Codex, Cursor and others, and stops `npx skills add` when a skill is dangerous. Rules from NVIDIA SkillSpector |
-| **A skill for your AI agent** | `npx skills add PRODHOSH/forkguard` teaches Claude Code, Codex, Cursor and others every forkguard command and when to use it |
-| **Rules for AI agents** | `forkguard agent --write` tells Claude Code, Cursor and Copilot to check before they run anything |
-| **Checks npm itself** | Spots an infected npm on your computer, which would reinfect you after every cleanup |
-| **Zero dependencies** | Nothing extra is installed, so nothing extra can be compromised |
-| **Cross platform** | Windows, macOS and Linux, with PowerShell, Git Bash, bash and zsh |
+- **It is invisible.** The malicious code sits after hundreds of spaces at the end of an ordinary line, so your editor shows nothing. It rewrites commits without changing the author or date, so git shows nothing either.
+- **It runs by itself.** The moment you open the folder in VS Code, or type `npm install` or `npm run dev`, it steals your tokens, keys and saved passwords.
+- **It spreads.** It uses your stolen GitHub token to infect every repo you can push to. Recruiters' "coding tests" and old repos are the usual way in.
+- **AI agents make it worse.** An agent told to "clone this and get it running" does exactly the dangerous thing, and a malicious skill can talk your agent into worse.
 
-## Quick start
+Weeks after I first cleaned it, it was back in 35 of my 53 repos. Cleaning that by hand took a whole day, so I built the tool I wished I had: [the full story](https://blog.prodhosh.me/blog/malware-hid-in-my-old-repos-polinrider).
+
+## How it works
+
+```mermaid
+flowchart LR
+    A["Your code, a GitHub link,<br/>every repo you own,<br/>or an AI agent skill"] --> B["forkguard reads it<br/>and never runs it"]
+    B --> C{"Anything<br/>dangerous?"}
+    C -- "No" --> D["Looks clean"]
+    C -- "Yes" --> E["Shows what and where"]
+    E --> F["fix: restore your files<br/>pr: open the pull request<br/>skill: not installed"]
+```
+
+- **Checking** looks for every trick the malware uses and skips folders that are not your code, so a project takes well under a second. A GitHub link is read straight out of git's database and never written to your disk.
+- **Cleaning** deletes files that are pure malware, cuts the hidden code out of your own files and puts back your exact original from git history.
+- **Skills** are scored 0 to 100 with [NVIDIA SkillSpector's](https://github.com/NVIDIA/SkillSpector) rules, translated to JavaScript.
+- **Protecting** is a few lines in your shell profile that run the check before `npm install`, after `git clone` and before `npx skills add`.
+
+More, with diagrams: [How it works](docs/how-it-works.md).
+
+## Install and first run
 
 You need [Node.js](https://nodejs.org) 18 or newer and [git](https://git-scm.com).
 
-**1. Install it**
-
 ```bash
-npm install -g forkguard
+npm install -g forkguard     # once
+forkguard                    # check this folder and every project inside it
+forkguard fix                # clean what it found
 ```
 
-**2. Check a folder**
-
-Open a terminal in the folder you want checked, for example the one that holds all your projects, and run:
-
-```bash
-forkguard
-```
-
-It checks every project inside that folder, however deep. Nothing is changed.
-
-**3. Clean what it found**
-
-```bash
-forkguard fix
-```
-
-**4. Check your GitHub**
-
-```bash
-forkguard --mine
-```
-
-Not logged in to GitHub? It checks your public repos anyway and shows you how to log in for the rest. When it finds something, `forkguard --mine --fix` opens a pull request for each infected repo.
-
-**5. Check your AI agent skills**
-
-```bash
-forkguard skills
-```
-
-Checks the skills your agents have installed. To check one before you install it, run `forkguard skills owner/repo`. See [Check AI agent skills](#check-ai-agent-skills).
-
-**6. Teach your AI agent**
-
-```bash
-npx skills add PRODHOSH/forkguard
-```
-
-That installs the forkguard [skill](#the-forkguard-skill) into Claude Code, Codex, Cursor and the other agents the skills CLI supports. Your agent then checks every project before it runs anything, and knows every command below.
-
-**7. Turn on automatic protection, once**
-
-```bash
-forkguard setup
-```
-
-Open a new terminal and you are protected from then on. That includes `npx skills add`: a skill is checked before it is installed. Just want to try it without installing? Run `npx forkguard`.
-
-New to all this? The [Getting started guide](https://forkguard.pages.dev/quick-start/) walks you through every step.
+That is the whole core loop. Just want to try it? `npx forkguard` works without installing. New to this? [Getting started](docs/getting-started.md) walks through every step.
 
 ## Commands
 
-**Most people only need these three.**
-
 | Command | What it does |
 | --- | --- |
-| `forkguard` | Checks this folder and every project inside it. Changes nothing. |
-| `forkguard fix` | Cleans everything it found, in every project under this folder |
-| `forkguard --mine` | Checks your GitHub repos. Not logged in? It checks the public ones and shows you how to log in for the rest. Add `--fix` to open a pull request for each infected repo. |
+| **Check** (changes nothing) | |
+| `forkguard` | Checks this folder and every project inside it |
+| `forkguard owner/repo` | Checks a GitHub repo, every branch, without downloading its files. Links and git URLs work too |
+| `forkguard --mine` | Checks all your repos. Public ones need no login. Add `--fix` to open a pull request for each infected repo |
+| `forkguard @name` | Checks the public repos of a person or team. No login |
+| `forkguard skills` | Checks the AI agent skills on this computer. Give it a folder or `owner/repo` to check one before you install it |
+| **Clean** | |
+| `forkguard fix` | Cleans every infected project under this folder and restores your originals |
+| `forkguard pr` | Cleans on a new branch and opens a pull request. `--upstream` sends it to the repo you forked from |
+| **Protect** | |
+| `forkguard setup` | Checks automatically before `npm install` and `npx skills add` and after `git clone`. `--remove` undoes it |
+| `npx skills add PRODHOSH/forkguard` | Gives your AI agent the forkguard skill: every command, and when to use it |
+| `forkguard agent` | Prints short safety rules for AI agents. `--write` saves them in `AGENTS.md` and `CLAUDE.md` |
 
-Everything below is for other days.
+**Options:** `--json` for scripts, `--yes` to skip questions, `--all` and `--strict` for skills, `--version`, `--help`.
+**Exit codes:** `0` clean, `1` something dangerous, `2` forkguard could not run. `FORKGUARD_SKIP=1` skips the automatic check once.
 
-### Check
-
-| Command | What it does |
-| --- | --- |
-| `forkguard` | Checks the folder you are in |
-| `forkguard path/to/folder` | Checks another folder |
-| `forkguard owner/repo` | Checks a GitHub repo, every branch, without downloading its files |
-| `forkguard https://github.com/owner/repo` | Same, with a full link |
-| `forkguard @name` | Checks every public repo of a friend or team on GitHub, read only, no login |
-
-### Skills
-
-| Command | What it does |
-| --- | --- |
-| `forkguard skills` | Checks the AI agent skills on this computer (`~/.claude/skills`, `~/.agents/skills`, `.claude/skills` and the other usual places) |
-| `forkguard skills ./folder` | Checks one skill, or a folder of skills |
-| `forkguard skills owner/repo` | Downloads a skill source to a temporary folder and checks it, so you can look before you install |
-| `forkguard skills ... --all` | Lists every finding, not just the first few |
-
-### Clean
-
-| Command | What it does |
-| --- | --- |
-| `forkguard fix` | Cleans the folder you are in, and every project inside it |
-| `forkguard pr` | Cleans it on a new branch, pushes it and opens a pull request on your repo |
-| `forkguard pr --upstream` | Sends the fix as a pull request to the repo you forked from |
-
-### Protect
-
-| Command | What it does |
-| --- | --- |
-| `forkguard setup` | Turns on automatic checks for npm, pnpm, yarn, bun and git |
-| `forkguard setup --remove` | Turns them off |
-| `forkguard agent` | Prints safety rules for AI coding agents (Claude Code, Cursor, Copilot, Codex) |
-| `forkguard agent --write` | Adds those rules to `AGENTS.md`, `CLAUDE.md`, Cursor and Copilot files |
-
-### Extras
-
-| Option | What it does |
-| --- | --- |
-| `--json` | Prints the results as JSON, for scripts |
-| `--version` | Shows the version |
-| `--help` | Shows all commands |
-| `FORKGUARD_SKIP=1` | Skips the automatic check once |
-
-Every command, option and exit code is explained in detail in the [Commands reference](https://forkguard.pages.dev/commands/check/).
-
-## Documentation
-
-**Full documentation: [forkguard.pages.dev](https://forkguard.pages.dev)** with search, a plain-words and a short version of every command, and every rule explained.
-
-| I want to… | Read |
-| --- | --- |
-| Get started in two minutes | [Quick start](https://forkguard.pages.dev/quick-start/) |
-| Check a repo before I clone it | [Check a repo before you clone it](https://forkguard.pages.dev/guides/before-you-clone/) |
-| Understand every command | [`forkguard`](https://forkguard.pages.dev/commands/check/), [`fix`](https://forkguard.pages.dev/commands/fix/), [`pr`](https://forkguard.pages.dev/commands/pr/), [`setup`](https://forkguard.pages.dev/commands/setup/) |
-| Clean an infected project | [Cleaning an infected project](https://forkguard.pages.dev/guides/cleaning/) |
-| See every rule it checks | [What it catches](https://forkguard.pages.dev/reference/rules/) |
-| Use it from a script or an AI agent | [JSON output](https://forkguard.pages.dev/reference/json/), [AI agents](https://forkguard.pages.dev/guides/ai-agents/) |
-| Fix a problem | [Troubleshooting](https://forkguard.pages.dev/guides/troubleshooting/) |
-
-Machine readable: [`llms.txt`](https://forkguard.pages.dev/llms.txt) and [`llms-full.txt`](https://forkguard.pages.dev/llms-full.txt).
+Every option explained: [Commands reference](docs/commands.md).
 
 ## Which one are you?
 
-Click your situation.
-
 <details>
-<summary><b>I want to fork or clone someone's repo. Is it safe?</b></summary>
+<summary><b>I want to clone or fork someone's repo, or got one for a job interview</b></summary>
 <br>
 
-Check the link **before** you clone it:
+Check the link **before** you clone anything. This is one of the main ways the malware spreads.
 
 ```bash
 forkguard someone/their-repo
 ```
 
-forkguard checks every branch straight from GitHub without writing any of the repo's files to your disk. Clone it only if it says **looks clean**.
+It checks every branch straight from GitHub, without writing the repo's files to your disk. Clone only if it says **looks clean**. If it finds anything HIGH, do not clone it, do not open it, and tell the person who sent it.
 
-Already cloned it? Check the folder before you open it in VS Code or install anything:
-
-```bash
-forkguard their-repo
-```
+Already cloned it? `forkguard their-repo` checks the folder before you open it or install anything.
 
 </details>
 
 <details>
-<summary><b>Is my own repo clean?</b></summary>
+<summary><b>I want to know if my own projects and repos are clean</b></summary>
 <br>
 
-On your laptop, pull first, because the malware gets into GitHub, not your laptop:
-
-```bash
-cd my-repo
-git pull
-forkguard
-```
-
-Or check it straight on GitHub, every branch:
-
-```bash
-forkguard your-name/my-repo
-```
-
-If something is found, `forkguard fix` cleans your copy and `forkguard pr` cleans GitHub too.
-
-</details>
-
-<details>
-<summary><b>Are all the projects on my laptop clean?</b></summary>
-<br>
-
-Open a terminal in the folder that holds your projects (for example `~/Developer`) and run:
+On your laptop, open a terminal in the folder that holds your projects (for example `~/Developer`):
 
 ```bash
 forkguard
 ```
 
-It checks every project inside that folder, however deep, and changes nothing. No login needed.
+It checks every project inside, however deep, and changes nothing. Clean what it found with `forkguard fix`.
 
-If it finds something, clean everything it found:
-
-```bash
-forkguard fix
-```
-
-Run from the big folder, `fix` cleans every infected project and restores each file's original from that project's git history. If more than one project is affected it asks once before changing anything, and prints one summary at the end.
-
-</details>
-
-<details>
-<summary><b>Are all my repos clean?</b></summary>
-<br>
+On GitHub:
 
 ```bash
 forkguard --mine
 ```
 
-You do not need to set anything up first.
+Not logged in? It finds your GitHub name from settings already on your computer, asks you to confirm it and checks your **public** repos, then shows how to log in for the private ones. To fix what it finds, `forkguard --mine --fix` opens **one pull request per infected repo** and never pushes to your main branch, so nothing changes until you merge.
 
-- **Not logged in to GitHub:** forkguard finds your GitHub name from the settings already on your computer, asks you to confirm it, and checks all your **public** repos.
-- **Logged in:** it checks everything you own, private repos too. Log in once with the GitHub CLI (`gh auth login`), or set a `GITHUB_TOKEN` if you do not have it. When you are not logged in, forkguard shows these steps for your computer.
-
-You get one line per repo, then the details for anything that needs a look.
-
-If something is infected, fix it from the same command. It opens **one pull request per infected repo** and never pushes to your main branch, so nothing changes until you merge:
-
-```bash
-forkguard --mine --fix
-```
-
-That needs the login above, because opening a pull request means writing to your repo.
-
-To check a friend's or a team's public repos, give a name instead. Nothing is downloaded to your disk and nothing is changed on their side:
-
-```bash
-forkguard @their-name
-```
-
-No login needed. Without one, GitHub only allows about 60 lookups an hour from your network. If you are logged in with the GitHub CLI, or have a `GITHUB_TOKEN`, forkguard uses that to raise the limit.
-
-</details>
-
-<details>
-<summary><b>Someone sent me a repo for a job interview or coding test</b></summary>
-<br>
-
-This is one of the main ways this malware spreads. Check the link first, before you clone or open anything:
-
-```bash
-forkguard https://github.com/someone/coding-test
-```
-
-If it finds anything HIGH, do not clone it, do not open it and do not run it. Tell the person who sent it.
-
-</details>
-
-<details>
-<summary><b>I never want to think about this again</b></summary>
-<br>
-
-```bash
-npm install -g forkguard
-```
-
-```bash
-forkguard setup
-```
-
-Open a new terminal. From now on forkguard checks every project before `npm install` or `npm run dev`, and right after every `git clone` or `git pull`. Clean projects stay silent. Dangerous ones are stopped before anything runs.
-
-Add the [GitHub Action](#github-action) to your repos and GitHub checks every push for you too.
+To check a friend's repos: `forkguard @their-name`.
 
 </details>
 
@@ -362,55 +168,106 @@ The order matters.
 1. Do not run `npm install` or `npm run dev`, and do not open the folder in VS Code.
 2. Run `forkguard fix`, or `forkguard pr` to clean GitHub too.
 3. From another device, change your GitHub tokens, SSH keys, npm token, cloud keys and `.env` secrets.
-4. Block force pushes on your main branch: **Settings**, then **Rules**, then **Rulesets**.
-5. If forkguard says npm itself is infected, reinstall Node.js from [nodejs.org](https://nodejs.org).
-6. Run a full antivirus scan, and tell anyone else who works on the repo.
+4. Block force pushes on your main branch: **Settings, Rules, Rulesets**.
+5. If it says npm itself is infected, reinstall Node.js from [nodejs.org](https://nodejs.org).
+6. Run a full antivirus scan and tell anyone else who works on the repo.
 
 </details>
 
-## What it catches
+<details>
+<summary><b>I use AI coding agents (Claude Code, Codex, Cursor...)</b></summary>
+<br>
 
-Every rule comes from real infected repos.
+Give your agent the forkguard skill, once:
 
-| Check | What it means | Level |
-| --- | --- | --- |
-| Hidden code | Code pushed far to the right after a long run of spaces, in any JS or TS file | HIGH |
-| Known signatures | Strings that only show up in this malware | HIGH |
-| Env loaders | A small block that decodes a URL from an env variable, downloads code and runs it with `eval` | HIGH |
-| `node init` scripts | `dev`, `build` or `start` secretly run a file called `init` first | HIGH |
-| Fake fonts | A `.ttf` or `.woff2` file that is really JavaScript | HIGH |
-| Decoy folders | A fonts folder planted to make the fake font look normal | HIGH |
-| VS Code auto tasks | A task that runs the moment you open the folder | HIGH |
-| Dropped files | `config.bat`, `temp_auto_push.bat`, `.orc` files | HIGH |
-| Bad packages | npm packages known to carry this malware | HIGH |
-| Infected npm | npm's own `cli.js` on your computer bloated with hidden code | HIGH |
-| Injected require lines | Fake `createRequire` lines added to config files | MED |
-| Auto task setting | VS Code settings that switch automatic tasks on | MED |
-| `.gitignore` tricks | Hiding the dropped `config.bat` | MED |
-| Unprotected `.env` | A `.env` that git is not ignoring, or one that is committed | MED |
-| Risky install scripts | `postinstall` and friends that download or decode things | MED |
-| Rewritten commit | The latest commit has the same time in a different timezone | MED |
+```bash
+npx skills add PRODHOSH/forkguard
+```
 
-**HIGH** means it can run by itself and steal from you. **MED** means it is worth a look but does not run by itself.
+From then on it runs `npx forkguard --json` before it installs, builds or opens anything it did not write, stops on exit code 1, and never runs `fix` or `pr` without asking you. Details: [The forkguard skill](#the-forkguard-skill).
 
-## Automatic protection
+</details>
 
-After `forkguard setup`, in every new terminal:
+<details>
+<summary><b>Someone shared an AI skill with me, or I found one online</b></summary>
+<br>
+
+Look before you install:
+
+```bash
+forkguard skills owner/repo
+```
+
+It downloads the source to a temporary folder, reads it, deletes it and tells you if it is safe to install. With `forkguard setup` turned on, `npx skills add owner/repo` does this check automatically. Details: [AI agent skills](#ai-agent-skills).
+
+</details>
+
+<details>
+<summary><b>I never want to think about this again</b></summary>
+<br>
+
+```bash
+npm install -g forkguard
+forkguard setup
+```
+
+Open a new terminal. Clean projects stay silent and dangerous ones are stopped before anything runs. Add the [GitHub Action](docs/github-action.md) and GitHub checks every push too. See [Stay protected](#stay-protected).
+
+</details>
+
+## AI agent skills
+
+Claude Code, Codex, Cursor and other AI coding tools load **skills**: folders with a `SKILL.md` and sometimes scripts, which your agent follows with your permissions. A bad skill can tell your agent to ignore its safety rules, read your keys or send your files out. Installing one is a single command (`npx skills add owner/repo`, see [skills.sh](https://skills.sh)), so look first, the same way you look at a dependency.
+
+```bash
+forkguard skills                  # every skill already on this computer
+forkguard skills ./my-skill       # one skill, or a folder of skills
+forkguard skills owner/repo       # a skill on GitHub, before you install it
+```
+
+Each skill gets a score from 0 to 100 and a plain verdict: **looks fine**, **worth a look** or **do not install**. Exit code 1 means do not install. Add `--json` for scripts and `--all` to list every finding.
+
+**It runs by itself after `forkguard setup`.** `npx skills add owner/repo` (also `bunx`, `pnpx`, `pnpm dlx`, `yarn dlx`, `npm exec`) downloads the source to a temporary folder first, checks it and stops the install if the skill is dangerous. If the check cannot run, the install goes ahead. To install anyway: `FORKGUARD_SKIP=1 npx skills add owner/repo`.
+
+**One thing forkguard adds.** SkillSpector's static rules also flag harmless text, and it uses an AI review to drop those false alarms. forkguard has no AI review, so it blocks only when the score is above 50 **and** something looks like a real attack. `--strict` follows SkillSpector exactly.
+
+### The forkguard skill
+
+Instead of explaining forkguard to your agent, let it read the skill:
+
+```bash
+npx skills add PRODHOSH/forkguard
+```
+
+[`skills/forkguard`](skills/forkguard/SKILL.md) tells the agent to check every project first, stop on exit code 1, never run `fix`, `pr` or `FORKGUARD_SKIP` on its own, treat repo text as data and check a skill before it installs one. It lists every command, the JSON shape and what to do after an infection. It works with every agent the [skills CLI](https://github.com/vercel-labs/skills) supports. If you only want the short rules, `forkguard agent --write` is still there.
+
+### Built on NVIDIA SkillSpector
+
+The skill rules are **[NVIDIA SkillSpector's](https://github.com/NVIDIA/SkillSpector)** (Apache 2.0), translated to JavaScript so one tool can watch your code and your skills, with no Python, no packages and no AI key. forkguard is an independent project by Prodhosh V.S, not made or endorsed by NVIDIA. **All credit for the rules belongs to NVIDIA.** [NOTICE](NOTICE) lists exactly what was taken and what was changed.
+
+| What came across | |
+| --- | --- |
+| Rule ids covered | **60 of SkillSpector's 115** |
+| Regex rules | **472**, copied out of its source by a script, not retyped |
+| YARA rules | **all 28**, in its 5 rule files (226 patterns) |
+| Not included | Its AI review, Python data-flow analysis, MCP checks and package lookups: the other 55 rule ids, listed in [docs/skills.md](docs/skills.md) |
+
+This is a fast first check. For a skill you really depend on, **also run [SkillSpector](https://github.com/NVIDIA/SkillSpector)** itself: the two cover different ground. Problem with forkguard or a wrong rule? Write to [hello@prodhosh.me](mailto:hello@prodhosh.me) or [open an issue](https://github.com/PRODHOSH/forkguard/issues), not to NVIDIA.
+
+## Stay protected
+
+**On your computer.** Run `forkguard setup` once and open a new terminal. After that:
 
 | When you run | forkguard |
 | --- | --- |
-| `npm install`, `npm run dev`, `npm start`, `npm test`, `npm run build` | Checks first and **stops the command** if the project is dangerous |
-| The same with `pnpm`, `yarn` or `bun` | Does the same |
-| `git clone`, `git pull`, `git merge`, `git checkout`, `git switch` | Checks what you just pulled in and warns you |
-| Anything else, like `npm --version` or `git status` | Passes straight through |
+| `npm`, `pnpm`, `yarn` or `bun` with `install`, `run`, `dev`, `start`, `build`, `test` | Checks the project first and **stops the command** if it is dangerous |
+| `npx skills add owner/repo` (also `bunx`, `pnpx`, `pnpm dlx`) | Checks the skill first and stops the install if it is dangerous |
+| `git clone`, `pull`, `merge`, `checkout`, `switch` | Checks what came in and warns you |
+| Anything else | Passes straight through |
 
-It also offers to turn off automatic tasks in VS Code, the setting this malware uses to start the moment you open a folder.
+It also offers to turn off VS Code's automatic tasks, the setting this malware uses to start when you open a folder. If forkguard is missing or crashes, your command still runs.
 
-Clean projects stay silent. Skip the check once with `FORKGUARD_SKIP=1 npm install`, or in PowerShell `$env:FORKGUARD_SKIP='1'; npm install`. Undo everything with `forkguard setup --remove`.
-
-## GitHub Action
-
-Check every push and pull request on GitHub:
+**On GitHub.** Check every push and pull request:
 
 ```yaml
 name: forkguard
@@ -427,97 +284,20 @@ jobs:
       - uses: actions/checkout@v4
       - uses: PRODHOSH/forkguard@v0.7.0
         with:
-          open-pr: true
+          open-pr: true   # also open a pull request that removes what was found
 ```
 
-| Input | Default | What it does |
-| --- | --- | --- |
-| `path` | `.` | Folder to check |
-| `open-pr` | `false` | Also open a pull request that removes what was found |
-
-The build fails when anything HIGH is found. See the [GitHub Action guide](https://forkguard.pages.dev/guides/github-action/) for every option.
-
-## How it works
-
-```mermaid
-flowchart LR
-    A["Your project, a GitHub link,<br/>or all your repos"] --> B["forkguard checks<br/>every rule"]
-    B --> C{"Anything<br/>dangerous?"}
-    C -- "No" --> D["Looks clean"]
-    C -- "Yes" --> E["Shows what and where"]
-    E --> F["forkguard fix<br/>or forkguard pr"]
-    F --> G["Malware removed,<br/>your files restored"]
-```
-
-- **Checking** reads files and looks for every trick in the table above. It skips `node_modules`, build output and other folders that are not your code.
-- **Checking a link** downloads only the latest commit of each branch into a temporary folder, reads the files straight from git's database without writing them out, then deletes the download.
-- **Fixing** deletes files that are pure malware, cuts the hidden code out of your own files, and restores your exact original from git history when it can.
-- **Pull requests** are built on a fresh branch, so your work in progress is never touched.
-
-The full picture, with diagrams of every part, is in [How it works](https://forkguard.pages.dev/internals/how-it-works/).
+The build fails when anything HIGH is found. More options: [GitHub Action guide](docs/github-action.md).
 
 ## Safety and privacy
 
-- **It never runs code** from the project it checks. It only reads files.
-- **It switches off git hooks** every time it calls git, since an infected repo can ship its own.
+- **It never runs code** from the project or skill it checks. It only reads files.
+- **It switches off git hooks** whenever it calls git, because an infected repo can ship its own.
 - **It never runs npm** to check npm. It reads npm's files directly.
-- **It sends nothing anywhere.** The only network calls are downloading a repo or a skill you asked it to check, and talking to GitHub when you run `forkguard pr` or `--mine`.
-- **Zero dependencies.** There is nothing between you and the check that could be compromised.
+- **It sends nothing anywhere.** The only network calls are downloading a repo or skill you asked it to check, and talking to GitHub for `pr` and `--mine`.
+- **Zero dependencies.** Nothing sits between you and the check that could be compromised.
 
-## Check AI agent skills
-
-Claude Code, Codex, Cursor and other AI coding tools load **skills**: folders with a `SKILL.md` and sometimes scripts, which your agent follows with your permissions. A bad skill can tell your agent to ignore its safety rules, read your keys or send your files out. Installing one is a single command now (`npx skills add owner/repo`, see [skills.sh](https://skills.sh)), so it is worth a look first, the same way you look at a dependency.
-
-```bash
-forkguard skills                  # every skill already on this computer
-forkguard skills ./my-skill       # one skill, or a folder of skills
-forkguard skills owner/repo       # a skill on GitHub, before you install it
-```
-
-Each skill gets a score from 0 to 100 (SkillSpector's scoring) and a plain verdict: looks fine, worth a look, or do not install. Exit code 1 means do not install, so it works in CI too. Add `--json` for scripts.
-
-One thing forkguard adds on top: SkillSpector's static rules also flag harmless text, and it uses an AI review to throw those away. forkguard has no AI review, so it blocks only when the score is above 50 **and** something looks like a real attack. A high score without one is shown as "worth a look". `--strict` follows SkillSpector exactly. Details in [docs/skills.md](docs/skills.md).
-
-**After `forkguard setup` it runs by itself.** `npx skills add owner/repo` (also `bunx`, `pnpx`, `pnpm dlx`, `yarn dlx` and `npm exec`) downloads the source to a temporary folder first, checks it, and stops the install when the skill is dangerous, before anything is added to your agent. If the check cannot run, the install goes ahead. To install anyway: `FORKGUARD_SKIP=1 npx skills add owner/repo`.
-
-### Built on NVIDIA SkillSpector
-
-The rules are **[NVIDIA SkillSpector's](https://github.com/NVIDIA/SkillSpector)** (Apache 2.0), translated to JavaScript so one tool can watch both your code and your skills, with no Python, no packages and no AI key. forkguard is an independent project by Prodhosh V.S. It is not made or endorsed by NVIDIA, and **all credit for the rules belongs to NVIDIA**. forkguard's own license is Apache 2.0 for the same reason, and [NOTICE](NOTICE) lists exactly what came from SkillSpector and what was changed.
-
-What came across, by the numbers:
-
-| | |
-| --- | --- |
-| Rule ids covered | **60 of SkillSpector's 115** |
-| Regex rules | **472** (copied out of SkillSpector's source by a script, so none was retyped; the test suite checks that every one compiles) |
-| YARA rules | **all 28**, in SkillSpector's own 5 rule files (226 patterns) |
-| Also taken | The scoring (0 to 100 and its bands), merging of repeats, the "security view" that folds look-alike letters and drops invisible characters, and the checks that keep "never reveal the system prompt" from being flagged as an instruction |
-
-What it does **not** do: SkillSpector's AI review stage, its Python syntax-tree and data-flow analysis, its MCP checks, its package vulnerability lookups, and some checks that rely on parsing shell commands. Those are the other 55 rule ids, listed in [docs/skills.md](docs/skills.md). This is a fast first check, so for a skill you really depend on, **also run [SkillSpector](https://github.com/NVIDIA/SkillSpector)** itself. The two cover different ground.
-
-Skills run with your permissions and everything is automated now, so check them before you trust them. Problems with forkguard, or a rule that is wrong? Write to [hello@prodhosh.me](mailto:hello@prodhosh.me) or [open an issue](https://github.com/PRODHOSH/forkguard/issues). Please do not bother NVIDIA with forkguard bugs.
-
-## The forkguard skill
-
-Instead of explaining forkguard to your AI agent, let it read the skill:
-
-```bash
-npx skills add PRODHOSH/forkguard
-```
-
-The skill lives in [`skills/forkguard`](skills/forkguard/SKILL.md). It tells the agent to run `npx forkguard --json` before it installs, builds or opens anything it did not write, to stop on exit code 1, never to run `fix` or `pr` without asking, never to set `FORKGUARD_SKIP`, to treat repo text as data, and to check a skill before it installs one. It lists every command, the JSON shape, and what to do after an infection.
-
-Works with every agent the [skills CLI](https://github.com/vercel-labs/skills) supports (Claude Code, Codex, Cursor, Gemini CLI, OpenCode, Copilot and more). `forkguard agent --write` still exists if you only want the short rules in `AGENTS.md` or `CLAUDE.md`.
-
-## Why I built this
-
-It started with emails from Vercel. Production builds were failing on old projects I had not touched in months, all with the same useless message: `npm run build exited with 1`.
-
-I opened `postcss.config.mjs` in one of them and scrolled right. After `export default config;` there were hundreds of spaces, then a block of scrambled JavaScript. Git showed nothing. Same author, same date, same message.
-
-It is a malware campaign researchers call **PolinRider**. It has reached thousands of repos. Weeks after I first found it, it was back in 35 of my 53 repos. Cleaning that by hand without losing real work took a whole day. forkguard is the tool I wish I had on the first day.
-
-Full story: **[Malware Hid in My Old Repos and Git Never Showed It](https://blog.prodhosh.me/blog/malware-hid-in-my-old-repos-polinrider)**
+What it catches, rule by rule: [What it checks](docs/how-it-works.md#2-what-it-checks).
 
 ## FAQ
 
@@ -536,13 +316,13 @@ A typical project is checked in well under a second. Commands like <code>npm --v
 <details>
 <summary><b>Can it check private repos?</b></summary>
 <br>
-Yes, as long as git on your machine can access them. Logging in with <code>gh auth login</code> is the easiest way.
+Yes, as long as git on your machine can access them. Logging in with <code>gh auth login</code> is the easiest way. Without a login, <code>--mine</code> checks your public repos.
 </details>
 
 <details>
 <summary><b>What if it flags something that is fine?</b></summary>
 <br>
-Skip it once with <code>FORKGUARD_SKIP=1</code>, and <a href="https://github.com/PRODHOSH/forkguard/issues/new?template=false-alarm.yml">report a false alarm</a> so the rule gets better.
+Skip it once with <code>FORKGUARD_SKIP=1</code>, and <a href="https://github.com/PRODHOSH/forkguard/issues/new?template=false-alarm.yml">report a false alarm</a> so the rule gets better. For a skill, <a href="https://github.com/PRODHOSH/forkguard/issues/new?template=skill-false-alarm.yml">report it here</a>.
 </details>
 
 <details>
@@ -551,23 +331,55 @@ Skip it once with <code>FORKGUARD_SKIP=1</code>, and <a href="https://github.com
 No. It is built to catch this family of attacks very well, before code runs. Keep your antivirus too.
 </details>
 
-More questions are answered in the [Troubleshooting guide](https://forkguard.pages.dev/guides/troubleshooting/).
+<details>
+<summary><b>Why did a normal skill get a high score?</b></summary>
+<br>
+SkillSpector's static rules match words like "never judge" or "keychain" wherever they appear, and it relies on an AI review to drop those. forkguard has no AI review, so it shows the score as "worth a look" unless something looks like a real attack. Read the findings, they show the exact text.
+</details>
+
+<details>
+<summary><b>Is forkguard made by NVIDIA?</b></summary>
+<br>
+No. forkguard is an independent project. The skill rules come from NVIDIA's open source SkillSpector and all credit for them is NVIDIA's. See <a href="NOTICE">NOTICE</a>.
+</details>
+
+<details>
+<summary><b>Which Node versions and systems work?</b></summary>
+<br>
+Node 18, 20 and 22 and newer, on Windows, macOS and Linux, with PowerShell, Git Bash, bash and zsh. CI runs all of them.
+</details>
+
+More answers: [Troubleshooting](https://forkguard.pages.dev/guides/troubleshooting/).
+
+## Documentation
+
+**[forkguard.pages.dev](https://forkguard.pages.dev)** has search, a short and a plain-words version of every command, and every rule. The same pages are in [`docs/`](docs/README.md):
+
+| I want to... | Read |
+| --- | --- |
+| Go from zero to protected, step by step | [Getting started](docs/getting-started.md) |
+| Look up a command, option or exit code | [Commands](docs/commands.md) |
+| Check or publish AI agent skills | [AI agent skills](docs/skills.md) |
+| Check every push on GitHub | [GitHub Action](docs/github-action.md) |
+| Understand what happens under the hood | [How it works](docs/how-it-works.md) |
+
+Machine readable: [`llms.txt`](https://forkguard.pages.dev/llms.txt) and [`llms-full.txt`](https://forkguard.pages.dev/llms-full.txt).
 
 ## Contributing
 
-forkguard is open source and contributions are welcome.
+forkguard is open source and every contribution helps, from a bug report to a new rule.
 
-- Found something it misses? [Tell us what it looked like](https://github.com/PRODHOSH/forkguard/issues/new?template=missed-malware.yml), without pasting the malicious code.
-- Got a false alarm? [Report it](https://github.com/PRODHOSH/forkguard/issues/new?template=false-alarm.yml).
-- Want to help build it? Read [CONTRIBUTING.md](CONTRIBUTING.md).
+- **Missed something?** [Describe what it looked like](https://github.com/PRODHOSH/forkguard/issues/new?template=missed-malware.yml), without pasting the malicious code.
+- **False alarm?** [Report it](https://github.com/PRODHOSH/forkguard/issues/new?template=false-alarm.yml), or a [skill false alarm](https://github.com/PRODHOSH/forkguard/issues/new?template=skill-false-alarm.yml).
+- **Want to build?** Fork, branch, `npm test`, open a pull request. [CONTRIBUTING.md](CONTRIBUTING.md) has the setup, the project map and the ground rules.
 
 ```bash
 git clone https://github.com/PRODHOSH/forkguard
 cd forkguard
-npm test
+npm test        # no install step: there are no dependencies
 ```
 
-Security problem in forkguard itself? See [SECURITY.md](SECURITY.md).
+Security problem in forkguard itself? Please do not open a public issue. See [SECURITY.md](SECURITY.md).
 
 ## Developer
 
@@ -581,13 +393,16 @@ Security problem in forkguard itself? See [SECURITY.md](SECURITY.md).
       Built forkguard after this malware hit my own repos.<br><br>
       <a href="https://prodhosh.me">prodhosh.me</a> &nbsp;|&nbsp;
       <a href="mailto:hello@prodhosh.me">hello@prodhosh.me</a> &nbsp;|&nbsp;
-      <a href="https://github.com/PRODHOSH">github.com/PRODHOSH</a>
+      <a href="https://github.com/PRODHOSH">github.com/PRODHOSH</a> &nbsp;|&nbsp;
+      <a href="https://blog.prodhosh.me">blog</a>
     </td>
   </tr>
 </table>
 
 If forkguard saved you from a bad day, a star helps other developers find it.
 
-## License
+## License and credits
 
-[Apache 2.0](LICENSE). Use it, change it, share it, as long as you keep the license and the credit in [NOTICE](NOTICE). The skill checks are derived from [NVIDIA SkillSpector](https://github.com/NVIDIA/SkillSpector), also Apache 2.0.
+[Apache 2.0](LICENSE). Use it, change it, share it, as long as you keep the license and the credit in [NOTICE](NOTICE).
+
+The AI agent skill checks are derived from [NVIDIA SkillSpector](https://github.com/NVIDIA/SkillSpector), Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES, also Apache 2.0. forkguard is not made or endorsed by NVIDIA.

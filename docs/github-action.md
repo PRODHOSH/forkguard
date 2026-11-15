@@ -7,11 +7,21 @@
   </a>
 </p>
 
-> This page is also on the [documentation site](https://forkguard.pages.dev/guides/github-action/), with search and a short and a plain-words version of every command.
+> This page is also on the [documentation site](https://forkguard.pages.dev/guides/github-action/), with search and a short and a plain-words version of every command. All docs: [index](README.md).
 
 # Using forkguard in GitHub Actions
 
 Let GitHub check your repo on every push and pull request, so you find out the moment something bad lands, even if you are not at your computer.
+
+```mermaid
+flowchart LR
+    A["You or someone else<br/>pushes or opens a pull request"] --> B["GitHub runs forkguard"]
+    B --> C{"Anything HIGH?"}
+    C -- "No" --> D["Green check"]
+    C -- "Yes" --> E["Red build, email,<br/>optional fix pull request"]
+```
+
+This is the last step of the journey in [Getting started](getting-started.md). The Action checks **code**. To check AI agent skills in CI, see [Checking skills in CI](#7-checking-skills-in-ci).
 
 ## Contents
 
@@ -21,8 +31,9 @@ Let GitHub check your repo on every push and pull request, so you find out the m
 4. [What happens when it finds something](#4-what-happens-when-it-finds-something)
 5. [Opening the fix as a pull request](#5-opening-the-fix-as-a-pull-request)
 6. [Examples](#6-examples)
-7. [Pinning a version](#7-pinning-a-version)
-8. [Troubleshooting](#8-troubleshooting)
+7. [Checking skills in CI](#7-checking-skills-in-ci)
+8. [Pinning a version](#8-pinning-a-version)
+9. [Troubleshooting](#9-troubleshooting)
 
 ---
 
@@ -153,13 +164,29 @@ jobs:
 
 ---
 
-## 7. Pinning a version
+## 7. Checking skills in CI
+
+The Action checks code. If your repo ships AI agent skills (a `skills/` folder, or `.claude/skills`), add a step that checks them. `forkguard skills` exits `1` when a skill should not be installed, so the build fails:
+
+```yaml
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npx forkguard skills ./skills
+```
+
+Add `--strict` to fail on any score above 50, and `--json` to read the findings from a script. See [AI agent skills](skills.md).
+
+---
+
+## 8. Pinning a version
 
 `PRODHOSH/forkguard@v0.7.0` always runs that exact version, so nothing changes under you. When a new version comes out, update the number. All versions are listed on the [releases page](https://github.com/PRODHOSH/forkguard/releases).
 
 ---
 
-## 8. Troubleshooting
+## 9. Troubleshooting
 
 **The build fails but I do not see why**
 Open the failed run in the **Actions** tab and expand the forkguard step. The findings are listed there, the same as in your terminal.
