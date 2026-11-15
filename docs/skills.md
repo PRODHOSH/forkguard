@@ -63,7 +63,7 @@ flowchart LR
     F -- "No" --> H["Fine, or worth a look<br/>exit code 0"]
 ```
 
-**Where it looks with no argument:** `~/.claude/skills`, `~/.agents/skills`, `~/.codex/skills`, `~/.cursor/skills`, `~/.gemini/skills`, `~/.config/opencode/skills`, `~/.config/agents/skills`, the same folders inside the project you are in, and `./skills`. A skill is any folder that holds a `SKILL.md`. Symlinks are never followed. Files over 1 MB and binary files are skipped.
+**Where it looks with no argument:** every skills folder of the 79 AI agents the skills CLI supports (Claude Code, Codex, Cursor, Gemini CLI, Copilot, Windsurf, OpenCode, Roo and more), in your home folder and in the project you are in, for example `~/.claude/skills`, `~/.agents/skills`, `~/.cursor/skills`, `.roo/skills` and `./skills`. The full list is in [`src/skills/agents.js`](../src/skills/agents.js). A skill is any folder that holds a `SKILL.md`. A skill folder that is a symlink is followed, because that is how the skills CLI installs by default, and each real folder is checked once. Symlinks inside a skill are never followed. Files over 1 MB and binary files are skipped.
 
 **Sources it understands:** `owner/repo`, `owner/repo@skill`, GitHub links (also `/tree/<branch>/<folder>`), other git URLs and local folders. The source is downloaded to a temporary folder with git hooks switched off, read and deleted. Nothing in it is run.
 

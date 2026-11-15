@@ -220,7 +220,7 @@ Open a new terminal. Clean projects stay silent and dangerous ones are stopped b
 Claude Code, Codex, Cursor and other AI coding tools load **skills**: folders with a `SKILL.md` and sometimes scripts, which your agent follows with your permissions. A bad skill can tell your agent to ignore its safety rules, read your keys or send your files out. Installing one is a single command (`npx skills add owner/repo`, see [skills.sh](https://skills.sh)), so look first, the same way you look at a dependency.
 
 ```bash
-forkguard skills                  # every skill already on this computer
+forkguard skills                  # every skill already on this computer, for all 79 agents the skills CLI supports
 forkguard skills ./my-skill       # one skill, or a folder of skills
 forkguard skills owner/repo       # a skill on GitHub, before you install it
 ```

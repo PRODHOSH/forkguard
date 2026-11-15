@@ -10,7 +10,7 @@ Everything here is also on https://forkguard.pages.dev. Exit codes are the same 
 | `forkguard owner/repo` | A shallow, no-checkout clone with git hooks switched off, deleted afterwards. Every branch. Also accepts a full GitHub link or any git URL |
 | `forkguard @name` | Public repos of any GitHub user or organisation. Anonymous GitHub allows about 60 lookups an hour. A login or `GITHUB_TOKEN` raises that to 5,000 |
 | `forkguard --mine` | Every repo the user owns. Without a login it asks which account and checks the public repos, then shows how to log in for the rest. It never reads saved passwords or tokens |
-| `forkguard skills` | Skills in `~/.claude/skills`, `~/.agents/skills`, `~/.codex/skills`, `~/.cursor/skills`, `~/.gemini/skills`, `~/.config/opencode/skills`, the same folders in the current project, and `./skills` |
+| `forkguard skills` | Every skill in the skills folders of the 79 agents the skills CLI supports (`~/.claude/skills`, `~/.agents/skills`, `~/.cursor/skills`, `.roo/skills` and many more, in the home folder and the current project). Symlinked skill folders are followed |
 | `forkguard skills ./folder` | One skill, or a folder of skills. A skill is a folder with a `SKILL.md` |
 | `forkguard skills owner/repo` | Also `owner/repo@skill`, GitHub links with `/tree/branch/folder`, git URLs. Downloaded to a temporary folder, read, deleted |
 

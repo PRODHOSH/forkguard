@@ -388,7 +388,7 @@ export const commands = [
       sec('synopsis', 'Synopsis', [
         code('forkguard skills\nforkguard skills ./my-skill\nforkguard skills owner/repo\nforkguard skills owner/repo --all --json'),
         dl(
-          ['`(nothing)`', 'Every skill in the usual places: `~/.claude/skills`, `~/.agents/skills`, `~/.codex/skills`, `~/.cursor/skills`, `~/.gemini/skills` and the same folders in this project.'],
+          ['`(nothing)`', 'Every skill in the skills folders of the 79 AI agents the skills CLI supports (Claude Code, Codex, Cursor, Gemini CLI, Copilot, Windsurf, OpenCode, Roo and more), in your home folder and in this project.'],
           ['`folder`', 'One skill, or a folder of skills. A skill is a folder with a `SKILL.md`.'],
           ['`owner/repo`, a link, a git URL', 'A skill you have not installed yet. It is downloaded to a temporary folder, with git hooks switched off, checked, and deleted.'],
           ['`--all`', 'List every finding, not only the first few.'],

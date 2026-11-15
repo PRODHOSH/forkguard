@@ -52,7 +52,7 @@ node bin/forkguard.js --help
 | `src/fix.js`, `src/pr.js`, `src/githubfix.js` | Cleaning, the pull request, and `--mine --fix` |
 | `src/remote.js`, `src/auth.js` | Checking GitHub links and repos, and logging in |
 | `src/setup.js`, `src/agent.js` | The shell hooks, and the rules for AI agents |
-| `src/skills/` | The skill checks: SkillSpector's rules in JavaScript (see below) |
+| `src/skills/` | The skill checks: SkillSpector's rules in JavaScript (see below). `agents.js` lists the 79 agents' skill folders, from the skills CLI docs |
 | `skills/forkguard/` | The forkguard skill you give an AI agent |
 | `test/` | Tests (`node:test`) |
 | `docs/` | The documentation as Markdown |

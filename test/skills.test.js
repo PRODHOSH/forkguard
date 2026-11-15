@@ -12,7 +12,8 @@ import { scanFiles } from '../src/skills/scan.js';
 import { loadYaraRules } from '../src/skills/modules/yara.js';
 import { isDirectlyProhibited } from '../src/skills/modules/prohibition.js';
 import { detectWhitespacePadding } from '../src/skills/modules/whitespace.js';
-import { parseSkillsInstall, parseSkillSource, scanSource, findSkills, isBlocked, verdictOf } from '../src/skills/index.js';
+import { parseSkillsInstall, parseSkillSource, scanSource, findSkills, isBlocked, verdictOf, standardSkillRoots, scanSkills } from '../src/skills/index.js';
+import { agentCount, globalSkillDirs, projectSkillDirs } from '../src/skills/agents.js';
 
 const bin = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'bin', 'forkguard.js');
 const md = (body, name = 'demo') => [{ path: 'SKILL.md', content: `---\nname: ${name}\ndescription: A demo skill that formats tables\n---\n${body}\n` }];
@@ -266,4 +267,43 @@ test('the forkguard skill is valid, lists every command, and passes its own chec
   const run = spawnSync(process.execPath, [bin, 'skills', path.join(root, 'skills', 'forkguard'), '--json'], { encoding: 'utf8' });
   assert.equal(run.status, 0);
   assert.equal(JSON.parse(run.stdout)[0].score, 0);
+});
+
+test('every agent the skills CLI supports has its skill folder checked', () => {
+  assert.equal(agentCount(), 79);
+  const globals = globalSkillDirs();
+  for (const dir of ['.claude/skills', '.agents/skills', '.cursor/skills', '.codeium/windsurf/skills', '.config/opencode/skills', '.snowflake/cortex/skills', '.copilot/skills', '.gemini/skills']) assert.ok(globals.includes(dir), `${dir} is missing`);
+  const projects = projectSkillDirs();
+  for (const dir of ['.claude/skills', '.agents/skills', '.roo/skills', 'agent/skills', 'data/skills']) assert.ok(projects.includes(dir), `${dir} is missing`);
+  const home = mkdtempSync(path.join(tmpdir(), 'fg-home-'));
+  const project = mkdtempSync(path.join(tmpdir(), 'fg-proj-'));
+  const saved = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE };
+  try {
+    process.env.HOME = home; process.env.USERPROFILE = home;
+    mkdirSync(path.join(home, '.codeium', 'windsurf', 'skills', 'one'), { recursive: true });
+    writeFileSync(path.join(home, '.codeium', 'windsurf', 'skills', 'one', 'SKILL.md'), '---\nname: one\ndescription: d\n---\nhello\n');
+    mkdirSync(path.join(project, '.roo', 'skills', 'two'), { recursive: true });
+    writeFileSync(path.join(project, '.roo', 'skills', 'two', 'SKILL.md'), '---\nname: two\ndescription: d\n---\nhello\n');
+    const found = scanSkills(standardSkillRoots(project)).map((r) => path.basename(r.path)).sort();
+    assert.deepEqual(found, ['one', 'two']);
+  } finally {
+    for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+    rmSync(home, { recursive: true, force: true }); rmSync(project, { recursive: true, force: true });
+  }
+});
+
+test('a skill installed as a symlink is found once, not skipped and not counted twice', { skip: process.platform === 'win32' }, async () => {
+  const { symlinkSync } = await import('node:fs');
+  const root = mkdtempSync(path.join(tmpdir(), 'fg-link-'));
+  try {
+    mkdirSync(path.join(root, '.agents', 'skills', 'real'), { recursive: true });
+    writeFileSync(path.join(root, '.agents', 'skills', 'real', 'SKILL.md'), '---\nname: real\ndescription: d\n---\nhello\n');
+    mkdirSync(path.join(root, '.claude', 'skills'), { recursive: true });
+    symlinkSync(path.join(root, '.agents', 'skills', 'real'), path.join(root, '.claude', 'skills', 'real'));
+    mkdirSync(path.join(root, 'elsewhere', 'solo'), { recursive: true });
+    writeFileSync(path.join(root, 'elsewhere', 'solo', 'SKILL.md'), '---\nname: solo\ndescription: d\n---\nhello\n');
+    symlinkSync(path.join(root, 'elsewhere', 'solo'), path.join(root, '.claude', 'skills', 'solo'));
+    const results = scanSkills([path.join(root, '.agents', 'skills'), path.join(root, '.claude', 'skills')]);
+    assert.deepEqual(results.map((r) => path.basename(r.path)).sort(), ['real', 'solo']);
+  } finally { rmSync(root, { recursive: true, force: true }); }
 });

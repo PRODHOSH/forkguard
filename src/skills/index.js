@@ -4,38 +4,54 @@
 // Translated to JavaScript and changed by Prodhosh V.S for forkguard. See NOTICE.
 // Checking AI agent skills. The rules are SkillSpector's (NVIDIA, Apache-2.0), translated to JavaScript.
 // See NOTICE for the credit and docs/skills.md for what is and is not covered.
-import { existsSync, mkdtempSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, realpathSync, rmSync, statSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { scanFiles, scanSkillFolder } from './scan.js';
 import { c } from '../report.js';
+import { globalSkillDirs, projectSkillDirs } from './agents.js';
 
 export { scanFiles, scanSkillFolder };
 
 const NO_HOOKS = ['-c', `core.hooksPath=${process.platform === 'win32' ? 'NUL' : '/dev/null'}`];
 const ENV = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
-const SKILL_DIRS = ['.claude/skills', '.agents/skills', '.codex/skills', '.cursor/skills', '.gemini/skills', '.config/opencode/skills', '.config/agents/skills'];
+const real = (p) => { try { return realpathSync(p); } catch { return path.resolve(p); } };
+const isDir = (p) => { try { return statSync(p).isDirectory(); } catch { return false; } };
 
-/** The folders where agents keep skills: in your home folder, and in this project. */
+/**
+ * The folders where AI agents keep skills: every agent the skills CLI supports (79 of them), in your home folder
+ * and in this project. Most share a few folders, so this is about 100 places to look and only the ones that exist are returned.
+ */
 export function standardSkillRoots(cwd = process.cwd()) {
-  const roots = [];
-  for (const base of [homedir(), cwd]) for (const rel of SKILL_DIRS) roots.push(path.join(base, rel));
-  roots.push(path.join(cwd, 'skills'));
-  return [...new Set(roots)].filter((p) => { try { return statSync(p).isDirectory(); } catch { return false; } });
+  const roots = [
+    ...globalSkillDirs().map((rel) => path.join(homedir(), rel)),
+    ...projectSkillDirs().map((rel) => path.join(cwd, rel)),
+    path.join(cwd, 'skills'),
+  ];
+  return [...new Set(roots)].filter(isDir);
 }
 
-/** Every folder under `root` that holds a SKILL.md, including `root` itself. Symlinks are not followed. */
+/**
+ * Every folder under `root` that holds a SKILL.md, including `root` itself.
+ * A symlinked skill folder is followed, because that is how the skills CLI installs by default (one copy, linked
+ * into each agent). Each real folder is reported once. Symlinks inside a skill are never followed.
+ */
 export function findSkills(root, maxDepth = 5) {
   const found = [];
+  const seen = new Set();
   const walk = (dir, depth) => {
+    const here = real(dir);
+    if (seen.has(here)) return;
+    seen.add(here);
     let entries;
     try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return; }
     if (entries.some((e) => e.isFile() && e.name.toLowerCase() === 'skill.md')) { found.push(dir); return; }
     if (depth >= maxDepth) return;
     for (const e of entries.sort((a, b) => a.name.localeCompare(b.name))) {
-      if (!e.isDirectory() || e.isSymbolicLink() || e.name === '.git' || e.name === 'node_modules') continue;
-      walk(path.join(dir, e.name), depth + 1);
+      if (e.name === '.git' || e.name === 'node_modules') continue;
+      const full = path.join(dir, e.name);
+      if (e.isDirectory() || (e.isSymbolicLink() && isDir(full))) walk(full, depth + 1);
     }
   };
   walk(root, 0);
@@ -48,10 +64,10 @@ export function scanSkills(roots, { label = (p) => p } = {}) {
   const seen = new Set();
   for (const root of roots) {
     for (const dir of findSkills(root)) {
-      const real = path.resolve(dir);
-      if (seen.has(real)) continue;
-      seen.add(real);
-      results.push({ name: label(real), path: real, ...scanSkillFolder(real) });
+      const where = real(dir);
+      if (seen.has(where)) continue;
+      seen.add(where);
+      results.push({ name: label(path.resolve(dir)), path: where, ...scanSkillFolder(where) });
     }
   }
   return results;

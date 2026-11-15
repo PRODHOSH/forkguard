@@ -196,7 +196,7 @@ async function skillsCommand(target) {
     const roots = standardSkillRoots();
     results = scanSkills(roots, { label: (p) => p.replace(process.env.HOME || '~', '~') });
     if (!roots.length && !json) {
-      console.log('  No skills found in the usual places (~/.claude/skills, ~/.agents/skills, .claude/skills and so on).');
+      console.log('  No skills found in the folders any supported AI agent uses (~/.claude/skills, ~/.agents/skills, .claude/skills and so on).');
       console.log('  To check a skill before you install it:  forkguard skills owner/repo');
       return 0;
     }

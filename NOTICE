@@ -34,3 +34,7 @@ https://github.com/PRODHOSH/forkguard/issues, not to NVIDIA.
 
 src/skills/data/confusables.json is derived from the Unicode Consortium's confusables data (UTS #39,
 Unicode 17.0.0), by way of SkillSpector. Terms: https://www.unicode.org/license.txt
+
+src/skills/agents.js lists where 79 AI coding agents keep their skills. The list is taken from the documentation of the
+skills CLI (https://github.com/vercel-labs/skills, docs/agents.md), Copyright (c) 2026 Vercel, Inc., MIT License:
+https://github.com/vercel-labs/skills/blob/main/LICENSE
