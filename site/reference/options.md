@@ -11,6 +11,8 @@
 | `--upstream` | `pr` | Send the pull request to the repo you forked from. See [`forkguard pr`](https://forkguard.pages.dev/commands/pr/). |
 | `--remove` | `setup` | Take the automatic checks back out of your shell profile. |
 | `--write` | `agent` | Add the agent rules to AGENTS.md, CLAUDE.md and similar files instead of printing them. |
+| `--strict` | `skills` | Block on any score above 50, like SkillSpector, instead of also needing a clear attack. Same as `FORKGUARD_SKILLS_STRICT=1`. |
+| `--all` | `skills` | List every finding, not only the first few. See [`forkguard skills`](https://forkguard.pages.dev/commands/skills/). |
 | `--version`, `-v` | anything | Print the version. |
 | `--help`, `-h` | anything | Print all commands. |
 
@@ -22,12 +24,13 @@
 | `forkguard <owner/repo or url>` | A GitHub repo or any git URL to check. |
 | `forkguard fix [folder]` | A folder to clean. |
 | `forkguard pr [folder]` | A git repo to clean and open a pull request on. |
+| `forkguard skills [folder or owner/repo]` | A skill folder, a folder of skills, or a skill source. Defaults to the skills installed on this computer. |
 | `forkguard setup` | No argument. |
 | `forkguard agent [folder]` | A folder whose agent files to write. Defaults to the current folder. |
 
 ## Internal
 
-`forkguard --gate <tool> <args…>` is what the shell hooks call. It exists for `forkguard setup`, and is not meant to be typed by hand. It exits `1` to stop a package manager and `0` otherwise.
+`forkguard --gate <tool> <args…>` is what the shell hooks call (tools: npm, pnpm, yarn, bun, npx, bunx, pnpx, git). It exists for `forkguard setup`, and is not meant to be typed by hand. It exits `1` to stop a package manager and `0` otherwise.
 
 > **Note:** `fix`, `pr`, `setup` and `agent` are commands, not flags. They go first: `forkguard fix ./app`, not `forkguard ./app fix`.
 

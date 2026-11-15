@@ -55,7 +55,7 @@ export const start = [
         '**Zero dependencies.** A tool you run before `npm install` should not need `npm install`.',
         '**Cross platform.** Windows, macOS and Linux, with PowerShell, Git Bash, bash and zsh.',
         '**Private.** No account and no telemetry. The only network calls are downloading a repo you asked it to check, and talking to GitHub for `forkguard pr` and `--mine`.',
-        '**Free and open source.** MIT licensed. [Source on GitHub](https://github.com/PRODHOSH/forkguard).',
+        '**Free and open source.** Apache 2.0 licensed. [Source on GitHub](https://github.com/PRODHOSH/forkguard).',
       ),
 
       h2('How these pages work'),

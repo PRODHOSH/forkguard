@@ -344,6 +344,7 @@ export const commands = [
         table(['You run', 'forkguard'], [
           ['`npm`, `pnpm`, `yarn` or `bun` with `install`, `i`, `ci`, `add`, `run`, `dev`, `start`, `build`, `test`, `exec` (and `dlx`, `x`, `rebuild` where the tool has them)', 'Checks the project first. Stops the command if anything HIGH is found.'],
           ['`git clone`, `pull`, `merge`, `checkout`, `switch`', 'Checks what came in afterwards and warns you. It cannot undo the command, which has already happened.'],
+          ['`npx skills add owner/repo` (also `bunx`, `pnpx`, `pnpm dlx`, `yarn dlx`, `npm exec`)', 'Downloads the skill to a temporary folder and checks it first. Stops the install when it scores above 50. See [`forkguard skills`](page:commands/skills).'],
           ['Anything else, like `npm --version` or `git status`', 'Runs normally, with no check.'],
         ]),
         p('When the project is clean you see nothing. When there are only MED findings you get a one-line note and the command still runs. When something is HIGH:'),
@@ -370,6 +371,69 @@ export const commands = [
         code('forkguard setup --remove'),
       ], [code('forkguard setup\nforkguard setup --remove', 'text')]),
       SEE('[Automatic protection](page:guides/automatic-protection): the guide', '[Environment variables](page:reference/environment)'),
+    ],
+  },
+
+  // ------------------------------------------------------------------ skills
+  {
+    slug: 'commands/skills',
+    kind: 'command',
+    group: 'Commands',
+    title: 'forkguard skills',
+    nav: 'forkguard skills',
+    description: 'forkguard skills checks AI agent skills (Claude Code, Codex, Cursor and more) before you install or use them, with rules from NVIDIA SkillSpector. What it checks, the install guard for npx skills add, coverage and limits.',
+    lede: 'Check an AI agent skill before you trust it.',
+    sections: [
+      sec('name', 'Name', [p('`forkguard skills` checks the skills your AI coding tools load, before you install or use them. It only reads files and never runs anything in them.')], [p('forkguard skills - check AI agent skills')]),
+      sec('synopsis', 'Synopsis', [
+        code('forkguard skills\nforkguard skills ./my-skill\nforkguard skills owner/repo\nforkguard skills owner/repo --all --json'),
+        dl(
+          ['`(nothing)`', 'Every skill in the usual places: `~/.claude/skills`, `~/.agents/skills`, `~/.codex/skills`, `~/.cursor/skills`, `~/.gemini/skills` and the same folders in this project.'],
+          ['`folder`', 'One skill, or a folder of skills. A skill is a folder with a `SKILL.md`.'],
+          ['`owner/repo`, a link, a git URL', 'A skill you have not installed yet. It is downloaded to a temporary folder, with git hooks switched off, checked, and deleted.'],
+          ['`--all`', 'List every finding, not only the first few.'],
+          ['`--strict`', 'Block on any score above 50, like SkillSpector. By default forkguard also needs something that looks like a real attack.'],
+          ['`--json`', 'Print the results as JSON.'],
+        ),
+      ], [code('forkguard skills [folder | owner/repo | url] [--all] [--json]', 'text')]),
+      sec('description', 'Description', [
+        p('A skill is instructions plus sometimes scripts. Your agent follows them with your permissions, so a bad skill can tell it to ignore its safety rules, read your keys, hide text from you or send your files out. Skill marketplaces such as skills.sh make installing one a single command, so look first, the same way you look at a dependency.'),
+        p('Every skill gets a score from 0 to 100 and a plain verdict:'),
+        table(['Score', 'Verdict'], [['0 to 20', 'Looks fine'], ['21 to 50', 'Worth a look'], ['51 and up', 'SkillSpector says do not install']]),
+        p('One addition of forkguard’s own: SkillSpector uses an AI review to drop false alarms, and forkguard has none, so it blocks (exit code 1) only when the score is above 50 **and** something looks like a real attack. Otherwise a high score is shown as “worth a look”. `--strict` follows SkillSpector exactly.'),
+        h3('What it looks for'),
+        ul(
+          'Instructions that override the agent, ask it to never refuse, or switch off its safety rules.',
+          'Hidden text: comments, zero-width and look-alike characters, long runs of blank lines or spaces (the same trick PolinRider uses in code).',
+          'Reading your agent configuration, MCP settings, SSH keys, cloud keys or environment variables, and sending data to webhooks or cloud metadata addresses.',
+          'Downloading and running code, obfuscated code, reverse shells, webshells, crypto miners, hack tools and credential stealers (28 YARA rules).',
+          'Persistence, self-modification, writing to the agent’s memory files, and unbounded autonomy.',
+        ),
+        p('A sentence that forbids something is not flagged as if it asked for it: “never reveal the system prompt” is fine.'),
+      ], [p('Scans skill folders with the rules of NVIDIA SkillSpector translated to JavaScript. Offline. Scores 0 to 100 with SkillSpector’s weights: severity points, per-rule diminishing returns, confidence, 1.3x for executable files.')]),
+      sec('guard', 'Before `npx skills add`', [
+        p('After [`forkguard setup`](page:commands/setup), the install command checks the source first and stops when a skill scores above 50:'),
+        code('npx skills add owner/repo\nbunx skills add owner/repo\npnpm dlx skills add owner/repo\nyarn dlx skills add owner/repo\nnpm exec skills add owner/repo'),
+        p('`owner/repo`, `owner/repo@skill`, GitHub links, other git URLs and folders work, and `--skill name` limits the check to the skills you asked for. If the check cannot run (no network, a private repo) the install goes ahead and forkguard says so. To install anyway: `FORKGUARD_SKIP=1 npx skills add owner/repo`.'),
+      ], [p('The shell hook runs `forkguard --gate npx skills add ...`. Exit 1 blocks. Unreachable sources fail open.')]),
+      sec('credit', 'Where the rules come from', [
+        p('The rules are [NVIDIA SkillSpector’s](https://github.com/NVIDIA/SkillSpector) (Apache 2.0), translated to JavaScript so one tool can watch your code and your skills, with no Python, no packages and no AI key. **All credit for the rules belongs to NVIDIA.** forkguard is an independent project by Prodhosh V.S and is not made or endorsed by NVIDIA. Problems with forkguard go to [hello@prodhosh.me](mailto:hello@prodhosh.me) or [GitHub issues](https://github.com/PRODHOSH/forkguard/issues), not to NVIDIA.'),
+      ], [p('Derived from NVIDIA SkillSpector, Apache-2.0. See NOTICE.')]),
+      sec('coverage', 'What it covers', [
+        table(['', ''], [
+          ['Rule ids', '60 of the 115 in SkillSpector'],
+          ['Regex rules', '472, copied from its source by a script, not retyped'],
+          ['YARA rules', 'All 28, in its 5 rule files (226 patterns)'],
+        ]),
+        p('It does **not** do SkillSpector’s AI review, its Python syntax-tree and data-flow analysis, its MCP checks, package vulnerability lookups, or some checks that parse shell commands. That is the other 55 rule ids. This is a fast first check: for a skill you depend on, also run [SkillSpector](https://github.com/NVIDIA/SkillSpector) itself. The full list, and every place the JavaScript differs from the Python, is in [docs/skills.md](https://github.com/PRODHOSH/forkguard/blob/main/docs/skills.md).'),
+      ], [p('60/115 rule ids, 472 regexes, 28/28 YARA rules. Not covered: AI review, AST and taint, MCP, OSV lookups.')]),
+      EXIT(''),
+      sec('examples', 'Examples', [
+        code('forkguard skills'),
+        code('forkguard skills vercel-labs/agent-skills'),
+        code('forkguard skills ./downloads/some-skill --all'),
+      ], [code('forkguard skills\nforkguard skills owner/repo --json', 'text')]),
+      SEE('[`forkguard setup`](page:commands/setup): check before `npx skills add` automatically', '[`forkguard agent`](page:commands/agent): rules that tell your AI agent to check first'),
     ],
   },
 

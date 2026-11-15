@@ -53,3 +53,9 @@ python3 -m http.server 4173 --directory site
 ```
 
 Then open http://localhost:4173. Commit the regenerated `site/` together with your change: CI fails if they disagree. See [`tools/docs/README.md`](tools/docs/README.md) for the full picture. The live site is [forkguard.pages.dev](https://forkguard.pages.dev).
+
+## Publishing the forkguard skill
+
+The skill is the folder `skills/forkguard` (a `SKILL.md` with `name` and `description`, plus `references/`). The skills CLI finds it in a public GitHub repo at `skills/<name>/SKILL.md`, so there is nothing to upload: `npx skills add PRODHOSH/forkguard` works as soon as the change is on `main`. skills.sh lists a skill automatically once people install it with that command. There is no submission step.
+
+Before you push a change to the skill: `forkguard skills skills/forkguard` should score 0, the name must stay `forkguard` (it must match the folder), and the description must stay under 1,024 characters and avoid colons and quotation marks. `npm test` checks all of it.

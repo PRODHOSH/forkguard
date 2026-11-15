@@ -10,6 +10,7 @@ const END = '# <<< forkguard <<<';
 
 const POWERSHELL = `${START}
 # Checks a project before npm, pnpm, yarn or bun installs or runs it, and after git clone or pull.
+# Also checks an AI agent skill before "npx skills add" installs it.
 # Skip once with: $env:FORKGUARD_SKIP = '1'
 function __fg_real([string]$name) {
   (Get-Command $name -CommandType Application -ErrorAction SilentlyContinue |
@@ -28,6 +29,9 @@ function npm  { __fg_pm npm  $args }
 function pnpm { __fg_pm pnpm $args }
 function yarn { __fg_pm yarn $args }
 function bun  { __fg_pm bun  $args }
+function npx  { __fg_pm npx  $args }
+function bunx { __fg_pm bunx $args }
+function pnpx { __fg_pm pnpx $args }
 function git {
   & (__fg_real git) @args
   $code = $LASTEXITCODE
@@ -40,6 +44,7 @@ ${END}`;
 
 const POSIX = `${START}
 # Checks a project before npm, pnpm, yarn or bun installs or runs it, and after git clone or pull.
+# Also checks an AI agent skill before "npx skills add" installs it.
 # Skip once with: FORKGUARD_SKIP=1 npm install
 # Fail open: if forkguard is missing (another Node version, uninstalled) or crashes, your command still runs.
 # Only an explicit "infected" answer (exit code 1) stops it.
@@ -52,6 +57,9 @@ npm()  { __fg_gate npm "$@"  && command npm "$@"; }
 pnpm() { __fg_gate pnpm "$@" && command pnpm "$@"; }
 yarn() { __fg_gate yarn "$@" && command yarn "$@"; }
 bun()  { __fg_gate bun "$@"  && command bun "$@"; }
+npx()  { __fg_gate npx "$@"  && command npx "$@"; }
+bunx() { __fg_gate bunx "$@" && command bunx "$@"; }
+pnpx() { __fg_gate pnpx "$@" && command pnpx "$@"; }
 git() {
   command git "$@"
   local code=$?
@@ -150,6 +158,7 @@ export async function setup({ remove = false } = {}) {
   console.log(`\n  From a new terminal, forkguard now checks a project before:`);
   console.log('    npm, pnpm, yarn or bun install / run / dev / start / build / test');
   console.log('    and right after git clone, pull, merge, checkout or switch');
+  console.log('  It also checks an AI agent skill before "npx skills add" installs it (skills.sh and the skills CLI).');
   console.log(`  If it finds something dangerous, the command is stopped before anything runs.\n`);
 
   if (await ask('  Also stop VS Code from running tasks by itself when you open a folder? (Y/n) ')) {

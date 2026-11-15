@@ -1,0 +1,36 @@
+forkguard
+Copyright 2026 Prodhosh V.S
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This product includes software developed by NVIDIA.
+
+The skill checks in src/skills (the "forkguard skills" command and the guard that runs
+before "npx skills add") are derived from NVIDIA SkillSpector:
+
+    https://github.com/NVIDIA/SkillSpector
+    Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+    Licensed under the Apache License, Version 2.0.
+
+What was taken from SkillSpector, and what was changed:
+
+  - The rules: the regular expressions, their confidences, severities, messages, explanations and
+    remediations, and the five YARA rule files. The regular expressions were copied out of the Python
+    source by a script (tools/skillspector/extract_tables.py) so none of them was retyped, then rewritten
+    only where Python and JavaScript spell the same thing differently (src/skills/pyregex.js).
+    They are stored in src/skills/data/tables.json and src/skills/data/yara/.
+  - The method: how files are read, the "security view" that folds look-alike letters and drops invisible
+    characters, how a finding is scored (severity points, diminishing returns per rule, confidence,
+    1.3x for executable files, the 0 to 100 bands), how repeated findings are merged, and the checks that
+    keep a prohibition ("never reveal the system prompt") from being flagged as an instruction.
+  - The code: translated from Python to JavaScript by hand, file by file, so that it runs with no
+    dependencies. All files under src/skills are modified in this way. They are marked Apache-2.0 and carry
+    SkillSpector's copyright notice.
+  - Not taken: the AI review stage, the Python syntax-tree and taint analysis, the MCP checks, the package
+    vulnerability lookups, and everything else listed in docs/skills.md under "What it does not do".
+
+forkguard is not made, endorsed or supported by NVIDIA. The name NVIDIA and its marks are not used here
+to suggest otherwise. Questions and bug reports about forkguard go to hello@prodhosh.me or
+https://github.com/PRODHOSH/forkguard/issues, not to NVIDIA.
+
+src/skills/data/confusables.json is derived from the Unicode Consortium's confusables data (UTS #39,
+Unicode 17.0.0), by way of SkillSpector. Terms: https://www.unicode.org/license.txt

@@ -38,6 +38,7 @@ Every command, option, output and exit code in forkguard, explained in detail. I
 | `forkguard <owner/repo or link>` | Checks a GitHub repo, every branch | No |
 | `forkguard --mine` | Checks every repo you own on GitHub | No |
 | `forkguard @name` | Checks every public repo of someone else, read only | No |
+| `forkguard skills [folder or owner/repo]` | Checks AI agent skills (Claude Code, Codex, Cursor...), with SkillSpector's rules | No |
 | `forkguard fix [folder]` | Removes what it found, on your computer | Yes, your files |
 | `forkguard pr [folder]` | Removes it on a new branch and opens a pull request | Yes, a new branch and pull request |
 | `forkguard pr --upstream` | Sends the fix to the repo you forked from | Yes, a pull request on that repo |
@@ -401,6 +402,18 @@ Add `--json` to get results you can read from a script.
 | `rule` | Which check found it, like `hidden-code`, `fake-font` or `script` |
 | `message` | What is wrong, in plain words |
 | `fix` | What `forkguard fix` will do, or `null` if a person has to decide |
+
+## forkguard skills
+
+Checks AI agent skills before you trust them. Reads files only, never runs anything in them.
+
+```bash
+forkguard skills                  # every skill on this computer
+forkguard skills ./my-skill       # one skill, or a folder of skills
+forkguard skills owner/repo       # a skill on GitHub, before you install it
+```
+
+Each skill scores 0 to 100. Above 50 means do not install, and the exit code is 1. After `forkguard setup`, `npx skills add owner/repo` is checked this way automatically. The rules are NVIDIA SkillSpector's, translated to JavaScript. What is covered, what is not and the credit are in [skills.md](skills.md).
 
 ## forkguard agent
 

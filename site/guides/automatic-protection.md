@@ -2,7 +2,7 @@
 
 > Protect yourself every day without thinking about it.
 
-[`forkguard setup`](https://forkguard.pages.dev/commands/setup/) adds a small, clearly marked block to your shell profile. It wraps `npm`, `pnpm`, `yarn`, `bun` and `git`. For package managers it checks **before** the command runs, and can stop it. For git it checks **after**, and warns you.
+[`forkguard setup`](https://forkguard.pages.dev/commands/setup/) adds a small, clearly marked block to your shell profile. It wraps `npm`, `pnpm`, `yarn`, `bun`, `npx`, `bunx`, `pnpx` and `git`. For package managers it checks **before** the command runs, and can stop it. For git it checks **after**, and warns you.
 
 1. You type `npm install`.
 2. Your shell runs forkguard first.
@@ -26,8 +26,9 @@ Press Enter to also stop VS Code from running tasks by itself. Then **close your
 | `yarn` | plain `yarn`, `install`, `add`, `run`, `dev`, `start`, `build`, `test`, `dlx` |
 | `bun` | `install`, `i`, `add`, `run`, `dev`, `start`, `build`, `test`, `x` |
 | `git` | `clone`, `pull`, `merge`, `checkout`, `switch` (checked afterwards; warns, never stops) |
+| `npx`, `bunx`, `pnpx`, `pnpm dlx`, `yarn dlx`, `npm exec` | `skills add owner/repo` only. The AI agent skill is downloaded to a temporary folder and checked first, and the install is stopped when it scores above 50. See [`forkguard skills`](https://forkguard.pages.dev/commands/skills/). |
 
-Anything else, such as `npm --version`, `npm publish` or `git status`, runs normally with no check. `npx` is not wrapped.
+Anything else, such as `npm --version`, `npm publish`, `git status` or `npx cowsay`, runs normally with no check.
 
 ## What you see
 

@@ -70,4 +70,4 @@ Each command page is a manual page (Name, Synopsis, Description, …) and every 
 
 ## Credits
 
-Set in Manrope and JetBrains Mono. The logo wordmark is Bricolage Grotesque, converted to outlines. All three are under the SIL Open Font License 1.1. Everything else is MIT, like the rest of forkguard.
+Set in Manrope and JetBrains Mono. The logo wordmark is Bricolage Grotesque, converted to outlines. All three are under the SIL Open Font License 1.1. Everything else is Apache 2.0, like the rest of forkguard.

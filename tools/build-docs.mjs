@@ -26,7 +26,7 @@ const TAGLINE = 'Catch malware hidden in a repo before you install or run it.';
 const tag = (pages, file) => pages.map((pg) => ({ ...pg, src: file }));
 const ORDER = [
   '', 'install', 'quick-start',
-  'commands/check', 'commands/check-repo', 'commands/mine', 'commands/fix', 'commands/pr', 'commands/setup', 'commands/agent',
+  'commands/check', 'commands/check-repo', 'commands/mine', 'commands/fix', 'commands/pr', 'commands/setup', 'commands/skills', 'commands/agent',
   'reference/rules', 'reference/json', 'reference/options', 'reference/exit-codes', 'reference/environment',
   'guides/read-results', 'guides/cleaning', 'guides/before-you-clone', 'guides/automatic-protection', 'guides/github-action', 'guides/ai-agents', 'guides/troubleshooting',
   'internals/how-it-works', 'internals/safety', 'about',
@@ -108,7 +108,7 @@ function jsonLd(pg, url) {
       ? { '@type': 'TechArticle', headline: pg.title, description: pg.description, url, inLanguage: 'en', author: { '@type': 'Person', name: 'Prodhosh V.S', url: 'https://prodhosh.me' }, publisher: { '@type': 'Organization', name: 'forkguard', logo: { '@type': 'ImageObject', url: `${SITE_URL}/assets/brand/favicon.svg` } }, isPartOf: { '@type': 'WebSite', name: 'forkguard documentation', url: pageUrl('') } }
       : { '@type': 'WebSite', name: 'forkguard documentation', url: pageUrl(''), description: pg.description, inLanguage: 'en' },
   ];
-  if (!pg.slug) graph.push({ '@type': 'SoftwareApplication', name: 'forkguard', applicationCategory: 'SecurityApplication', operatingSystem: 'Windows, macOS, Linux', softwareVersion: pkg.version, description: TAGLINE, url: REPO, license: 'https://opensource.org/licenses/MIT', offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' }, author: { '@type': 'Person', name: 'Prodhosh V.S', url: 'https://prodhosh.me' } });
+  if (!pg.slug) graph.push({ '@type': 'SoftwareApplication', name: 'forkguard', applicationCategory: 'SecurityApplication', operatingSystem: 'Windows, macOS, Linux', softwareVersion: pkg.version, description: TAGLINE, url: REPO, license: 'https://www.apache.org/licenses/LICENSE-2.0', offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' }, author: { '@type': 'Person', name: 'Prodhosh V.S', url: 'https://prodhosh.me' } });
   return JSON.stringify({ '@context': 'https://schema.org', '@graph': graph });
 }
 
@@ -198,7 +198,7 @@ ${pager}
 ${tocHtml}
 </div>
 <footer class="foot">
-  <p>forkguard ${esc(pkg.version)} · MIT license · <a href="${REPO}">GitHub</a> · <a href="https://www.npmjs.com/package/forkguard">npm</a> · <a href="${ctx.root}about/">About</a></p>
+  <p>forkguard ${esc(pkg.version)} · Apache 2.0 license · <a href="${REPO}">GitHub</a> · <a href="https://www.npmjs.com/package/forkguard">npm</a> · <a href="${ctx.root}about/">About</a></p>
 </footer>
 <dialog id="search" class="search" aria-label="Search the documentation">
   <div class="search-box"><svg width="18" height="18" aria-hidden="true" focusable="false"><use href="#i-search"/></svg><input id="q" type="search" placeholder="Search the docs" autocomplete="off" autocapitalize="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="results" aria-autocomplete="list"><button type="button" class="esc" id="close-search" aria-label="Close search">Esc</button></div>
@@ -266,7 +266,7 @@ write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="htt
 
 write('robots.txt', `# forkguard documentation\nUser-agent: *\nAllow: /\n\n# For language models: a short index and the full documentation as plain text\n# ${SITE_URL}/llms.txt\n# ${SITE_URL}/llms-full.txt\n\nSitemap: ${SITE_URL}/sitemap.xml\n`);
 
-const SUMMARY = `forkguard is a free, open source, zero-dependency Node.js command line tool (Node 18+, MIT) that finds malware hidden in repositories before you install or run them. It targets the PolinRider campaign: code hidden after hundreds of blank spaces, rewritten commits, fake font files, VS Code tasks that run on folder open, and poisoned npm packages. It can check a folder, a GitHub repo (every branch, without writing its files to disk) or every repo you own, clean what it finds (restoring original files from git history), open a pull request with the fix, and check automatically before npm install and after git clone. Exit codes: 0 clean, 1 dangerous finding, 2 error. Current npm version: ${pkg.version}.`;
+const SUMMARY = `forkguard is a free, open source, zero-dependency Node.js command line tool (Node 18+, Apache 2.0) that finds malware hidden in repositories before you install or run them. It targets the PolinRider campaign: code hidden after hundreds of blank spaces, rewritten commits, fake font files, VS Code tasks that run on folder open, and poisoned npm packages. It can check a folder, a GitHub repo (every branch, without writing its files to disk) or every repo you own, clean what it finds (restoring original files from git history), open a pull request with the fix, and check automatically before npm install and after git clone. It also checks AI agent skills (Claude Code, Codex, Cursor) before you install them, with rules from NVIDIA SkillSpector. Exit codes: 0 clean, 1 dangerous finding, 2 error. Current npm version: ${pkg.version}.`;
 
 write('llms.txt', [
   '# forkguard',

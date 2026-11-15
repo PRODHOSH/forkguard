@@ -390,7 +390,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.6.0
+      - uses: PRODHOSH/forkguard@v0.7.0
 ```
 
 Commit and push it. If malware ever lands, the build turns red and GitHub emails you.
@@ -453,6 +453,7 @@ Skip it once with `FORKGUARD_SKIP=1`, then [report a false alarm](https://github
 | Clean it on GitHub with a pull request | `forkguard pr` |
 | Send the fix to the repo I forked from | `forkguard pr --upstream` |
 | Check automatically before npm and after git | `forkguard setup` |
+| Check an AI agent skill before you install it | `forkguard skills owner/repo` |
 | Turn automatic checks off | `forkguard setup --remove` |
 | Skip the check once | `FORKGUARD_SKIP=1 npm install` |
 | Get results as JSON | `forkguard --json` |

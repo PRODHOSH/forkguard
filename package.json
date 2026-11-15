@@ -1,7 +1,7 @@
 {
   "name": "forkguard",
-  "version": "0.6.0",
-  "description": "Catch malware hidden in a repo before you install or run it, then clean it up and open a pull request.",
+  "version": "0.7.0",
+  "description": "Catch malware hidden in a repo before you install or run it, clean it up, open a pull request, and check AI agent skills before you install them.",
   "type": "module",
   "bin": {
     "forkguard": "bin/forkguard.js"
@@ -9,12 +9,14 @@
   "exports": {
     "./core": "./src/core.js",
     "./clean": "./src/clean.js",
+    "./skills": "./src/skills/index.js",
     "./package.json": "./package.json"
   },
   "files": [
     "bin",
     "src",
-    "action.yml"
+    "action.yml",
+    "NOTICE"
   ],
   "engines": {
     "node": ">=18"
@@ -32,10 +34,15 @@
     "git",
     "github",
     "polinrider",
-    "cli"
+    "cli",
+    "agent-skills",
+    "claude-code",
+    "skills",
+    "prompt-injection",
+    "skillspector"
   ],
   "author": "Prodhosh V.S",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/PRODHOSH/forkguard.git"

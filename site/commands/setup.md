@@ -36,6 +36,7 @@ Setup also asks: “Also stop VS Code from running tasks by itself when you open
 | --- | --- |
 | `npm`, `pnpm`, `yarn` or `bun` with `install`, `i`, `ci`, `add`, `run`, `dev`, `start`, `build`, `test`, `exec` (and `dlx`, `x`, `rebuild` where the tool has them) | Checks the project first. Stops the command if anything HIGH is found. |
 | `git clone`, `pull`, `merge`, `checkout`, `switch` | Checks what came in afterwards and warns you. It cannot undo the command, which has already happened. |
+| `npx skills add owner/repo` (also `bunx`, `pnpx`, `pnpm dlx`, `yarn dlx`, `npm exec`) | Downloads the skill to a temporary folder and checks it first. Stops the install when it scores above 50. See [`forkguard skills`](https://forkguard.pages.dev/commands/skills/). |
 | Anything else, like `npm --version` or `git status` | Runs normally, with no check. |
 
 When the project is clean you see nothing. When there are only MED findings you get a one-line note and the command still runs. When something is HIGH:

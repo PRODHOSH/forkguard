@@ -48,7 +48,7 @@ To change this documentation, edit the pages in `tools/docs/pages/` and run `nod
 
 ## License and credits
 
-- forkguard is [MIT licensed](https://github.com/PRODHOSH/forkguard/blob/main/LICENSE). Use it, change it, share it.
+- forkguard is [Apache 2.0 licensed](https://github.com/PRODHOSH/forkguard/blob/main/LICENSE). Use it, change it, share it, and keep the credit in [NOTICE](https://github.com/PRODHOSH/forkguard/blob/main/NOTICE). The skill checks are derived from [NVIDIA SkillSpector](https://github.com/NVIDIA/SkillSpector), also Apache 2.0.
 - This site is set in Manrope and JetBrains Mono. The wordmark is Bricolage Grotesque, converted to outlines. All three are under the SIL Open Font License 1.1.
 
 ## Where to next

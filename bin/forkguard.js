@@ -14,6 +14,7 @@ import { isGitRepo, repoRoot } from '../src/git.js';
 import { checkMine, checkRemote, checkUser, parseRemote, parseUser, printRemote } from '../src/remote.js';
 import { getToken, guessUsernames, loginHelp } from '../src/auth.js';
 import { openFixPrs, planFixes } from '../src/githubfix.js';
+import { isBlocked, parseSkillSource, parseSkillsInstall, printSkill, scanSkills, scanSource, skillsExitCode, skillsJson, standardSkillRoots, strictMode, verdictOf } from '../src/skills/index.js';
 
 const hasHigh = (r) => (r.branches || []).some((b) => b.findings.some((f) => f.level === 'high'));
 
@@ -37,7 +38,9 @@ Other things it can do:
   forkguard @name          Check someone else's public repos
   forkguard pr             Clean this repo on a new branch and open a pull request
                            (add --upstream to send it to the repo you forked from)
-  forkguard setup          Check automatically before npm install and git clone
+  forkguard skills         Check the AI agent skills on this computer (Claude Code, Codex, Cursor...)
+                           (or one skill folder, or owner/repo before you install it)
+  forkguard setup          Check automatically before npm install, git clone and npx skills add
                            (add --remove to undo)
   forkguard agent          Print safety rules for AI coding agents
                            (add --write to save them in AGENTS.md, CLAUDE.md and more)
@@ -117,7 +120,10 @@ function parsePm(rest) {
 
 /** Called by the shell hooks from `forkguard setup`. Exit 1 stops the package manager. */
 async function gate(tool, rest) {
-  if (process.env.FORKGUARD_SKIP === '1' || !GATED[tool]) return 0;
+  if (process.env.FORKGUARD_SKIP === '1') return 0;
+  const install = parseSkillsInstall(tool, rest);
+  if (install) return skillsGate(install, tool, rest);
+  if (!GATED[tool]) return 0;
   const parsed = tool === 'git' ? { sub: rest.find((a) => !a.startsWith('-')) ?? '', dir: null } : parsePm(rest);
   const sub = parsed.sub;
   if (!GATED[tool].has(sub)) return 0;
@@ -144,6 +150,67 @@ async function gate(tool, rest) {
   const powershell = process.platform === 'win32' && !process.env.MSYSTEM && !process.env.SHELL;
   console.error(`\n  ${c.red(`Stopped "${tool} ${sub}" so nothing in this project runs.`)}\n  To run it anyway: ${powershell ? "$env:FORKGUARD_SKIP='1'; " : 'FORKGUARD_SKIP=1 '}${tool} ${rest.join(' ')}`);
   return 1;
+}
+
+/** Stops `npx skills add <source>` when the skill is dangerous. Checks the source first, before anything is installed. */
+async function skillsGate(install, tool, rest) {
+  let blocked = false;
+  for (const source of install.sources) {
+    if (!parseSkillSource(source)) continue;
+    let results;
+    try {
+      results = await scanSource(source, { only: install.skills });
+    } catch (err) {
+      console.error(c.yellow(`forkguard: could not check ${source} first (${err.message}). Installing anyway.`));
+      continue;
+    }
+    if (!results.length) { console.error(c.yellow(`forkguard: no SKILL.md found in ${source}, so there was nothing to check.`)); continue; }
+    const strict = strictMode(flags);
+    const bad = results.filter((r) => isBlocked(r, strict));
+    const odd = results.filter((r) => !isBlocked(r, strict) && r.score > 20);
+    if (bad.length) {
+      console.error(`${c.bold('forkguard')}  checked ${source} before installing it\n`);
+      for (const r of bad) printSkill(r, { limit: 6, strict });
+      blocked = true;
+    } else if (odd.length) {
+      console.error(c.yellow(`forkguard: ${odd.map((r) => r.name).join(', ')} from ${source} is worth a look. Run "forkguard skills ${source}" for details.`));
+    }
+  }
+  if (!blocked) return 0;
+  const powershell = process.platform === 'win32' && !process.env.MSYSTEM && !process.env.SHELL;
+  console.error(`\n  ${c.red('Stopped the install, so nothing was added to your agent.')}\n  To install it anyway: ${powershell ? "$env:FORKGUARD_SKIP='1'; " : 'FORKGUARD_SKIP=1 '}${tool} ${rest.join(' ')}`);
+  return 1;
+}
+
+/** forkguard skills: checks installed skills, one skill folder, or a source you have not installed yet. */
+async function skillsCommand(target) {
+  const json = flags.has('--json');
+  const strict = strictMode(flags);
+  let results;
+  if (target) {
+    const source = parseSkillSource(target);
+    if (!source) throw new Error(`Not a folder or a skill source: ${target}`);
+    if (!json) console.log(c.dim(`  checking ${source.kind === 'local' ? target : source.name}${source.kind === 'git' ? ', downloading it to a temporary folder' : ''}...\n`));
+    results = await scanSource(source);
+  } else {
+    const roots = standardSkillRoots();
+    results = scanSkills(roots, { label: (p) => p.replace(process.env.HOME || '~', '~') });
+    if (!roots.length && !json) {
+      console.log('  No skills found in the usual places (~/.claude/skills, ~/.agents/skills, .claude/skills and so on).');
+      console.log('  To check a skill before you install it:  forkguard skills owner/repo');
+      return 0;
+    }
+  }
+  if (json) { console.log(JSON.stringify(skillsJson(results, strict), null, 2)); return skillsExitCode(results, strict); }
+  if (!results.length) { console.log('  No skills found there. A skill is a folder with a SKILL.md file in it.'); return 0; }
+  const worst = results.slice().sort((a, b) => b.score - a.score);
+  const bad = results.filter((r) => isBlocked(r, strict)).length;
+  const odd = results.filter((r) => !isBlocked(r, strict) && r.score > 20).length;
+  console.log(`  ${results.length} skill${results.length === 1 ? '' : 's'} checked: ${c.green(`${results.length - bad - odd} fine`)}, ${odd ? c.yellow(`${odd} worth a look`) : '0 worth a look'}, ${bad ? c.red(`${bad} to avoid`) : '0 to avoid'}\n`);
+  for (const r of worst) { if (r.score > 0 || flags.has('--all')) { printSkill(r, { all: flags.has('--all'), strict }); console.log(''); } }
+  if (!worst.some((r) => r.score > 0)) console.log(c.dim('  Nothing to report.\n'));
+  console.log(c.dim('  This is a first check with SkillSpector\'s rules, run offline. See docs/skills.md for what it does not cover.'));
+  return skillsExitCode(results, strict);
 }
 
 /** The GitHub checks: --mine, and @name. Never asks for a login just to look. */
@@ -223,6 +290,8 @@ async function main() {
 
   const user = flags.has('--mine') ? null : parseUser(words[0]);
   if (flags.has('--mine') || (user && !existsSync(words[0]))) return github(user);
+
+  if (words[0] === 'skills') return skillsCommand(words[1]);
 
   const [cmd, folder] = ['fix', 'pr', 'setup', 'agent'].includes(words[0]) ? [words[0], words[1]] : ['scan', words[0]];
 
