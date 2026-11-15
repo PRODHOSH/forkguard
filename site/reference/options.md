@@ -7,10 +7,11 @@
 | `--json` | checking a folder, a link, or `--mine` | Print the results as JSON instead of text. See [JSON output](https://forkguard.pages.dev/reference/json/). |
 | `--mine` | on its own | Check your GitHub repos. Works without a login for public repos. See [`forkguard --mine`](https://forkguard.pages.dev/commands/mine/). |
 | `--fix` | `--mine` | Open one pull request for each infected repo. Needs a GitHub login. See [`forkguard --mine`](https://forkguard.pages.dev/commands/mine/). |
-| `--yes`, `-y` | `fix`, `--mine --fix` | Do not ask before changing several projects, or before opening pull requests. For scripts. |
+| `--yes`, `-y` | `fix`, `--mine --fix` | Do not ask before changing several projects, opening pull requests or sending text to an AI provider. For scripts. |
 | `--upstream` | `pr` | Send the pull request to the repo you forked from. See [`forkguard pr`](https://forkguard.pages.dev/commands/pr/). |
 | `--remove` | `setup` | Take the automatic checks back out of your shell profile. |
 | `--write` | `agent` | Add the agent rules to AGENTS.md, CLAUDE.md and similar files instead of printing them. |
+| `--ai` | `skills` | Adds SkillSpector’s AI review, with your own API key from an environment variable. forkguard shows what will be sent and asks first. |
 | `--strict` | `skills` | Block on any score above 50, like SkillSpector, instead of also needing a clear attack. Same as `FORKGUARD_SKILLS_STRICT=1`. |
 | `--all` | `skills` | List every finding, not only the first few. See [`forkguard skills`](https://forkguard.pages.dev/commands/skills/). |
 | `--version`, `-v` | anything | Print the version. |

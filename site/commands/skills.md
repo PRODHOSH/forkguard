@@ -20,6 +20,7 @@ forkguard skills owner/repo --all --json
 - `owner/repo`, a link, a git URL: A skill you have not installed yet. It is downloaded to a temporary folder, with git hooks switched off, checked, and deleted.
 - `--all`: List every finding, not only the first few.
 - `--strict`: Block on any score above 50, like SkillSpector. By default forkguard also needs something that looks like a real attack.
+- `--ai`: Add SkillSpector’s AI review, with your own API key from an environment variable. forkguard shows what will be sent and asks first.
 - `--json`: Print the results as JSON.
 
 ## Description
@@ -34,7 +35,7 @@ Every skill gets a score from 0 to 100 and a plain verdict:
 | 21 to 50 | Worth a look |
 | 51 and up | SkillSpector says do not install |
 
-One addition of forkguard’s own: SkillSpector uses an AI review to drop false alarms, and forkguard has none, so it blocks (exit code 1) only when the score is above 50 **and** something looks like a real attack. Otherwise a high score is shown as “worth a look”. `--strict` follows SkillSpector exactly.
+One addition of forkguard’s own: SkillSpector’s rules also flag harmless text, and its AI review marks the findings it does not believe but never removes them. So forkguard blocks (exit code 1) only when the score is above 50 **and** something looks like a real attack. Otherwise a high score is shown as “worth a look”. `--strict` follows SkillSpector exactly.
 
 ### What it looks for
 
@@ -60,6 +61,23 @@ npm exec skills add owner/repo
 
 `owner/repo`, `owner/repo@skill`, GitHub links, other git URLs and folders work, and `--skill name` limits the check to the skills you asked for. If the check cannot run (no network, a private repo) the install goes ahead and forkguard says so. To install anyway: `FORKGUARD_SKIP=1 npx skills add owner/repo`.
 
+## AI review (optional)
+
+The offline check matches known patterns. SkillSpector also has an **AI stage**, and forkguard can run it with **your own API key**. forkguard provides no key and no service.
+
+```bash
+export ANTHROPIC_API_KEY=your-key
+forkguard skills owner/repo --ai
+```
+
+- **Review:** the model says whether each finding is real, with a plain explanation. A finding it does not confirm is tagged, never removed.
+- **Discover:** it also looks for what rules cannot see: intent mismatches, vague triggers, polite reframings of “ignore your rules”, plain-language data leaks. That is 11 more rule ids, 71 of 115 in all.
+- **Your key, in your terminal.** Set it as an environment variable (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or `FORKGUARD_AI_BASE_URL` and `FORKGUARD_AI_MODEL` for a model on your own computer). Never type it into the command, because it would be saved in your shell history. forkguard never saves or prints it. Run `--ai` with no key and it shows the steps, or lets you paste one, hidden, for that run.
+- **You say yes first.** It prints how many files and tokens will be sent, and to whom. Keys, tokens, private keys and `.env` values are hidden before anything leaves your computer.
+- **It can only make forkguard stricter.** A skill can try to talk a model into calling it harmless, so the review can add a reason to block and never lift one.
+
+Every variable and the details: [docs/skills.md](https://github.com/PRODHOSH/forkguard/blob/main/docs/skills.md#ai-review-optional).
+
 ## Where the rules come from
 
 The rules are [NVIDIA SkillSpector’s](https://github.com/NVIDIA/SkillSpector) (Apache 2.0), translated to JavaScript so one tool can watch your code and your skills, with no Python, no packages and no AI key. **All credit for the rules belongs to NVIDIA.** forkguard is an independent project by Prodhosh V.S and is not made or endorsed by NVIDIA. Problems with forkguard go to [hello@prodhosh.me](mailto:hello@prodhosh.me) or [GitHub issues](https://github.com/PRODHOSH/forkguard/issues), not to NVIDIA.
@@ -68,11 +86,11 @@ The rules are [NVIDIA SkillSpector’s](https://github.com/NVIDIA/SkillSpector) 
 
 |  |  |
 | --- | --- |
-| Rule ids | 60 of the 115 in SkillSpector |
+| Rule ids | 60 of the 115 in SkillSpector, 71 with the AI review |
 | Regex rules | 472, copied from its source by a script, not retyped |
 | YARA rules | All 28, in its 5 rule files (226 patterns) |
 
-It does **not** do SkillSpector’s AI review, its Python syntax-tree and data-flow analysis, its MCP checks, package vulnerability lookups, or some checks that parse shell commands. That is the other 55 rule ids. This is a fast first check: for a skill you depend on, also run [SkillSpector](https://github.com/NVIDIA/SkillSpector) itself. The full list, and every place the JavaScript differs from the Python, is in [docs/skills.md](https://github.com/PRODHOSH/forkguard/blob/main/docs/skills.md).
+It does **not** do SkillSpector’s Python syntax-tree and data-flow analysis, its MCP checks, package vulnerability lookups, or some checks that parse shell commands. That is the other 44 rule ids. This is a fast first check: for a skill you depend on, also run [SkillSpector](https://github.com/NVIDIA/SkillSpector) itself. The full list, and every place the JavaScript differs from the Python, is in [docs/skills.md](https://github.com/PRODHOSH/forkguard/blob/main/docs/skills.md).
 
 ## Exit status
 

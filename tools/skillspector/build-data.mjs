@@ -40,8 +40,28 @@ try {
   const rules = path.join(pkg, 'yara_rules');
   for (const f of readdirSync(rules)) {
     if (f.endsWith('.yar')) copyFileSync(path.join(rules, f), path.join(data, 'yara', f));
-    else if (f.endsWith('.yar.b64')) writeFileSync(path.join(data, 'yara', f.replace(/\.b64$/, '')), Buffer.from(readFileSync(path.join(rules, f), 'utf8').replace(/\s+/g, ''), 'base64'));
+    else if (f.endsWith('.yar.b64')) writeFileSync(path.join(data, 'yara', f.replace(/\.b64$/, '')), Buffer.from(readFileSync(path.join(rules, f), 'utf8').replace(/\s+/g, ''), 'base64').toString('utf8').replace(/\r\n/g, '\n')); // same rules, with Unix line endings
   }
+  // 4. The prompts of the AI review. Plain string constants, copied by value so none is retyped.
+  const prompts = {
+    meta: ['nodes/meta_analyzer.py', 'PER_FILE_ANALYSIS_PROMPT'],
+    base: ['llm_analyzer_base.py', 'BASE_ANALYSIS_PROMPT'],
+    SDI: ['nodes/analyzers/semantic_developer_intent.py', 'ANALYZER_PROMPT'],
+    SQP: ['nodes/analyzers/semantic_quality_policy.py', 'ANALYZER_PROMPT'],
+    SSD: ['nodes/analyzers/semantic_security_discovery.py', 'ANALYZER_PROMPT'],
+  };
+  const promptJson = execFileSync('python3', ['-I', '-c', [
+    'import ast, json, sys',
+    'spec = json.loads(sys.argv[1]); base = sys.argv[2]; out = {}',
+    'for key, (rel, name) in spec.items():',
+    '    tree = ast.parse(open(base + "/" + rel, encoding="utf8").read())',
+    '    for n in tree.body:',
+    '        if isinstance(n, ast.Assign) and any(getattr(t, "id", "") == name for t in n.targets):',
+    '            out[key] = ast.literal_eval(n.value)',
+    'assert set(out) == set(spec), set(spec) - set(out)',
+    'print(json.dumps(out, ensure_ascii=False))',
+  ].join('\n'), JSON.stringify(prompts), pkg], { encoding: 'utf8' });
+  writeFileSync(path.join(data, 'ai-prompts.json'), JSON.stringify(JSON.parse(promptJson), null, 1));
   console.log(`wrote ${Object.keys(out).length} modules of tables, the look-alike table and ${readdirSync(path.join(data, 'yara')).length} YARA files`);
 } finally {
   rmSync(tmp, { recursive: true, force: true });

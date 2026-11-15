@@ -32,12 +32,13 @@ flowchart LR
 7. [Clean a project](#7-clean-a-project)
 8. [Fix it on GitHub with a pull request](#8-fix-it-on-github-with-a-pull-request)
 9. [Check an AI agent skill](#9-check-an-ai-agent-skill)
-10. [Teach your AI agent](#10-teach-your-ai-agent)
-11. [Turn on automatic protection](#11-turn-on-automatic-protection)
-12. [Add it to GitHub Actions](#12-add-it-to-github-actions)
-13. [Found something? Do this next](#13-found-something-do-this-next)
-14. [Troubleshooting](#14-troubleshooting)
-15. [Cheat sheet](#15-cheat-sheet)
+10. [Add an AI review (optional)](#10-add-an-ai-review-optional)
+11. [Teach your AI agent](#11-teach-your-ai-agent)
+12. [Turn on automatic protection](#12-turn-on-automatic-protection)
+13. [Add it to GitHub Actions](#13-add-it-to-github-actions)
+14. [Found something? Do this next](#14-found-something-do-this-next)
+15. [Troubleshooting](#15-troubleshooting)
+16. [Cheat sheet](#16-cheat-sheet)
 
 ---
 
@@ -84,7 +85,7 @@ The `-g` means "global": you can now type `forkguard` in any folder. Check it wo
 forkguard --version
 ```
 
-> **Just want to try it once?** Skip installing and put `npx` in front of any command, like `npx forkguard`. You do need the global install for automatic protection (section 11).
+> **Just want to try it once?** Skip installing and put `npx` in front of any command, like `npx forkguard`. You do need the global install for automatic protection (section 12).
 
 > **"forkguard is not recognized" after installing?** Close your terminal and open a new one.
 
@@ -373,11 +374,56 @@ Other ways to use it:
 | One skill, or a folder of skills | `forkguard skills ./my-skill` |
 | A skill on GitHub, before you install it | `forkguard skills owner/repo` |
 
-With [automatic protection](#11-turn-on-automatic-protection) on, `npx skills add owner/repo` does this check for you and stops the install if the skill is dangerous. Everything about scores, coverage and the NVIDIA SkillSpector rules behind it is in [AI agent skills](skills.md).
+With [automatic protection](#12-turn-on-automatic-protection) on, `npx skills add owner/repo` does this check for you and stops the install if the skill is dangerous. Everything about scores, coverage and the NVIDIA SkillSpector rules behind it is in [AI agent skills](skills.md).
 
 ---
 
-## 10. Teach your AI agent
+## 10. Add an AI review (optional)
+
+The check in section 9 matches known patterns, offline. If you want a second opinion, forkguard can also run SkillSpector's **AI stage** with **your own API key**. forkguard has no key and no service of its own: you bring one.
+
+**1. Get a key** from [Anthropic](https://console.anthropic.com) or [OpenAI](https://platform.openai.com), or run a model on your own computer with [Ollama](https://ollama.com) (no key, and nothing leaves your computer).
+
+**2. Put it in your terminal as an environment variable.** macOS, Linux and Git Bash:
+
+```bash
+export ANTHROPIC_API_KEY=your-key
+```
+
+Windows PowerShell:
+
+```powershell
+$env:ANTHROPIC_API_KEY = "your-key"
+```
+
+(OpenAI: `OPENAI_API_KEY`. Local model: `FORKGUARD_AI_BASE_URL=http://localhost:11434/v1` and `FORKGUARD_AI_MODEL=llama3.1`.) It lives only in that terminal window. Do not type a key into the forkguard command itself, because a command is saved in your shell history.
+
+**3. Add `--ai`:**
+
+```bash
+forkguard skills owner/repo --ai
+```
+
+forkguard tells you what it will send and asks first:
+
+```text
+forkguard  AI review
+
+  It will send the text of 3 files from 1 skill to Anthropic (claude-sonnet-5-5): 12 requests, about 18k tokens in.
+  Keys, tokens and .env values are hidden first. You pay your provider for the tokens.
+
+  Send it? (y/N)
+```
+
+Then each finding is marked "AI confirmed" or "AI did not confirm", and problems the rules cannot see are added ("found by the AI review"). The review can only make forkguard **stricter**: it can add a reason to block a skill, never lift a block, because a skill can try to talk a model into calling it harmless.
+
+> **No key set?** Run the command anyway. forkguard shows these steps for your computer, and in a terminal lets you paste a key (hidden, for that run only). GitHub works the same way: `export GITHUB_TOKEN=...`, or `gh auth login`.
+
+Everything about the review, every variable and what is sent: [AI review](skills.md#ai-review-optional).
+
+---
+
+## 11. Teach your AI agent
 
 Your AI agent will run `npm install` on anything you point it at. Instead of explaining forkguard to it, give it the forkguard **skill**:
 
@@ -398,7 +444,7 @@ Prefer just a few lines in `AGENTS.md` or `CLAUDE.md`? `forkguard agent --write`
 
 ---
 
-## 11. Turn on automatic protection
+## 12. Turn on automatic protection
 
 This is the part that protects you every day without you thinking about it. You need forkguard installed globally (section 2).
 
@@ -462,7 +508,7 @@ Open a new terminal and it is gone.
 
 ---
 
-## 12. Add it to GitHub Actions
+## 13. Add it to GitHub Actions
 
 Your computer is protected. Now protect GitHub too, so every push gets checked even when you are not around.
 
@@ -480,7 +526,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.7.0
+      - uses: PRODHOSH/forkguard@v0.8.0
 ```
 
 Commit and push it. If malware ever lands, the build turns red and GitHub emails you.
@@ -489,7 +535,7 @@ The [GitHub Action guide](github-action.md) covers everything else: opening the 
 
 ---
 
-## 13. Found something? Do this next
+## 14. Found something? Do this next
 
 The order matters.
 
@@ -503,7 +549,7 @@ The order matters.
 
 ---
 
-## 14. Troubleshooting
+## 15. Troubleshooting
 
 **"forkguard is not recognized" or "command not found"**
 Install it globally with `npm install -g forkguard`, then open a new terminal.
@@ -530,14 +576,14 @@ Check the link is right. For a private repo, make sure you are logged in with `g
 Skip it once with `FORKGUARD_SKIP=1`, then [report a false alarm](https://github.com/PRODHOSH/forkguard/issues/new?template=false-alarm.yml) so the rule gets better. For a skill, use the [skill false alarm form](https://github.com/PRODHOSH/forkguard/issues/new?template=skill-false-alarm.yml).
 
 **A skill got a high score but looks harmless**
-SkillSpector's static rules also flag harmless words, and forkguard has no AI review to drop them. By default forkguard blocks only when something looks like a real attack. The findings show the exact text, so you can judge. See [AI agent skills](skills.md#how-to-read-a-score).
+SkillSpector's static rules also flag harmless words, and its AI review never removes a finding. By default forkguard blocks only when something looks like a real attack. For a second opinion, add `--ai` (section 10). The findings show the exact text, so you can judge. See [AI agent skills](skills.md#how-to-read-a-score).
 
 **It missed something**
 [Tell us what it looked like](https://github.com/PRODHOSH/forkguard/issues/new?template=missed-malware.yml). Please describe it rather than pasting the malicious code.
 
 ---
 
-## 15. Cheat sheet
+## 16. Cheat sheet
 
 | I want to... | Run |
 | --- | --- |
@@ -551,6 +597,7 @@ SkillSpector's static rules also flag harmless words, and forkguard has no AI re
 | Send the fix to the repo I forked from | `forkguard pr --upstream` |
 | Check my AI agent skills | `forkguard skills` |
 | Check a skill before I install it | `forkguard skills owner/repo` |
+| Get an AI review of a skill, with my own key | `forkguard skills owner/repo --ai` |
 | Teach my AI agent forkguard | `npx skills add PRODHOSH/forkguard` |
 | Check automatically from now on | `forkguard setup` |
 | Turn automatic checks off | `forkguard setup --remove` |

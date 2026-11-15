@@ -1,6 +1,6 @@
 {
   "name": "forkguard",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Catch malware hidden in a repo before you install or run it, clean it up, open a pull request, and check AI agent skills before you install them.",
   "type": "module",
   "bin": {

@@ -15,8 +15,12 @@ for (const y of ['YR1', 'YR2', 'YR3', 'YR4']) emitted.add(y);
 // rule ids that come out of tables instead of being written in the code
 for (const [id] of tables.static_patterns_anti_refusal._RULES) emitted.add(id);
 for (const rules of Object.values(tables.static_patterns_deserialization._LANG_RULES)) for (const r of rules) emitted.add(r[0]);
-const covered = catalog.filter((id) => emitted.has(id));
-const missing = catalog.filter((id) => !emitted.has(id));
+const coveredOffline = catalog.filter((id) => emitted.has(id));
+// the 11 SDI, SQP and SSD rules need the AI review (src/skills/ai)
+const aiSource = readFileSync(path.join(root, 'ai', 'review.js'), 'utf8');
+const aiIds = new Set([...aiSource.matchAll(/'((?:SDI|SQP|SSD)-\d)'/g)].map((m) => m[1]));
+const covered = catalog.filter((id) => emitted.has(id) || aiIds.has(id));
+const missing = catalog.filter((id) => !emitted.has(id) && !aiIds.has(id));
 
 const rules = loadYaraRules();
 const yaraStrings = rules.reduce((n, r) => n + r.strings.length, 0);
@@ -35,7 +39,7 @@ const pairs = seen;
 const withLists = { modules: Object.keys(tables).filter((m) => m.startsWith('static_patterns_')).length };
 
 console.log(JSON.stringify({
-  catalogRuleIds: catalog.length, covered: covered.length, notCovered: missing,
+  catalogRuleIds: catalog.length, coveredOffline: coveredOffline.length, aiRuleIds: aiIds.size, covered: covered.length, notCovered: missing,
   yaraRules: rules.length, yaraRuleFiles: new Set(rules.map((r) => r.namespace)).size, yaraStrings,
   uniqueRulePatterns: pairs.size, patternsPerModule: perModule, ...withLists,
 }, null, 1));

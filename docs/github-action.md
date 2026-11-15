@@ -64,7 +64,7 @@ This malware spreads by rewriting the latest commit in repos it can reach, often
        runs-on: ubuntu-latest
        steps:
          - uses: actions/checkout@v4
-         - uses: PRODHOSH/forkguard@v0.7.0
+         - uses: PRODHOSH/forkguard@v0.8.0
    ```
 
 3. Commit and push it.
@@ -110,7 +110,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.7.0
+      - uses: PRODHOSH/forkguard@v0.8.0
         with:
           open-pr: true
 ```
@@ -126,7 +126,7 @@ When something is found, the Action creates a branch called `forkguard/remove-ma
 **Check only one folder in a monorepo:**
 
 ```yaml
-      - uses: PRODHOSH/forkguard@v0.7.0
+      - uses: PRODHOSH/forkguard@v0.8.0
         with:
           path: apps/web
 ```
@@ -149,7 +149,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.7.0
+      - uses: PRODHOSH/forkguard@v0.8.0
 ```
 
 **Use the CLI directly in your own workflow:**
@@ -176,13 +176,21 @@ The Action checks code. If your repo ships AI agent skills (a `skills/` folder, 
       - run: npx forkguard skills ./skills
 ```
 
-Add `--strict` to fail on any score above 50, and `--json` to read the findings from a script. See [AI agent skills](skills.md).
+Add `--strict` to fail on any score above 50, and `--json` to read the findings from a script. For the optional AI review, keep your key in a repository secret and pass it as an environment variable:
+
+```yaml
+      - run: npx forkguard skills ./skills --ai --yes
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+`--yes` is needed because there is no one to ask. The review sends skill text to your provider, with secrets hidden. See [AI agent skills](skills.md#ai-review-optional).
 
 ---
 
 ## 8. Pinning a version
 
-`PRODHOSH/forkguard@v0.7.0` always runs that exact version, so nothing changes under you. When a new version comes out, update the number. All versions are listed on the [releases page](https://github.com/PRODHOSH/forkguard/releases).
+`PRODHOSH/forkguard@v0.8.0` always runs that exact version, so nothing changes under you. When a new version comes out, update the number. All versions are listed on the [releases page](https://github.com/PRODHOSH/forkguard/releases).
 
 ---
 

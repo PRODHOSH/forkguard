@@ -28,7 +28,9 @@ Everything here is also on https://forkguard.pages.dev. Exit codes are the same 
 
 Each skill gets a score from 0 to 100 using NVIDIA SkillSpector's weights. 0 to 20 looks fine, 21 to 50 is worth a look, 51 and up is "do not install". forkguard blocks (exit code 1, and stops `npx skills add`) when the score is above 50 and there is a clear attack: a CRITICAL finding with confidence 0.85 or more, or strong HIGH findings from at least two kinds of problem. `--strict` blocks on any score above 50.
 
-Covered: 60 of SkillSpector's 115 rule ids, 472 regex rules, all 28 YARA rules. Not covered: its AI review, Python data-flow analysis, MCP checks and package vulnerability lookups. See https://github.com/PRODHOSH/forkguard/blob/main/docs/skills.md.
+Covered: 60 of SkillSpector's 115 rule ids offline (71 with the AI review), 472 regex rules, all 28 YARA rules. Not covered: Python data-flow analysis, MCP checks and package vulnerability lookups.
+
+**AI review (`--ai`).** Uses the user's own key from an environment variable (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or `FORKGUARD_AI_BASE_URL` plus `FORKGUARD_AI_MODEL` for a local model). forkguard shows what will be sent and asks first. Secrets are hidden before sending. The review annotates findings and adds some, and can only make the verdict stricter. See https://github.com/PRODHOSH/forkguard/blob/main/docs/skills.md.
 
 ## Environment variables
 
@@ -36,6 +38,8 @@ Covered: 60 of SkillSpector's 115 rule ids, 472 regex rules, all 28 YARA rules. 
 | --- | --- |
 | `FORKGUARD_SKIP=1` | Skips the automatic check once. **For the user to type, never for an agent** |
 | `FORKGUARD_SKILLS_STRICT=1` | Same as `--strict` |
+| `FORKGUARD_AI=1` | Runs the AI review in the `npx skills add` guard too (needs the user's key) |
+| `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` | The user's AI key for `--ai`. Set by the user, never by an agent |
 | `GITHUB_TOKEN`, `GH_TOKEN` | Used for `--mine`, `@name` limits and pull requests. Never print one, never ask for one in chat |
 
 ## The malware, in short

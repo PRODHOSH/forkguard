@@ -156,7 +156,8 @@ flowchart TD
     D --> E
     E --> F["Merge repeats, keep every place"]
     F --> G["Score 0 to 100"]
-    G --> H{"Over 50 and a<br/>clear attack?"}
+    G --> AI["Optional: AI review<br/>your key, your yes"]
+    AI --> H{"Over 50 and a<br/>clear attack?"}
     H -- "Yes" --> I["Do not install<br/>exit code 1"]
     H -- "No" --> J["Fine or worth a look<br/>exit code 0"]
 ```
@@ -165,7 +166,8 @@ flowchart TD
 - **The cleaned view** is how a model would read the text: look-alike letters folded to ASCII and invisible characters dropped. It stops an instruction spelled with a Cyrillic letter that looks like a Latin one, or one split by hidden zero-width characters, from slipping past.
 - **Exemptions.** A sentence that forbids something, like "never reveal the system prompt", is not flagged as if it asked for it. License text, quoted examples and a few documentation patterns are recognised too.
 - **The score** counts each rule in full once, half the second time and a quarter the third, scaled by how sure the rule is, with 1.3 times for executable files.
-- **The decision** is SkillSpector's score plus forkguard's own check for a clear attack, because SkillSpector relies on an AI review to drop false alarms and forkguard has none.
+- **The decision** is SkillSpector's score plus forkguard's own check for a clear attack, because SkillSpector's rules also flag harmless text and its AI review never removes a finding.
+- **The optional AI review** (`--ai`, your own API key) sends the skill text to a model after you say yes, with secrets hidden. It asks whether each finding is real and looks for what the rules cannot see (SDI, SQP and SSD rules). It annotates and adds findings, and can only make the verdict stricter. See [AI review](skills.md#ai-review-optional).
 - **Downloading** a skill from GitHub is a shallow clone into a temporary folder with git hooks switched off and symlinks off. Nothing in it is run, and the folder is deleted afterwards.
 
 Everything about coverage, numbers and where the JavaScript differs from the Python is in [AI agent skills](skills.md).
@@ -234,6 +236,7 @@ flowchart TD
 | `src/pr.js` | Creates the branch, commit, push and pull request |
 | `src/setup.js` | Installs and removes the shell hooks |
 | `src/skills/` | The skill checks: `scan.js` (read, run, score), `modules/` (the 15 rule modules and the YARA runner), `data/` (the rule tables and YARA files copied from SkillSpector), `pyregex.js` (Python regex to JavaScript) |
+| `src/skills/ai/` | The optional AI review: `providers.js` (Anthropic, OpenAI, local models, plain fetch), `review.js` (SkillSpector's prompts and how answers are used), `redact.js` (secrets hidden before sending) |
 | `skills/forkguard/` | The forkguard skill that you give your AI agent |
 | `src/git.js` | Talks to git, always with hooks switched off |
 | `src/report.js` | Prints the results |
@@ -261,5 +264,5 @@ flowchart TD
 - **It switches off git hooks** whenever it calls git, because an infected repo can ship its own.
 - **It never runs npm** to check npm. It reads npm's files directly.
 - **It never writes downloaded repo files to disk.** Link checks keep everything packed inside git and delete it afterwards. A skill source is the one exception: it is cloned to a temporary folder, read and deleted, because its files must be read as files.
-- **It sends nothing anywhere.** The only network calls are downloading a repo or skill you asked it to check, and talking to GitHub for `forkguard pr` and `--mine`.
+- **It sends nothing anywhere.** The only network calls are downloading a repo or skill you asked it to check, talking to GitHub for `forkguard pr` and `--mine`, and, only with `--ai` and your yes, sending skill text (secrets hidden) to the AI provider whose key you set.
 - **Zero dependencies.** There is nothing in between you and the check that could be compromised.

@@ -2,9 +2,9 @@
 
 > Catch malware hidden in a repo before you install or run it.
 
-forkguard is a free, open source, zero-dependency Node.js command line tool (Node 18+, Apache 2.0) that finds malware hidden in repositories before you install or run them. It targets the PolinRider campaign: code hidden after hundreds of blank spaces, rewritten commits, fake font files, VS Code tasks that run on folder open, and poisoned npm packages. It can check a folder, a GitHub repo (every branch, without writing its files to disk) or every repo you own, clean what it finds (restoring original files from git history), open a pull request with the fix, and check automatically before npm install and after git clone. It also checks AI agent skills (Claude Code, Codex, Cursor) before you install them, with rules from NVIDIA SkillSpector. Exit codes: 0 clean, 1 dangerous finding, 2 error. Current npm version: 0.7.0.
+forkguard is a free, open source, zero-dependency Node.js command line tool (Node 18+, Apache 2.0) that finds malware hidden in repositories before you install or run them. It targets the PolinRider campaign: code hidden after hundreds of blank spaces, rewritten commits, fake font files, VS Code tasks that run on folder open, and poisoned npm packages. It can check a folder, a GitHub repo (every branch, without writing its files to disk) or every repo you own, clean what it finds (restoring original files from git history), open a pull request with the fix, and check automatically before npm install and after git clone. It also checks AI agent skills (Claude Code, Codex, Cursor) before you install them, with rules from NVIDIA SkillSpector, and can add an AI review with your own API key. Exit codes: 0 clean, 1 dangerous finding, 2 error. Current npm version: 0.8.0.
 
-Site: https://forkguard.pages.dev/  ·  Source: https://github.com/PRODHOSH/forkguard  ·  Version: 0.7.0
+Site: https://forkguard.pages.dev/  ·  Source: https://github.com/PRODHOSH/forkguard  ·  Version: 0.8.0
 
 ---
 
@@ -1051,6 +1051,7 @@ forkguard skills owner/repo --all --json
 - `owner/repo`, a link, a git URL: A skill you have not installed yet. It is downloaded to a temporary folder, with git hooks switched off, checked, and deleted.
 - `--all`: List every finding, not only the first few.
 - `--strict`: Block on any score above 50, like SkillSpector. By default forkguard also needs something that looks like a real attack.
+- `--ai`: Add SkillSpector’s AI review, with your own API key from an environment variable. forkguard shows what will be sent and asks first.
 - `--json`: Print the results as JSON.
 
 ## Description
@@ -1065,7 +1066,7 @@ Every skill gets a score from 0 to 100 and a plain verdict:
 | 21 to 50 | Worth a look |
 | 51 and up | SkillSpector says do not install |
 
-One addition of forkguard’s own: SkillSpector uses an AI review to drop false alarms, and forkguard has none, so it blocks (exit code 1) only when the score is above 50 **and** something looks like a real attack. Otherwise a high score is shown as “worth a look”. `--strict` follows SkillSpector exactly.
+One addition of forkguard’s own: SkillSpector’s rules also flag harmless text, and its AI review marks the findings it does not believe but never removes them. So forkguard blocks (exit code 1) only when the score is above 50 **and** something looks like a real attack. Otherwise a high score is shown as “worth a look”. `--strict` follows SkillSpector exactly.
 
 ### What it looks for
 
@@ -1091,6 +1092,23 @@ npm exec skills add owner/repo
 
 `owner/repo`, `owner/repo@skill`, GitHub links, other git URLs and folders work, and `--skill name` limits the check to the skills you asked for. If the check cannot run (no network, a private repo) the install goes ahead and forkguard says so. To install anyway: `FORKGUARD_SKIP=1 npx skills add owner/repo`.
 
+## AI review (optional)
+
+The offline check matches known patterns. SkillSpector also has an **AI stage**, and forkguard can run it with **your own API key**. forkguard provides no key and no service.
+
+```bash
+export ANTHROPIC_API_KEY=your-key
+forkguard skills owner/repo --ai
+```
+
+- **Review:** the model says whether each finding is real, with a plain explanation. A finding it does not confirm is tagged, never removed.
+- **Discover:** it also looks for what rules cannot see: intent mismatches, vague triggers, polite reframings of “ignore your rules”, plain-language data leaks. That is 11 more rule ids, 71 of 115 in all.
+- **Your key, in your terminal.** Set it as an environment variable (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or `FORKGUARD_AI_BASE_URL` and `FORKGUARD_AI_MODEL` for a model on your own computer). Never type it into the command, because it would be saved in your shell history. forkguard never saves or prints it. Run `--ai` with no key and it shows the steps, or lets you paste one, hidden, for that run.
+- **You say yes first.** It prints how many files and tokens will be sent, and to whom. Keys, tokens, private keys and `.env` values are hidden before anything leaves your computer.
+- **It can only make forkguard stricter.** A skill can try to talk a model into calling it harmless, so the review can add a reason to block and never lift one.
+
+Every variable and the details: [docs/skills.md](https://github.com/PRODHOSH/forkguard/blob/main/docs/skills.md#ai-review-optional).
+
 ## Where the rules come from
 
 The rules are [NVIDIA SkillSpector’s](https://github.com/NVIDIA/SkillSpector) (Apache 2.0), translated to JavaScript so one tool can watch your code and your skills, with no Python, no packages and no AI key. **All credit for the rules belongs to NVIDIA.** forkguard is an independent project by Prodhosh V.S and is not made or endorsed by NVIDIA. Problems with forkguard go to [hello@prodhosh.me](mailto:hello@prodhosh.me) or [GitHub issues](https://github.com/PRODHOSH/forkguard/issues), not to NVIDIA.
@@ -1099,11 +1117,11 @@ The rules are [NVIDIA SkillSpector’s](https://github.com/NVIDIA/SkillSpector) 
 
 |  |  |
 | --- | --- |
-| Rule ids | 60 of the 115 in SkillSpector |
+| Rule ids | 60 of the 115 in SkillSpector, 71 with the AI review |
 | Regex rules | 472, copied from its source by a script, not retyped |
 | YARA rules | All 28, in its 5 rule files (226 patterns) |
 
-It does **not** do SkillSpector’s AI review, its Python syntax-tree and data-flow analysis, its MCP checks, package vulnerability lookups, or some checks that parse shell commands. That is the other 55 rule ids. This is a fast first check: for a skill you depend on, also run [SkillSpector](https://github.com/NVIDIA/SkillSpector) itself. The full list, and every place the JavaScript differs from the Python, is in [docs/skills.md](https://github.com/PRODHOSH/forkguard/blob/main/docs/skills.md).
+It does **not** do SkillSpector’s Python syntax-tree and data-flow analysis, its MCP checks, package vulnerability lookups, or some checks that parse shell commands. That is the other 44 rule ids. This is a fast first check: for a skill you depend on, also run [SkillSpector](https://github.com/NVIDIA/SkillSpector) itself. The full list, and every place the JavaScript differs from the Python, is in [docs/skills.md](https://github.com/PRODHOSH/forkguard/blob/main/docs/skills.md).
 
 ## Exit status
 
@@ -1513,10 +1531,11 @@ Source: https://forkguard.pages.dev/reference/options/
 | `--json` | checking a folder, a link, or `--mine` | Print the results as JSON instead of text. See [JSON output](https://forkguard.pages.dev/reference/json/). |
 | `--mine` | on its own | Check your GitHub repos. Works without a login for public repos. See [`forkguard --mine`](https://forkguard.pages.dev/commands/mine/). |
 | `--fix` | `--mine` | Open one pull request for each infected repo. Needs a GitHub login. See [`forkguard --mine`](https://forkguard.pages.dev/commands/mine/). |
-| `--yes`, `-y` | `fix`, `--mine --fix` | Do not ask before changing several projects, or before opening pull requests. For scripts. |
+| `--yes`, `-y` | `fix`, `--mine --fix` | Do not ask before changing several projects, opening pull requests or sending text to an AI provider. For scripts. |
 | `--upstream` | `pr` | Send the pull request to the repo you forked from. See [`forkguard pr`](https://forkguard.pages.dev/commands/pr/). |
 | `--remove` | `setup` | Take the automatic checks back out of your shell profile. |
 | `--write` | `agent` | Add the agent rules to AGENTS.md, CLAUDE.md and similar files instead of printing them. |
+| `--ai` | `skills` | Adds SkillSpector’s AI review, with your own API key from an environment variable. forkguard shows what will be sent and asks first. |
 | `--strict` | `skills` | Block on any score above 50, like SkillSpector, instead of also needing a clear attack. Same as `FORKGUARD_SKILLS_STRICT=1`. |
 | `--all` | `skills` | List every finding, not only the first few. See [`forkguard skills`](https://forkguard.pages.dev/commands/skills/). |
 | `--version`, `-v` | anything | Print the version. |
@@ -1586,13 +1605,19 @@ Source: https://forkguard.pages.dev/reference/environment/
 
 # Environment variables
 
-> Four variables. All optional.
+> All optional. Keys and tokens belong here, never in the command.
 
 | Variable | What it does |
 | --- | --- |
 | `FORKGUARD_SKIP=1` | Skips the automatic check for one command. Only read by the shell hooks. |
 | `GITHUB_TOKEN`, `GH_TOKEN` | Used to talk to GitHub when the GitHub CLI is not available. Needed by `--mine`, and by `pr` for opening the pull request. |
 | `NO_COLOR=1` | Turns off colors in the output. |
+| `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` | Your own key for `forkguard skills --ai`. Never typed into the command, never saved, never printed. |
+| `FORKGUARD_AI=1` | Runs the AI review in the `npx skills add` install guard too. |
+| `FORKGUARD_AI_PROVIDER`, `FORKGUARD_AI_MODEL` | Choose `anthropic`, `openai` or `ollama`, and the model. Defaults are `claude-sonnet-5-5` and `gpt-5.4`. |
+| `FORKGUARD_AI_BASE_URL`, `FORKGUARD_AI_API_KEY` | An OpenAI-compatible server such as Ollama on your own computer, and its key if it needs one. |
+| `ANTHROPIC_BASE_URL`, `OPENAI_BASE_URL` | A proxy or gateway for those providers. |
+| `FORKGUARD_SKILLS_STRICT=1` | Same as `--strict` for skills. |
 
 ## Skipping once
 
@@ -1613,6 +1638,10 @@ $env:FORKGUARD_SKIP='1'; npm install
 The GitHub CLI is tried first (`gh auth token`). If it is not installed or not logged in, `GITHUB_TOKEN` and then `GH_TOKEN` are used. A token needs permission to read your repos for `--mine`, and to push and open pull requests for `pr`.
 
 > **Warning:** Never paste a token into a command that is saved in your history, and never commit one. forkguard reads it from the environment and sends it only to `api.github.com`.
+
+## A key for the AI review
+
+Set it as an environment variable in your own terminal, then add `--ai`. macOS, Linux and Git Bash: `export ANTHROPIC_API_KEY=your-key`. PowerShell: `$env:ANTHROPIC_API_KEY = "your-key"`. forkguard reads it for that run, never saves it and never prints it. Run `--ai` with no key set and it shows these steps for your computer. See [`forkguard skills`](https://forkguard.pages.dev/commands/skills/).
 
 ## Where to next
 
@@ -1898,7 +1927,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.7.0
+      - uses: PRODHOSH/forkguard@v0.8.0
 ```
 
 Open the **Actions** tab of your repo to see it run.
@@ -1935,7 +1964,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.7.0
+      - uses: PRODHOSH/forkguard@v0.8.0
         with:
           open-pr: true
 ```
@@ -1949,7 +1978,7 @@ When something is found, the Action creates a branch called `forkguard/remove-ma
 ### Check one folder of a monorepo
 
 ```yaml
-      - uses: PRODHOSH/forkguard@v0.7.0
+      - uses: PRODHOSH/forkguard@v0.8.0
         with:
           path: apps/web
 ```
@@ -1974,7 +2003,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.7.0
+      - uses: PRODHOSH/forkguard@v0.8.0
 ```
 
 ### Use the CLI directly
@@ -1989,7 +2018,7 @@ jobs:
 
 ## Pin a version
 
-`PRODHOSH/forkguard@v0.7.0` always runs that exact version, so nothing changes under you. When a new version comes out, update the number. All versions are on the [releases page](https://github.com/PRODHOSH/forkguard/releases).
+`PRODHOSH/forkguard@v0.8.0` always runs that exact version, so nothing changes under you. When a new version comes out, update the number. All versions are on the [releases page](https://github.com/PRODHOSH/forkguard/releases).
 
 ## Troubleshooting
 

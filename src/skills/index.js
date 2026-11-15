@@ -11,6 +11,8 @@ import { spawn } from 'node:child_process';
 import { scanFiles, scanSkillFolder } from './scan.js';
 import { c } from '../report.js';
 import { globalSkillDirs, projectSkillDirs } from './agents.js';
+export { planAi, reviewSkills } from './ai/review.js';
+export { resolveProvider, aiSetupHelp } from './ai/providers.js';
 
 export { scanFiles, scanSkillFolder };
 
@@ -160,8 +162,8 @@ export function parseSkillsInstall(tool, rest) {
   return sources.length ? { sources, skills } : null;
 }
 
-// forkguard's own addition, on top of SkillSpector's score. SkillSpector's static rules are noisy on their own and it
-// uses an AI review to drop the false alarms. forkguard has no AI review, so it stops an install only when the score
+// forkguard's own addition, on top of SkillSpector's score. SkillSpector's static rules also flag harmless text, and its
+// AI review marks the findings it does not believe but never removes them. So forkguard stops an install only when the score
 // is above 50 AND something looks like a real attack: a CRITICAL finding with confidence 0.85 or more, or strong
 // HIGH findings (confidence 0.8 or more, not marked as probably an example) from at least two kinds of problem.
 // The score and the findings themselves are SkillSpector's, unchanged. `strict` follows SkillSpector exactly.
@@ -169,7 +171,11 @@ export function isBlocked(r, strict = false) {
   if (r.score <= 50) return false;
   if (strict) return true;
   const strong = r.findings.filter((f) => (f.severity === 'CRITICAL' || f.severity === 'HIGH') && f.confidence >= 0.8 && !f.tags.includes('likely-benign-context'));
-  return strong.some((f) => f.severity === 'CRITICAL' && f.confidence >= 0.85) || new Set(strong.map((f) => f.category)).size >= 2;
+  if (strong.some((f) => f.severity === 'CRITICAL' && f.confidence >= 0.85) || new Set(strong.map((f) => f.category)).size >= 2) return true;
+  // The AI review can only add a reason to block. It can never lift a block, because the text it reads comes from the skill
+  // and could talk the model into calling it harmless.
+  return Boolean(r.ai) && r.findings.some((f) => (f.severity === 'CRITICAL' || f.severity === 'HIGH')
+    && (f.evidence?.llm_review_outcome === 'confirmed' || (f.tags.includes('ai-discovered') && f.confidence >= 0.8)));
 }
 
 /** SAFE, CAUTION or DO_NOT_INSTALL, after forkguard's policy above. */
@@ -190,11 +196,16 @@ const verdictColor = (v, text) => (v === 'DO_NOT_INSTALL' ? c.red(text) : v === 
 export function printSkill(r, { limit = 8, all = false, strict = false } = {}) {
   const verdict = verdictOf(r, strict);
   console.log(`  ${c.bold(r.name)}  ${verdictColor(verdict, VERDICT_TEXT[verdict])}  ${c.dim(`score ${r.score}/100, ${r.severity.toLowerCase()} risk`)}`);
-  if (r.score > 50 && verdict !== 'DO_NOT_INSTALL') console.log(c.dim('    Many rules matched, but nothing that clearly looks like an attack, so this is not blocked. --strict follows SkillSpector exactly.'));
+  if (r.ai) {
+    const a = r.ai;
+    console.log(c.dim(`    AI review (${a.provider}, ${a.model}): ${a.confirmed} confirmed, ${a.unconfirmed} not confirmed, ${a.discovered} found by the review${a.failed ? `, ${a.failed} of ${a.requests} requests failed` : ''}`));
+  }
+  if (r.score > 50 && verdict !== 'DO_NOT_INSTALL') console.log(c.dim(r.ai ? '    Many rules matched, but neither the rules nor the AI review found a clear attack, so this is not blocked. --strict follows SkillSpector exactly.' : '    Many rules matched, but nothing that clearly looks like an attack, so this is not blocked. --strict follows SkillSpector exactly.'));
   const shown = all ? r.findings : r.findings.slice(0, limit);
   for (const f of shown) {
     const where = `${f.file}:${f.line}`;
-    const note = f.tags.includes('likely-benign-context') ? c.dim('  (probably an example)') : '';
+    const outcome = f.evidence?.llm_review_outcome;
+    const note = f.tags.includes('ai-discovered') ? c.dim('  (found by the AI review)') : f.tags.includes('llm-unconfirmed') ? c.dim('  (AI did not confirm)') : outcome === 'confirmed' ? c.dim('  (AI confirmed)') : f.tags.includes('likely-benign-context') ? c.dim('  (probably an example)') : '';
     const msg = f.message.length > 56 ? `${f.message.slice(0, 53)}...` : f.message;
     const seen = f.matchedText ? JSON.stringify(f.matchedText.replace(/\s+/g, ' ').slice(0, 44)) : '';
     console.log(`    ${sevColor(f.severity)} ${f.ruleId.padEnd(5)} ${where}  ${msg}${seen ? `  ${c.dim(seen)}` : ''}${note}`);
@@ -210,8 +221,8 @@ export const skillsExitCode = (results, strict = false) => (results.some((r) => 
 export function skillsJson(results, strict = false) {
   return results.map((r) => ({
     skill: r.name, path: r.path, score: r.score, severity: r.severity, recommendation: r.recommendation, verdict: verdictOf(r, strict), blocked: isBlocked(r, strict),
-    filesScanned: r.filesScanned, skipped: r.skipped,
-    findings: r.findings.map((f) => ({ rule: f.ruleId, severity: f.severity, confidence: f.confidence, file: f.file, line: f.line, message: f.message, matched: f.matchedText, category: f.category, tags: f.tags, occurrences: f.occurrences, remediation: f.remediation })),
+    filesScanned: r.filesScanned, skipped: r.skipped, ai: r.ai ?? null,
+    findings: r.findings.map((f) => ({ rule: f.ruleId, severity: f.severity, confidence: f.confidence, file: f.file, line: f.line, message: f.message, matched: f.matchedText, category: f.category, tags: f.tags, review: f.evidence?.llm_review_outcome ?? null, explanation: r.ai ? f.explanation : undefined, occurrences: f.occurrences, remediation: f.remediation })),
   }));
 }
 

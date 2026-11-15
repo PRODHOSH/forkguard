@@ -132,10 +132,10 @@ export function scanFiles(files, { skillName = null } = {}) {
       });
     }
   }
-  const findings = dedupeAll(all);
+  const findings = dedupeAll(all).map((f, i) => ({ ...f, id: `F${i + 1}` }));
   const executable = new Set(files.filter((f) => EXECUTABLE_SUFFIXES.has(suffixOf(f.path)) || f.content.startsWith('#!')).map((f) => f.path));
   const verdict = riskScore(findings, executable);
-  return { findings, ...verdict, filesScanned: files.length, errors: ctx.errors };
+  return { findings, ...verdict, filesScanned: files.length, errors: ctx.errors, files, executableFiles: [...executable] };
 }
 
 /** Scans a folder on disk. */

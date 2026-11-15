@@ -14,7 +14,7 @@ import { isGitRepo, repoRoot } from '../src/git.js';
 import { checkMine, checkRemote, checkUser, parseRemote, parseUser, printRemote } from '../src/remote.js';
 import { getToken, guessUsernames, loginHelp } from '../src/auth.js';
 import { openFixPrs, planFixes } from '../src/githubfix.js';
-import { isBlocked, parseSkillSource, parseSkillsInstall, printSkill, scanSkills, scanSource, skillsExitCode, skillsJson, standardSkillRoots, strictMode, verdictOf } from '../src/skills/index.js';
+import { aiSetupHelp, isBlocked, parseSkillSource, planAi, resolveProvider, reviewSkills, parseSkillsInstall, printSkill, scanSkills, scanSource, skillsExitCode, skillsJson, standardSkillRoots, strictMode, verdictOf } from '../src/skills/index.js';
 
 const hasHigh = (r) => (r.branches || []).some((b) => b.findings.some((f) => f.level === 'high'));
 
@@ -40,6 +40,8 @@ Other things it can do:
                            (add --upstream to send it to the repo you forked from)
   forkguard skills         Check the AI agent skills on this computer (Claude Code, Codex, Cursor...)
                            (or one skill folder, or owner/repo before you install it)
+                           (add --ai for an AI review. You bring your own API key, set as an
+                           environment variable, for example: export ANTHROPIC_API_KEY=...)
   forkguard setup          Check automatically before npm install, git clone and npx skills add
                            (add --remove to undo)
   forkguard agent          Print safety rules for AI coding agents
@@ -66,6 +68,60 @@ async function ask(q) {
   const a = (await rl.question(q)).trim();
   rl.close();
   return a;
+}
+
+/** Reads a secret without echoing it, for this run only. */
+async function askSecret(q) {
+  if (!process.stdin.isTTY) return '';
+  const rl = createInterface({ input: process.stdin, output: process.stdout, terminal: true });
+  let muted = false;
+  const write = rl._writeToOutput.bind(rl);
+  rl._writeToOutput = (text) => { if (!muted) write(text); };
+  const pending = rl.question(q);
+  muted = true;
+  const answer = await pending;
+  rl.close();
+  process.stdout.write('\n');
+  return answer.trim();
+}
+
+/**
+ * Runs SkillSpector's AI review on scanned skills. The user brings the key (environment variable, or pasted for this run).
+ * Returns null when the review ran, or an exit code when it could not start.
+ */
+async function aiReview(results, { yes = false, json = false } = {}) {
+  let provider = resolveProvider();
+  if (provider.error && process.stdin.isTTY && !json && (provider.error === 'no-provider' || provider.error === 'no-key')) {
+    console.log(`${c.bold('forkguard')}  The AI review needs an API key, and none is set.\n`);
+    const pasted = await askSecret('  Paste an Anthropic or OpenAI API key (hidden, used for this run only, never saved), or press Enter for other ways: ');
+    if (pasted) provider = resolveProvider(process.env, { provider: pasted.startsWith('sk-ant-') ? 'anthropic' : 'openai', key: pasted });
+  }
+  if (provider.error) {
+    const why = { 'no-provider': 'No AI provider is set up.', 'no-key': `No ${provider.provider} API key is set.`, 'no-base-url': 'No base URL is set for the local model.', 'no-model': 'No model name is set for the local model (FORKGUARD_AI_MODEL).', 'unknown-provider': `Unknown AI provider "${provider.provider}". Use anthropic, openai or ollama.` }[provider.error];
+    console.error(`${c.red('forkguard')}  ${why}\n\n${aiSetupHelp()}`);
+    return 2;
+  }
+  const plan = planAi(results);
+  if (!plan.requests) { if (!json) console.log(c.dim('  Nothing to send to the AI review.\n')); return null; }
+  if (!json) {
+    const where = provider.local ? `${provider.label}, on your own computer, so nothing leaves it` : `${provider.label} (${provider.model})`;
+    console.log(`${c.bold('forkguard')}  AI review\n`);
+    console.log(`  It will send the text of ${plan.files} file${plan.files === 1 ? '' : 's'} from ${plan.skills} skill${plan.skills === 1 ? '' : 's'} to ${where}: ${plan.requests} request${plan.requests === 1 ? '' : 's'}, about ${Math.ceil(plan.inputTokens / 1000)}k tokens in.`);
+    console.log('  Keys, tokens and .env values are hidden first. You pay your provider for the tokens.');
+    if (plan.skipped) console.log(`  ${plan.skipped} file${plan.skipped === 1 ? '' : 's'} are over the size limit and will not be sent.`);
+    console.log('');
+  }
+  if (!yes) {
+    if (!process.stdin.isTTY) { console.error(`${c.red('forkguard')}  Not sending anything without your yes. Add --yes to allow it.`); return 2; }
+    if (!(await confirm('  Send it? (y/N) '))) { console.log('\n  Okay, nothing was sent. The offline result follows.\n'); return null; }
+    console.log('');
+  }
+  const summary = await reviewSkills(results, provider, { onProgress: () => { if (!json && process.stderr.isTTY) process.stderr.write('.'); } });
+  if (!json && process.stderr.isTTY) process.stderr.write('\n');
+  if (summary.failed && !json) {
+    console.log(c.yellow(`  ${summary.failed} of ${summary.requests} requests failed (${summary.errors.join('; ')}). Those parts keep their offline result.\n`));
+  }
+  return null;
 }
 
 function findProjectRoot(start) {
@@ -166,6 +222,11 @@ async function skillsGate(install, tool, rest) {
     }
     if (!results.length) { console.error(c.yellow(`forkguard: no SKILL.md found in ${source}, so there was nothing to check.`)); continue; }
     const strict = strictMode(flags);
+    if (process.env.FORKGUARD_AI === '1') {
+      const provider = resolveProvider();
+      if (provider.error) console.error(c.yellow('forkguard: FORKGUARD_AI=1 is set but no AI key is, so only the offline check ran.'));
+      else await reviewSkills(results, provider);
+    }
     const bad = results.filter((r) => isBlocked(r, strict));
     const odd = results.filter((r) => !isBlocked(r, strict) && r.score > 20);
     if (bad.length) {
@@ -200,6 +261,10 @@ async function skillsCommand(target) {
       console.log('  To check a skill before you install it:  forkguard skills owner/repo');
       return 0;
     }
+  }
+  if (flags.has('--ai') && results.length) {
+    const code = await aiReview(results, { yes: flags.has('--yes') || flags.has('-y'), json });
+    if (code !== null) return code;
   }
   if (json) { console.log(JSON.stringify(skillsJson(results, strict), null, 2)); return skillsExitCode(results, strict); }
   if (!results.length) { console.log('  No skills found there. A skill is a folder with a SKILL.md file in it.'); return 0; }

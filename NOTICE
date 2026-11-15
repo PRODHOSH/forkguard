@@ -25,8 +25,11 @@ What was taken from SkillSpector, and what was changed:
   - The code: translated from Python to JavaScript by hand, file by file, so that it runs with no
     dependencies. All files under src/skills are modified in this way. They are marked Apache-2.0 and carry
     SkillSpector's copyright notice.
-  - Not taken: the AI review stage, the Python syntax-tree and taint analysis, the MCP checks, the package
-    vulnerability lookups, and everything else listed in docs/skills.md under "What it does not do".
+  - The AI review (src/skills/ai): the prompts of SkillSpector's review and its three discovery analyzers
+    (SDI, SQP, SSD) are copied from its source into src/skills/data/ai-prompts.json, and the review follows its
+    rules for using the answers. The code that calls the AI providers is new. The user supplies their own API key.
+  - Not taken: the Python syntax-tree and taint analysis, the MCP checks, the package vulnerability lookups, its other
+    AI providers, and everything else listed in docs/skills.md under "What it does not do".
 
 forkguard is not made, endorsed or supported by NVIDIA. The name NVIDIA and its marks are not used here
 to suggest otherwise. Questions and bug reports about forkguard go to hello@prodhosh.me or

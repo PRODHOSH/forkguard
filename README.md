@@ -27,7 +27,7 @@ Check a folder, a GitHub link or every repo you own. Clean what it finds and ope
 
 ## Contents
 
-[What](#what-is-forkguard) · [Why](#why-it-exists) · [How it works](#how-it-works) · [Install](#install-and-first-run) · [Commands](#commands) · [Which one are you?](#which-one-are-you) · [AI agent skills](#ai-agent-skills) · [Stay protected](#stay-protected) · [Safety](#safety-and-privacy) · [FAQ](#faq) · [Docs](#documentation) · [Contributing](#contributing) · [Developer](#developer) · [License](#license-and-credits)
+[What](#what-is-forkguard) · [Why](#why-it-exists) · [How it works](#how-it-works) · [Install](#install-and-first-run) · [Commands](#commands) · [Which one are you?](#which-one-are-you) · [AI agent skills](#ai-agent-skills) · [AI review](#optional-ai-review) · [Stay protected](#stay-protected) · [Safety](#safety-and-privacy) · [FAQ](#faq) · [Docs](#documentation) · [Contributing](#contributing) · [Developer](#developer) · [License](#license-and-credits)
 
 ---
 
@@ -104,6 +104,7 @@ That is the whole core loop. Just want to try it? `npx forkguard` works without 
 | `forkguard --mine` | Checks all your repos. Public ones need no login. Add `--fix` to open a pull request for each infected repo |
 | `forkguard @name` | Checks the public repos of a person or team. No login |
 | `forkguard skills` | Checks the AI agent skills on this computer. Give it a folder or `owner/repo` to check one before you install it |
+| `forkguard skills ... --ai` | Adds an AI review with your own API key: it checks each finding and looks for problems the rules cannot see |
 | **Clean** | |
 | `forkguard fix` | Cleans every infected project under this folder and restores your originals |
 | `forkguard pr` | Cleans on a new branch and opens a pull request. `--upstream` sends it to the repo you forked from |
@@ -112,7 +113,7 @@ That is the whole core loop. Just want to try it? `npx forkguard` works without 
 | `npx skills add PRODHOSH/forkguard` | Gives your AI agent the forkguard skill: every command, and when to use it |
 | `forkguard agent` | Prints short safety rules for AI agents. `--write` saves them in `AGENTS.md` and `CLAUDE.md` |
 
-**Options:** `--json` for scripts, `--yes` to skip questions, `--all` and `--strict` for skills, `--version`, `--help`.
+**Options:** `--json` for scripts, `--yes` to skip questions, `--all`, `--strict` and `--ai` for skills, `--version`, `--help`.
 **Exit codes:** `0` clean, `1` something dangerous, `2` forkguard could not run. `FORKGUARD_SKIP=1` skips the automatic check once.
 
 Every option explained: [Commands reference](docs/commands.md).
@@ -229,7 +230,25 @@ Each skill gets a score from 0 to 100 and a plain verdict: **looks fine**, **wor
 
 **It runs by itself after `forkguard setup`.** `npx skills add owner/repo` (also `bunx`, `pnpx`, `pnpm dlx`, `yarn dlx`, `npm exec`) downloads the source to a temporary folder first, checks it and stops the install if the skill is dangerous. If the check cannot run, the install goes ahead. To install anyway: `FORKGUARD_SKIP=1 npx skills add owner/repo`.
 
-**One thing forkguard adds.** SkillSpector's static rules also flag harmless text, and it uses an AI review to drop those false alarms. forkguard has no AI review, so it blocks only when the score is above 50 **and** something looks like a real attack. `--strict` follows SkillSpector exactly.
+**One thing forkguard adds.** SkillSpector's static rules also flag harmless text ("never judge a logo"). Its optional AI review reads each finding and says whether it believes it, but it never removes one, so a harmless skill can still score high. So forkguard blocks only when the score is above 50 **and** something looks like a real attack. `--strict` follows SkillSpector exactly.
+
+### Optional AI review
+
+The offline check matches known patterns. SkillSpector also has an **AI stage**, and forkguard can run it with **your own API key**. forkguard provides no key and no service: you bring one, and it is used only for that run.
+
+```bash
+export ANTHROPIC_API_KEY=your-key        # or OPENAI_API_KEY, or a model on your own computer
+forkguard skills owner/repo --ai
+```
+
+- **What it adds.** It reads each finding and says whether it believes it ("confirmed" or "not confirmed", with a plain explanation). It also looks for problems a regex cannot see, such as polite reframings of "ignore your rules", instructions to log everything you say, or a description that does not match the code. That is 11 more of SkillSpector's rule ids: **71 of 115** with the review, 60 without.
+- **Your key, your terminal.** Set it with `export` (Windows PowerShell: `$env:ANTHROPIC_API_KEY = "..."`). Never type a key into the forkguard command itself: it would end up in your shell history. Run `--ai` with no key set and forkguard shows the steps for your computer, or lets you paste one (hidden, never saved) for that run. GitHub works the same way: `export GITHUB_TOKEN=...`.
+- **You see what is sent, and say yes.** It prints how many files and about how many tokens will be sent, and to whom, and asks first (`--yes` skips the question, for scripts). Keys, tokens, private keys and `.env` values are hidden before anything leaves your computer. You pay your provider for the tokens.
+- **Providers.** Anthropic (`ANTHROPIC_API_KEY`), OpenAI (`OPENAI_API_KEY`), or any OpenAI-compatible server such as Ollama on your own machine (`FORKGUARD_AI_BASE_URL` and `FORKGUARD_AI_MODEL`), which needs no key and sends nothing out. `FORKGUARD_AI_MODEL` picks a model.
+- **It can only make forkguard stricter.** The text a model reads comes from the skill, and a skill can try to talk a model into calling it harmless. So the review can add a reason to block, and can never lift a block.
+- **Install guard.** Set `FORKGUARD_AI=1` and `npx skills add` also runs the review (with your key set) before it installs.
+
+Full details, every variable and the differences from SkillSpector: [docs/skills.md](docs/skills.md#ai-review-optional).
 
 ### The forkguard skill
 
@@ -247,10 +266,10 @@ The skill rules are **[NVIDIA SkillSpector's](https://github.com/NVIDIA/SkillSpe
 
 | What came across | |
 | --- | --- |
-| Rule ids covered | **60 of SkillSpector's 115** |
+| Rule ids covered | **60 of SkillSpector's 115**, **71** with the optional AI review |
 | Regex rules | **472**, copied out of its source by a script, not retyped |
 | YARA rules | **all 28**, in its 5 rule files (226 patterns) |
-| Not included | Its AI review, Python data-flow analysis, MCP checks and package lookups: the other 55 rule ids, listed in [docs/skills.md](docs/skills.md) |
+| Not included | Python data-flow analysis, MCP checks, package lookups and a few more: the other 44 rule ids, listed in [docs/skills.md](docs/skills.md) |
 
 This is a fast first check. For a skill you really depend on, **also run [SkillSpector](https://github.com/NVIDIA/SkillSpector)** itself: the two cover different ground. Problem with forkguard or a wrong rule? Write to [hello@prodhosh.me](mailto:hello@prodhosh.me) or [open an issue](https://github.com/PRODHOSH/forkguard/issues), not to NVIDIA.
 
@@ -282,7 +301,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.7.0
+      - uses: PRODHOSH/forkguard@v0.8.0
         with:
           open-pr: true   # also open a pull request that removes what was found
 ```
@@ -304,7 +323,7 @@ What it catches, rule by rule: [What it checks](docs/how-it-works.md#2-what-it-c
 <details>
 <summary><b>Does it upload my code?</b></summary>
 <br>
-No. Everything happens on your machine. It only talks to GitHub when you ask it to check a link, check your repos, or open a pull request.
+No. Everything happens on your machine. It only talks to GitHub when you ask it to check a link, check your repos, or open a pull request. The one exception is the optional <code>--ai</code> review: it sends skill text to the AI provider whose key you set, tells you what first, and asks. A local model sends nothing out.
 </details>
 
 <details>
@@ -334,13 +353,25 @@ No. It is built to catch this family of attacks very well, before code runs. Kee
 <details>
 <summary><b>Why did a normal skill get a high score?</b></summary>
 <br>
-SkillSpector's static rules match words like "never judge" or "keychain" wherever they appear, and it relies on an AI review to drop those. forkguard has no AI review, so it shows the score as "worth a look" unless something looks like a real attack. Read the findings, they show the exact text.
+SkillSpector's static rules match words like "never judge" or "keychain" wherever they appear. Its AI review marks the ones it does not believe, but never removes them, so the score stays high. forkguard shows such a skill as "worth a look" unless something looks like a real attack. Read the findings, they show the exact text. For a second opinion, add the [AI review](#optional-ai-review).
+</details>
+
+<details>
+<summary><b>Where do I put my API key or GitHub token?</b></summary>
+<br>
+In your terminal, as an environment variable: <code>export ANTHROPIC_API_KEY=...</code>, <code>export OPENAI_API_KEY=...</code> or <code>export GITHUB_TOKEN=...</code> (PowerShell: <code>$env:NAME = "..."</code>). forkguard reads it from there, never saves it and never prints it. Do not put a key in the command itself, because it would be stored in your shell history. No GitHub token? <code>gh auth login</code> works too.
 </details>
 
 <details>
 <summary><b>Is forkguard made by NVIDIA?</b></summary>
 <br>
 No. forkguard is an independent project. The skill rules come from NVIDIA's open source SkillSpector and all credit for them is NVIDIA's. See <a href="NOTICE">NOTICE</a>.
+</details>
+
+<details>
+<summary><b>Do I need an AI key to use forkguard?</b></summary>
+<br>
+No. Everything works offline with no key. The key is only for the optional <code>--ai</code> review of skills.
 </details>
 
 <details>

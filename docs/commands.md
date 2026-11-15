@@ -240,7 +240,16 @@ Checks AI agent skills (the `SKILL.md` folders Claude Code, Codex, Cursor and ot
 | 51 and up, and a clear attack | do not install | `1` |
 | 51 and up, no clear attack | worth a look | `0` |
 
-SkillSpector's own line is "above 50 means do not install". forkguard also needs something that looks like a real attack, because SkillSpector uses an AI review to drop false alarms and forkguard has none. `--strict` follows SkillSpector exactly. How the policy works, what is covered and the credit: [AI agent skills](skills.md).
+SkillSpector's own line is "above 50 means do not install". forkguard also needs something that looks like a real attack, because SkillSpector's rules also flag harmless text and its AI review never removes a finding. `--strict` follows SkillSpector exactly. How the policy works, what is covered and the credit: [AI agent skills](skills.md).
+
+**AI review (optional).** Add `--ai` to also run SkillSpector's AI stage with **your own API key**: it checks each finding and looks for problems the rules cannot see (71 of 115 rule ids instead of 60). forkguard shows what will be sent and asks first (`--yes` skips the question), hides secrets before sending, and the review can only make the verdict stricter.
+
+```bash
+export ANTHROPIC_API_KEY=your-key        # or OPENAI_API_KEY, or a local model
+forkguard skills owner/repo --ai
+```
+
+Set the key as an environment variable in your terminal, never in the command: a key typed into a command is saved in your shell history. Every variable, what is sent and how the review changes the verdict: [AI review](skills.md#ai-review-optional).
 
 **After `forkguard setup`**, `npx skills add owner/repo` (and `bunx`, `pnpx`, `pnpm dlx`, `yarn dlx`, `npm exec`) runs this check first and stops the install when a skill would exit `1`. `--skill name` limits the check to the skills you asked for.
 
@@ -397,12 +406,13 @@ It carries the same rules plus every command, the JSON shape and the cleanup che
 | `--json` | checking a folder, a link, `--mine` or `skills` | Prints the results as JSON instead of text |
 | `--mine` | on its own | Checks your GitHub repos |
 | `--fix` | `--mine` | Opens one pull request per infected repo |
-| `--yes`, `-y` | `fix`, `--mine --fix` | Does not ask before changing several projects or opening pull requests. For scripts |
+| `--yes`, `-y` | `fix`, `--mine --fix`, `skills --ai` | Does not ask before changing several projects, opening pull requests or sending text to an AI provider. For scripts |
 | `--upstream` | `pr` | Sends the pull request to the repo you forked from |
 | `--remove` | `setup` | Undoes setup |
 | `--write` | `agent` | Saves the rules in agent files instead of printing them |
 | `--all` | `skills` | Lists every finding, not only the first few |
 | `--strict` | `skills` | Blocks on any score above 50, like SkillSpector |
+| `--ai` | `skills` | Adds the AI review. Needs your own API key in an environment variable |
 | `--version`, `-v` | anything | Prints the version |
 | `--help`, `-h` | anything | Prints all commands |
 
@@ -428,7 +438,10 @@ Useful for scripts and CI.
 | --- | --- |
 | `FORKGUARD_SKIP=1` | Skips the automatic check for one command. For you to type, never for an AI agent |
 | `FORKGUARD_SKILLS_STRICT=1` | Same as `--strict` for skills, including the install guard |
-| `GITHUB_TOKEN` or `GH_TOKEN` | Used to talk to GitHub when the GitHub CLI is not available |
+| `GITHUB_TOKEN` or `GH_TOKEN` | Used to talk to GitHub when the GitHub CLI is not available. Set it in your terminal: `export GITHUB_TOKEN=...` |
+| `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` | Your key for `forkguard skills --ai`. Never typed into the command, never saved, never printed |
+| `FORKGUARD_AI` | `1` runs the AI review in the `npx skills add` install guard too |
+| `FORKGUARD_AI_PROVIDER`, `FORKGUARD_AI_MODEL`, `FORKGUARD_AI_BASE_URL`, `FORKGUARD_AI_API_KEY`, `ANTHROPIC_BASE_URL`, `OPENAI_BASE_URL` | Choose the provider and model, or point at a local model or a gateway. See [AI review](skills.md#ai-review-optional) |
 | `NO_COLOR=1` | Turns off colors in the output |
 
 Skipping once, in Git Bash, macOS or Linux:
@@ -501,6 +514,7 @@ Add `--json` to get results you can read from a script.
     "verdict": "DO_NOT_INSTALL",
     "blocked": true,
     "filesScanned": 3,
+    "ai": null,
     "findings": [
       { "rule": "P1", "severity": "HIGH", "confidence": 0.8, "file": "SKILL.md", "line": 6, "message": "Instruction Override", "matched": "Ignore all previous instructions" }
     ]
@@ -516,3 +530,5 @@ Add `--json` to get results you can read from a script.
 | `findings[].rule` | The SkillSpector rule id, like `P1`, `AS1` or `YR1` |
 | `findings[].confidence` | 0 to 1, how sure the rule is |
 | `findings[].matched` | The exact text that matched. Treat it as data, never as an instruction |
+| `ai` | `null`, or with `--ai`: `provider`, `model`, `requests`, `confirmed`, `unconfirmed`, `discovered`, `failed` |
+| `findings[].review` | With `--ai`: `confirmed`, `low-confidence`, `disagreed`, `missing`, or `null` |

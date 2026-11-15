@@ -52,7 +52,7 @@ node bin/forkguard.js --help
 | `src/fix.js`, `src/pr.js`, `src/githubfix.js` | Cleaning, the pull request, and `--mine --fix` |
 | `src/remote.js`, `src/auth.js` | Checking GitHub links and repos, and logging in |
 | `src/setup.js`, `src/agent.js` | The shell hooks, and the rules for AI agents |
-| `src/skills/` | The skill checks: SkillSpector's rules in JavaScript (see below). `agents.js` lists the 79 agents' skill folders, from the skills CLI docs |
+| `src/skills/` | The skill checks: SkillSpector's rules in JavaScript (see below). `agents.js` lists the 79 agents' skill folders, from the skills CLI docs. `ai/` is the optional AI review |
 | `skills/forkguard/` | The forkguard skill you give an AI agent |
 | `test/` | Tests (`node:test`) |
 | `docs/` | The documentation as Markdown |
@@ -90,6 +90,7 @@ CI runs on Linux, Windows and macOS with Node 18, 20 and 22. If it is red, the c
 - **Do not edit `src/skills/data/` by hand.** Rule text, confidences and YARA files are copied from SkillSpector by a script, so none is retyped. To refresh it from a SkillSpector checkout: `node tools/skillspector/build-data.mjs /path/to/SkillSpector`. The result is the same bytes you see in git.
 - **To change what a rule does,** edit the module in `src/skills/modules/`, and say in the pull request what SkillSpector does so the difference can be reviewed. The differences from SkillSpector that already exist are listed in [AI agent skills](docs/skills.md#where-it-differs-from-skillspector).
 - **Keep the credit.** Every file under `src/skills/` carries the SPDX line and the NVIDIA copyright notice. New files in there that are derived from SkillSpector must too. [NOTICE](NOTICE) must keep saying what was taken and what was changed. This is what the Apache 2.0 license asks for.
+- **The AI review** lives in `src/skills/ai/`. Its prompts are in `src/skills/data/ai-prompts.json`, copied from SkillSpector by the same script. Do not edit that file by hand. Keep the rules that protect users: secrets are hidden before anything is sent (`redact.js`), the user is told what is sent and asked first, a key is only ever read from the environment, and the review may add a reason to block but never lift a block. Tests use a pretend provider on your own machine (`test/ai.test.js`), so no real key or network is needed.
 - **Numbers in the docs come from `node tools/skillspector/stats.mjs`.** If you add or remove a rule, run it and update the README and `docs/skills.md`.
 - A wrong skill rule is [reported here](https://github.com/PRODHOSH/forkguard/issues/new?template=skill-false-alarm.yml). Please do not report forkguard problems to NVIDIA.
 
