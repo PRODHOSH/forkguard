@@ -1,0 +1,3 @@
+# Keep rule files byte for byte the same on every system
+src/skills/data/yara/*.yar text eol=lf
+src/skills/data/*.json text eol=lf
