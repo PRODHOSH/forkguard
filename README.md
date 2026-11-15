@@ -211,14 +211,38 @@ If something is found, `forkguard fix` cleans your copy and `forkguard pr` clean
 </details>
 
 <details>
+<summary><b>Are all the projects on my laptop clean?</b></summary>
+<br>
+
+Open a terminal in the folder that holds your projects (for example `~/Developer`) and run:
+
+```bash
+forkguard
+```
+
+It checks every project inside that folder, however deep, and changes nothing. No login needed.
+
+If it finds something, clean everything it found:
+
+```bash
+forkguard fix
+```
+
+Run from the big folder, `fix` cuts the malware out of every project. To also restore each file's original from git history, run `forkguard fix` inside each infected project instead.
+
+</details>
+
+<details>
 <summary><b>Are all my repos clean?</b></summary>
 <br>
 
-Log in to the GitHub CLI once, then check everything you own:
+This one checks GitHub, so forkguard has to know who you are. Log in to the GitHub CLI once:
 
 ```bash
 gh auth login
 ```
+
+No GitHub CLI? Set a `GITHUB_TOKEN` environment variable instead. Then check everything you own:
 
 ```bash
 forkguard --mine
@@ -231,6 +255,8 @@ To check a friend's or a team's public repos, give a name instead. Nothing is do
 ```bash
 forkguard @their-name
 ```
+
+No login needed, but without a token GitHub only allows about 60 lookups an hour from your network. Set a `GITHUB_TOKEN` if you check a lot of people.
 
 </details>
 
