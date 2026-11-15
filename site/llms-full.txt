@@ -2,9 +2,9 @@
 
 > Catch malware hidden in a repo before you install or run it.
 
-forkguard is a free, open source, zero-dependency Node.js command line tool (Node 18+, Apache 2.0) that finds malware hidden in repositories before you install or run them. It targets the PolinRider campaign: code hidden after hundreds of blank spaces, rewritten commits, fake font files, VS Code tasks that run on folder open, and poisoned npm packages. It can check a folder, a GitHub repo (every branch, without writing its files to disk) or every repo you own, clean what it finds (restoring original files from git history), open a pull request with the fix, and check automatically before npm install and after git clone. It also checks AI agent skills (Claude Code, Codex, Cursor) before you install them, with rules from NVIDIA SkillSpector, and can add an AI review with your own API key. Exit codes: 0 clean, 1 dangerous finding, 2 error. Current npm version: 0.8.0.
+forkguard is a free, open source, zero-dependency Node.js command line tool (Node 18+, Apache 2.0) that finds malware hidden in repositories before you install or run them. It targets the PolinRider campaign: code hidden after hundreds of blank spaces, rewritten commits, fake font files, VS Code tasks that run on folder open, and poisoned npm packages. It can check a folder, a GitHub repo (every branch, without writing its files to disk) or every repo you own, clean what it finds (restoring original files from git history), open a pull request with the fix, and check automatically before npm install and after git clone. It also checks AI agent skills (Claude Code, Codex, Cursor) before you install them, with rules from NVIDIA SkillSpector, and can add an AI review with your own API key. Exit codes: 0 clean, 1 dangerous finding, 2 error. Current npm version: 0.8.1.
 
-Site: https://forkguard.pages.dev/  ·  Source: https://github.com/PRODHOSH/forkguard  ·  Version: 0.8.0
+Site: https://forkguard.pages.dev/  ·  Source: https://github.com/PRODHOSH/forkguard  ·  Version: 0.8.1
 
 ---
 
@@ -1272,7 +1272,7 @@ forkguard was built against a malware campaign researchers call **PolinRider**, 
 | [`autorun`](https://forkguard.pages.dev/reference/rules/#autorun) | HIGH / MED | A VS Code task that runs when you open the folder | remove the task |
 | [`dropper`](https://forkguard.pages.dev/reference/rules/#dropper) | HIGH | `config.bat`, `temp_auto_push.bat`, `.orc`, and scripts that rewrite your last commit | delete |
 | [`npm-infected`](https://forkguard.pages.dev/reference/rules/#npm-infected) | HIGH | npm itself on your computer carrying the payload | a person decides |
-| [`autorun-setting`](https://forkguard.pages.dev/reference/rules/#autorun-setting) | MED | `task.allowAutomaticTasks` switched on in the project | turn it off |
+| [`autorun-setting`](https://forkguard.pages.dev/reference/rules/#autorun-setting) | MED | `task.allowAutomaticTasks` switched on, or a task set to run on folder open written into `settings.json` | turn it off, or remove the task |
 | [`prelude`](https://forkguard.pages.dev/reference/rules/#prelude) | MED | Fake `createRequire` lines at the top of a config file | remove the lines |
 | [`gitignore`](https://forkguard.pages.dev/reference/rules/#gitignore) | MED | `.gitignore` hiding the dropped `config.bat` | remove the line |
 | [`lifecycle`](https://forkguard.pages.dev/reference/rules/#lifecycle) | MED | An install script that downloads or decodes something | a person decides |
@@ -1362,7 +1362,7 @@ The malware can hide inside npm itself, so every npm command restarts it even af
 
 ### autorun-setting
 
-`.vscode/settings.json` in the project switches `task.allowAutomaticTasks` on, so the hidden task can run. **Fix:** turns it to `"off"`, or deletes the file when it is the malware’s own template.
+`.vscode/settings.json` in the project switches `task.allowAutomaticTasks` on so the hidden task can run, or carries a task of its own set to `folderOpen`, which runs when you open the folder. **Fix:** turns the setting to `"off"`, removes that task and keeps your other settings, or deletes the file when it is the malware’s own template.
 
 ### prelude
 
@@ -1927,7 +1927,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.8.0
+      - uses: PRODHOSH/forkguard@v0.8.1
 ```
 
 Open the **Actions** tab of your repo to see it run.
@@ -1964,7 +1964,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.8.0
+      - uses: PRODHOSH/forkguard@v0.8.1
         with:
           open-pr: true
 ```
@@ -1978,7 +1978,7 @@ When something is found, the Action creates a branch called `forkguard/remove-ma
 ### Check one folder of a monorepo
 
 ```yaml
-      - uses: PRODHOSH/forkguard@v0.8.0
+      - uses: PRODHOSH/forkguard@v0.8.1
         with:
           path: apps/web
 ```
@@ -2003,7 +2003,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.8.0
+      - uses: PRODHOSH/forkguard@v0.8.1
 ```
 
 ### Use the CLI directly
@@ -2018,7 +2018,7 @@ jobs:
 
 ## Pin a version
 
-`PRODHOSH/forkguard@v0.8.0` always runs that exact version, so nothing changes under you. When a new version comes out, update the number. All versions are on the [releases page](https://github.com/PRODHOSH/forkguard/releases).
+`PRODHOSH/forkguard@v0.8.1` always runs that exact version, so nothing changes under you. When a new version comes out, update the number. All versions are on the [releases page](https://github.com/PRODHOSH/forkguard/releases).
 
 ## Troubleshooting
 

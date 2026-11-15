@@ -134,6 +134,12 @@ export function inspect(f, buf, add, fontDirs) {
     if (/"task\.allowAutomaticTasks"\s*:\s*("on"|true)/.test(text)) {
       add('medium', f.rel, 'autorun-setting', 'Turns on automatic VS Code tasks so the hidden task can run', 'setting');
     }
+    // A task can also be written straight into settings.json. Same trick as tasks.json: it runs when you open the folder.
+    if (/folderOpen/.test(text)) {
+      const runs = /"(node|curl|wget|powershell|pwsh|cmd|bash|sh|python3?)"|\b(node|curl|wget|powershell)\s|fonts?\/|vercel\.app|onrender\.com|railway\.app|\|\s*(ba)?sh\b/.test(text);
+      add(runs ? 'high' : 'medium', f.rel, 'autorun-setting',
+        runs ? 'A VS Code task hidden in settings.json runs a command the moment you open the folder' : 'A task in settings.json is set to run when you open the folder', 'setting');
+    }
     return;
   }
 

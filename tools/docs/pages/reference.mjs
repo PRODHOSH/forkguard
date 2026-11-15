@@ -162,7 +162,7 @@ export const reference = [
         ['[`autorun`](#autorun)', 'HIGH / MED', 'A VS Code task that runs when you open the folder', 'remove the task'],
         ['[`dropper`](#dropper)', 'HIGH', '`config.bat`, `temp_auto_push.bat`, `.orc`, and scripts that rewrite your last commit', 'delete'],
         ['[`npm-infected`](#npm-infected)', 'HIGH', 'npm itself on your computer carrying the payload', 'a person decides'],
-        ['[`autorun-setting`](#autorun-setting)', 'MED', '`task.allowAutomaticTasks` switched on in the project', 'turn it off'],
+        ['[`autorun-setting`](#autorun-setting)', 'MED', '`task.allowAutomaticTasks` switched on, or a task set to run on folder open written into `settings.json`', 'turn it off, or remove the task'],
         ['[`prelude`](#prelude)', 'MED', 'Fake `createRequire` lines at the top of a config file', 'remove the lines'],
         ['[`gitignore`](#gitignore)', 'MED', '`.gitignore` hiding the dropped `config.bat`', 'remove the line'],
         ['[`lifecycle`](#lifecycle)', 'MED', 'An install script that downloads or decodes something', 'a person decides'],
@@ -219,7 +219,7 @@ export const reference = [
 
       h2('MED rules'),
       h3('autorun-setting', 'autorun-setting'),
-      p('`.vscode/settings.json` in the project switches `task.allowAutomaticTasks` on, so the hidden task can run. **Fix:** turns it to `"off"`, or deletes the file when it is the malware’s own template.'),
+      p('`.vscode/settings.json` in the project switches `task.allowAutomaticTasks` on so the hidden task can run, or carries a task of its own set to `folderOpen`, which runs when you open the folder. **Fix:** turns the setting to `"off"`, removes that task and keeps your other settings, or deletes the file when it is the malware’s own template.'),
       h3('prelude', 'prelude'),
       p('The fake `createRequire` lines the malware adds to the top of ES module config files so its hidden code can call `require()`, in files such as `postcss.config`, `tailwind.config`, `eslint.config`, `next.config`, `vite.config`, `babel.config`, `webpack.config`, `astro.config`, `gridsome.config` and `truffle.js`. **Fix:** removes only those lines, and only the blank lines between them.'),
       h3('gitignore', 'gitignore'),

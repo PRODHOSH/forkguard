@@ -133,7 +133,7 @@ export function fix(result, { untrackSecrets = false } = {}) {
           continue;
         }
         next = r.text;
-        action = 'turned automatic tasks off';
+        action = r.action;
       }
 
       if (next !== null && next !== text) {

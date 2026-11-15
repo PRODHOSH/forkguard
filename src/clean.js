@@ -83,9 +83,45 @@ export function cleanTasks(text) {
   }
 }
 
+/** Cuts one `"key": { ... }` (or `[ ... ]`) out of JSON text, keeping the commas and the rest of the file as they were. */
+export function dropJsonKey(text, key) {
+  const m = new RegExp(`"${key}"\\s*:\\s*`).exec(text);
+  if (!m) return text;
+  let i = m.index + m[0].length;
+  const open = text[i];
+  if (open !== '{' && open !== '[') return text;
+  let depth = 0, inStr = false;
+  for (; i < text.length; i++) {
+    const c = text[i];
+    if (inStr) { if (c === '\\') i++; else if (c === '"') inStr = false; continue; }
+    if (c === '"') inStr = true;
+    else if (c === '{' || c === '[') depth++;
+    else if (c === '}' || c === ']') { depth--; if (!depth) { i++; break; } }
+  }
+  if (depth) return text;
+  let start = m.index, end = i;
+  const comma = /^[ \t]*,/.exec(text.slice(end));
+  if (comma) {
+    end += comma[0].length;
+    start -= /[ \t]*$/.exec(text.slice(0, start))[0].length;
+    const nl = /^[ \t]*\r?\n/.exec(text.slice(end));
+    if (nl) end += nl[0].length;
+  } else {
+    const before = /,\s*$/.exec(text.slice(0, start)); // it was the last entry, so the comma before it goes too
+    if (before) start -= before[0].length;
+  }
+  return text.slice(0, start) + text.slice(end);
+}
+
 export function cleanSettings(text) {
   if (/compile-hero/.test(text) && /allowAutomaticTasks/.test(text)) return { remove: true }; // the malware's own template
-  return { text: text.replace(/("task\.allowAutomaticTasks"\s*:\s*)("on"|true)/, '$1"off"') };
+  let next = text, action = 'turned automatic tasks off';
+  const task = /"tasks"\s*:\s*[{[]/.exec(next);
+  if (task && /folderOpen/.test(next)) {
+    const cut = dropJsonKey(next, 'tasks');
+    if (cut !== next) { next = cut; action = 'removed the auto-run task'; }
+  }
+  return { text: next.replace(/("task\.allowAutomaticTasks"\s*:\s*)("on"|true)/, '$1"off"'), action };
 }
 
 const squash = (s) => s.replace(/\s+/g, '');

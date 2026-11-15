@@ -18,7 +18,7 @@ forkguard was built against a malware campaign researchers call **PolinRider**, 
 | [`autorun`](https://forkguard.pages.dev/reference/rules/#autorun) | HIGH / MED | A VS Code task that runs when you open the folder | remove the task |
 | [`dropper`](https://forkguard.pages.dev/reference/rules/#dropper) | HIGH | `config.bat`, `temp_auto_push.bat`, `.orc`, and scripts that rewrite your last commit | delete |
 | [`npm-infected`](https://forkguard.pages.dev/reference/rules/#npm-infected) | HIGH | npm itself on your computer carrying the payload | a person decides |
-| [`autorun-setting`](https://forkguard.pages.dev/reference/rules/#autorun-setting) | MED | `task.allowAutomaticTasks` switched on in the project | turn it off |
+| [`autorun-setting`](https://forkguard.pages.dev/reference/rules/#autorun-setting) | MED | `task.allowAutomaticTasks` switched on, or a task set to run on folder open written into `settings.json` | turn it off, or remove the task |
 | [`prelude`](https://forkguard.pages.dev/reference/rules/#prelude) | MED | Fake `createRequire` lines at the top of a config file | remove the lines |
 | [`gitignore`](https://forkguard.pages.dev/reference/rules/#gitignore) | MED | `.gitignore` hiding the dropped `config.bat` | remove the line |
 | [`lifecycle`](https://forkguard.pages.dev/reference/rules/#lifecycle) | MED | An install script that downloads or decodes something | a person decides |
@@ -108,7 +108,7 @@ The malware can hide inside npm itself, so every npm command restarts it even af
 
 ### autorun-setting
 
-`.vscode/settings.json` in the project switches `task.allowAutomaticTasks` on, so the hidden task can run. **Fix:** turns it to `"off"`, or deletes the file when it is the malware’s own template.
+`.vscode/settings.json` in the project switches `task.allowAutomaticTasks` on so the hidden task can run, or carries a task of its own set to `folderOpen`, which runs when you open the folder. **Fix:** turns the setting to `"off"`, removes that task and keeps your other settings, or deletes the file when it is the malware’s own template.
 
 ### prelude
 

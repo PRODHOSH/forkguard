@@ -162,6 +162,42 @@ test('only the auto-run task is removed when tasks.json has real tasks too', () 
   rmSync(root, { recursive: true, force: true });
 });
 
+// A real case: a task written straight into .vscode/settings.json, next to settings that look normal.
+const SETTINGS_BEFORE = [
+  '{', '  "search.exclude": {', '    "**/.sst": true', '  },', '  "jestrunner.configPath": "jest.unit.config.cjs",',
+  '  "compile-hero.disable-compile-files-on-did-save-code": true,', '  "tasks": {', '    "label": "lint on open",', '    "type": "shell",',
+  '    "command": "npm run lint",', '    "runOn": "folderOpen"', '  }', '}', '',
+].join('\n');
+const SETTINGS_AFTER = SETTINGS_BEFORE.replace(/,\n  "tasks": \{[\s\S]*?\n  \}\n/, '\n');
+
+test('a task hidden in .vscode/settings.json is found, and fix removes only that task', () => {
+  const root = tmp();
+  put(root, '.vscode/settings.json', SETTINGS_BEFORE);
+  const found = scan(root).findings.filter((f) => f.file.endsWith('settings.json'));
+  assert.equal(found.length, 1);
+  assert.equal(found[0].rule, 'autorun-setting');
+  fix(scan(root));
+  assert.equal(readFileSync(path.join(root, '.vscode/settings.json'), 'utf8'), SETTINGS_AFTER);
+  assert.ok(!SETTINGS_AFTER.includes('folderOpen') && SETTINGS_AFTER.includes('"jestrunner.configPath"'));
+  assert.equal(scan(root).findings.length, 0);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('a task in the middle of settings.json is cut out cleanly, and ordinary settings are left alone', () => {
+  const root = tmp();
+  put(root, '.vscode/settings.json', '{\n  "a": 1,\n  "tasks": {\n    "command": "node x.js",\n    "runOn": "folderOpen"\n  },\n  "b": "}",\n  "c": 2\n}\n');
+  const hit = scan(root).findings.find((f) => f.file.endsWith('settings.json'));
+  assert.equal(hit.level, 'high'); // it runs node, so it is not just a worry
+  fix(scan(root));
+  const out = readFileSync(path.join(root, '.vscode/settings.json'), 'utf8');
+  assert.deepEqual(JSON.parse(out), { a: 1, b: '}', c: 2 });
+  rmSync(root, { recursive: true, force: true });
+  const calm = tmp();
+  put(calm, '.vscode/settings.json', '{\n  "editor.tabSize": 2,\n  "tasks": { "version": "2.0.0" }\n}\n');
+  assert.equal(scan(calm).findings.length, 0);
+  rmSync(calm, { recursive: true, force: true });
+});
+
 test('warns when a .env file is not ignored, and fix adds it to .gitignore', () => {
   const root = tmp();
   gitInit(root);

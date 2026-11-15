@@ -301,7 +301,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.8.0
+      - uses: PRODHOSH/forkguard@v0.8.1
         with:
           open-pr: true   # also open a pull request that removes what was found
 ```
