@@ -42,7 +42,11 @@ After cleaning a file, forkguard looks back through git history for the last cle
 - A file that matches a known signature but has nothing it can safely cut. It is left as is and reported again as “Still needs a look”.
 - Committed `.env` files stay on disk and in git. [`forkguard pr`](https://forkguard.pages.dev/commands/pr/) takes them out of git for you.
 
-> **Warning:** Not a git repo? There is no history to undo from, so forkguard asks “Continue? (y/N)” before changing anything.
+### A folder full of projects
+
+Run `forkguard fix` in the folder that holds all your projects and it cleans every infected project inside it, however deep. Each project is cleaned against its own git history, so every original comes back. When more than one project is affected it asks once before changing anything, and ends with one line: how many files in how many projects. Add `--yes` to skip the question in a script.
+
+> **Warning:** A file that is not inside a git repo has no history to undo from, so forkguard asks “Continue? (y/N)” before changing it.
 
 ## Output
 

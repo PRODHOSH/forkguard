@@ -7,7 +7,7 @@
 - “forkguard is not recognized” or “command not found”: Install it globally with `npm install -g forkguard`, then open a new terminal.
 - Automatic checks do not run after setup: Close the terminal and open a new one. Setup only takes effect in new terminals.
 - npm stopped working after I switched Node versions: Update forkguard: the hook now fails open, so a missing forkguard no longer blocks npm. To unblock a current shell, run `command npm install`, or `forkguard setup --remove` from a Node version that has it.
-- “Log in first so forkguard can list your repos”: Run `gh auth login`, or set a `GITHUB_TOKEN`. Needed for `--mine`.
+- “You are not logged in to GitHub yet”: Only `--mine --fix` and private repos need a login. forkguard prints the steps for your computer: install the GitHub CLI and run `gh auth login`, or set a `GITHUB_TOKEN`.
 - “could not download” when checking a link: Check the link is right. For a private repo, make sure you are logged in with `gh auth login`.
 - “You have uncommitted changes”: `forkguard pr` needs a clean working tree. Run `git stash`, try again, then `git stash pop`.
 - “The origin remote is not on GitHub”: `forkguard pr` only works with repos on GitHub. Use `forkguard fix` instead.

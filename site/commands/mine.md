@@ -4,41 +4,43 @@
 
 ## Name
 
-`forkguard --mine` checks every repository you own on GitHub, every branch, using the same safe method as [`forkguard owner/repo`](https://forkguard.pages.dev/commands/check-repo/).
+`forkguard --mine` checks your GitHub repositories, every branch, using the same safe method as [`forkguard owner/repo`](https://forkguard.pages.dev/commands/check-repo/). With `--fix` it also opens a pull request for each infected repo.
 
 ## Synopsis
 
 ```bash
 forkguard --mine
+forkguard --mine --fix
 forkguard --mine --json
 ```
 
 ## Description
 
-This is the fastest way to know whether your whole GitHub is clean. Run it once now, and again whenever you hear about a new attack. It lists your repos, then checks four at a time. About 50 repos takes a minute or two.
+This is the fastest way to know whether your whole GitHub is clean. Run it once now, and again whenever you hear about a new attack. Checking about 50 repos takes a few minutes.
 
 It checks repos you **own**, including forks and archived repos. Repos in organizations where you are only a member or collaborator are not included.
 
-### You need to be logged in
+### You do not need to log in to look
 
-Either log in with the GitHub CLI:
+If you are not logged in, forkguard finds your GitHub name from settings already on your computer (your git settings and the links of the repos you have cloned), asks you to confirm it, and checks all your **public** repos. It never reads a saved password or token.
+
+If you are logged in, it checks everything you own, private repos too. Log in either way:
 
 ```bash
 gh auth login
 ```
 
-or set a `GITHUB_TOKEN` (or `GH_TOKEN`) environment variable with a personal access token. Without either you get: “Log in first so forkguard can list your repos”.
+or set a `GITHUB_TOKEN` (or `GH_TOKEN`) environment variable with a personal access token. When you are not logged in, forkguard prints these steps for your computer (macOS, Windows or Linux) whenever a login would help.
 
-### Checking a friend or a team
-
-Give it a GitHub name instead and it checks every **public** repo of that person or organization, the same way, without downloading anything to your disk. No login needed. It reports only; it never changes their repos.
+### Fixing: one pull request per repo
 
 ```bash
-forkguard @their-name
-forkguard https://github.com/their-name
+forkguard --mine --fix
 ```
 
-Without a token GitHub allows about 60 listing requests an hour. If you hit that, wait, or set a `GITHUB_TOKEN`. Private repos are never included.
+For each repo that is infected on its **default branch**, forkguard downloads it to a temporary folder, cleans it on a new branch, and opens a pull request with a short plain description. It **never** pushes to your main branch and never force pushes, so nothing changes until you merge. It asks once before it starts, a repo that already has a forkguard pull request is skipped, and infected side branches are only listed.
+
+Opening a pull request means writing to your repo, so this needs a login. With a token, give it **Contents: Read and write** and **Pull requests: Read and write** on the repos you want fixed.
 
 ## Output
 
@@ -65,6 +67,8 @@ Then you get the full details for every repo that is not clean.
 
 ## Options
 
+- `--fix`: Open a pull request for each repo that is infected on its default branch. Needs a login.
+- `--yes`, `-y`: Do not ask before opening the pull requests. For scripts.
 - `--json`: Print a list of repo results, one per repo, instead of text. See [JSON output](https://forkguard.pages.dev/reference/json/).
 
 ## Exit status
@@ -73,7 +77,7 @@ Then you get the full details for every repo that is not clean.
 | --- | --- |
 | `0` | Clean, or only MED findings. |
 | `1` | Something HIGH was found. |
-| `2` | forkguard itself could not run, for example when you are not logged in. |
+| `2` | forkguard itself could not run, for example when `--fix` is used without a login. |
 
 The same codes work in scripts and CI. See [Exit codes](https://forkguard.pages.dev/reference/exit-codes/).
 

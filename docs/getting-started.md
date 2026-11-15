@@ -390,7 +390,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.5.0
+      - uses: PRODHOSH/forkguard@v0.6.0
 ```
 
 Commit and push it. If malware ever lands, the build turns red and GitHub emails you.
@@ -421,8 +421,8 @@ Install it globally with `npm install -g forkguard`, then open a new terminal.
 **Automatic checks do not run after setup**
 Close the terminal and open a new one. Setup only takes effect in new terminals.
 
-**"Log in first so forkguard can list your repos"**
-Run `gh auth login`, or set a `GITHUB_TOKEN`. Needed for `--mine`.
+**"You are not logged in to GitHub yet"**
+Only `--fix` and private repos need a login. forkguard prints the steps for your computer: install the GitHub CLI and run `gh auth login`, or set a `GITHUB_TOKEN`.
 
 **"could not download" when checking a link**
 Check the link is right. For a private repo, make sure you are logged in with `gh auth login`.

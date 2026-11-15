@@ -147,17 +147,19 @@ Every branch is checked, because the malware often hides on side branches like o
 forkguard --mine
 ```
 
-Checks **every repo you own** on GitHub, every branch, using the same safe method as above.
+Checks the repos you **own** on GitHub, every branch, using the same safe method as above.
 
-**You need to be logged in.** Either:
+**You do not need to log in to look.** Not logged in, forkguard finds your GitHub name from your git settings and the repos you have cloned, asks you to confirm it, and checks your **public** repos. Logged in, it checks everything, private repos too. Log in with the GitHub CLI:
 
 ```bash
 gh auth login
 ```
 
-or set a `GITHUB_TOKEN` environment variable with a personal access token.
+or set a `GITHUB_TOKEN` environment variable with a personal access token. forkguard shows these steps for your computer when a login would help.
 
-**A friend's or a team's repos:** give a GitHub name instead. It checks every public repo of that person or organization, read only, with no login. Without a token GitHub allows about 60 listing requests an hour.
+**Fixing:** `forkguard --mine --fix` opens one pull request for each repo that is infected on its main branch. It never pushes to your main branch, asks once first (add `--yes` to skip), and needs a login with Contents and Pull requests set to Read and write.
+
+**A friend's or a team's repos:** give a GitHub name instead. It checks every public repo of that person or organization, read only, with no login. Without a login GitHub allows about 60 listing requests an hour.
 
 ```bash
 forkguard @their-name

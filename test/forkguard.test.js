@@ -451,3 +451,90 @@ test('applyFix turns infected text into clean text, and says when it has nothing
   assert.equal(isOriginalOf('different();\n', 'a;\n'), false);
   assert.equal(isOriginalOf(`a;${payload()}\n`, 'a;\n'), null);
 });
+
+// ---- one folder with many projects, and the GitHub helpers ----
+
+function nestedProjects() {
+  const parent = tmp();
+  const roots = ['alpha', 'beta/deep'].map((rel) => {
+    const root = path.join(parent, rel);
+    mkdirSync(root, { recursive: true });
+    const g = gitInit(root);
+    put(root, 'postcss.config.js', ORIGINAL_POSTCSS);
+    put(root, 'package.json', JSON.stringify({ name: rel, scripts: { dev: 'next dev' } }));
+    g('add', '.');
+    g('commit', '-q', '-m', 'first');
+    put(root, 'postcss.config.js', [...prelude, ORIGINAL_POSTCSS.trimEnd() + payload('y'), ''].join('\n'));
+    g('commit', '-q', '-am', 'update');
+    return root;
+  });
+  return { parent, roots };
+}
+
+test('fix on a folder of projects cleans every project, however deep, and restores each original', () => {
+  const { parent, roots } = nestedProjects();
+  const res = spawnSync(process.execPath, [BIN, 'fix', parent], { encoding: 'utf8' });
+  assert.equal(res.status, 0, res.stdout + res.stderr);
+  assert.match(res.stdout, /2 projects/);
+  for (const root of roots) {
+    assert.equal(readFileSync(path.join(root, 'postcss.config.js'), 'utf8'), ORIGINAL_POSTCSS);
+  }
+  rmSync(parent, { recursive: true, force: true });
+});
+
+test('help starts with the two things most people need', () => {
+  const res = spawnSync(process.execPath, [BIN, '--help'], { encoding: 'utf8' });
+  const text = res.stdout;
+  assert.ok(text.indexOf('forkguard fix') < text.indexOf('forkguard owner/repo'));
+  assert.ok(text.indexOf('forkguard --mine') < text.indexOf('forkguard setup'));
+});
+
+test('finds your GitHub name from settings that are already on disk', async () => {
+  const { loginFromEmail, ownersFromRemotes } = await import('../src/auth.js');
+  assert.equal(loginFromEmail('12345+alice@users.noreply.github.com'), 'alice');
+  assert.equal(loginFromEmail('alice@users.noreply.github.com'), 'alice');
+  assert.equal(loginFromEmail('alice@example.com'), null);
+  assert.equal(loginFromEmail(undefined), null);
+
+  const parent = tmp();
+  for (const [dir, url] of [['a', 'https://github.com/alice/a.git'], ['b', 'git@github.com:alice/b.git'], ['c', 'https://github.com/team/c.git'], ['plain', null]]) {
+    const root = path.join(parent, dir);
+    mkdirSync(root);
+    const g = gitInit(root);
+    if (url) g('remote', 'add', 'origin', url);
+  }
+  assert.deepEqual(ownersFromRemotes(parent), ['alice', 'team']);
+  rmSync(parent, { recursive: true, force: true });
+});
+
+test('login help is written for the computer you are on', async () => {
+  const { loginHelp } = await import('../src/auth.js');
+  assert.match(loginHelp('darwin'), /brew install gh/);
+  assert.match(loginHelp('win32'), /winget install --id GitHub.cli/);
+  assert.match(loginHelp('win32'), /\$env:GITHUB_TOKEN/);
+  assert.match(loginHelp('linux'), /export GITHUB_TOKEN/);
+  for (const p of ['darwin', 'win32', 'linux']) assert.match(loginHelp(p), /gh auth login/);
+});
+
+test('--mine --fix opens a pull request only when the main branch is infected', async () => {
+  const { planFixes } = await import('../src/githubfix.js');
+  const high = { level: 'high', fix: 'strip' };
+  const results = [
+    { name: 'me/a', defaultBranch: 'main', branches: [{ name: 'main', findings: [high] }, { name: 'dev', findings: [high] }] },
+    { name: 'me/b', defaultBranch: 'main', branches: [{ name: 'main', findings: [] }, { name: 'old', findings: [high] }] },
+    { name: 'me/c', defaultBranch: 'main', branches: [{ name: 'main', findings: [{ level: 'medium', fix: 'untrack' }] }] },
+    { name: 'me/d', defaultBranch: 'main', error: 'nope' },
+  ];
+  const { targets, sideBranches } = planFixes(results);
+  assert.deepEqual(targets.map((r) => r.name), ['me/a']);
+  assert.deepEqual(sideBranches, [{ name: 'me/a', branches: ['dev'] }, { name: 'me/b', branches: ['old'] }]);
+});
+
+test('the pull request text is plain and lists what changed', async () => {
+  const { prBody } = await import('../src/pr.js');
+  const body = prBody([{ file: 'init', action: 'deleted' }, { file: 'package.json', action: 'cleaned' }], []);
+  assert.match(body, /- `init`: deleted/);
+  assert.match(body, /- `package.json`: cleaned/);
+  assert.ok(!/undefined|\n\n\n/.test(body));
+  assert.match(body, /Change their GitHub, npm and cloud tokens/);
+});

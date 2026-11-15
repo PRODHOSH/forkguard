@@ -2,9 +2,9 @@
 
 > Catch malware hidden in a repo before you install or run it.
 
-forkguard is a free, open source, zero-dependency Node.js command line tool (Node 18+, MIT) that finds malware hidden in repositories before you install or run them. It targets the PolinRider campaign: code hidden after hundreds of blank spaces, rewritten commits, fake font files, VS Code tasks that run on folder open, and poisoned npm packages. It can check a folder, a GitHub repo (every branch, without writing its files to disk) or every repo you own, clean what it finds (restoring original files from git history), open a pull request with the fix, and check automatically before npm install and after git clone. Exit codes: 0 clean, 1 dangerous finding, 2 error. Current npm version: 0.5.0.
+forkguard is a free, open source, zero-dependency Node.js command line tool (Node 18+, MIT) that finds malware hidden in repositories before you install or run them. It targets the PolinRider campaign: code hidden after hundreds of blank spaces, rewritten commits, fake font files, VS Code tasks that run on folder open, and poisoned npm packages. It can check a folder, a GitHub repo (every branch, without writing its files to disk) or every repo you own, clean what it finds (restoring original files from git history), open a pull request with the fix, and check automatically before npm install and after git clone. Exit codes: 0 clean, 1 dangerous finding, 2 error. Current npm version: 0.6.0.
 
-Site: https://forkguard.pages.dev/  ·  Source: https://github.com/PRODHOSH/forkguard  ·  Version: 0.5.0
+Site: https://forkguard.pages.dev/  ·  Source: https://github.com/PRODHOSH/forkguard  ·  Version: 0.6.0
 
 ---
 
@@ -560,41 +560,43 @@ Source: https://forkguard.pages.dev/commands/mine/
 
 ## Name
 
-`forkguard --mine` checks every repository you own on GitHub, every branch, using the same safe method as [`forkguard owner/repo`](https://forkguard.pages.dev/commands/check-repo/).
+`forkguard --mine` checks your GitHub repositories, every branch, using the same safe method as [`forkguard owner/repo`](https://forkguard.pages.dev/commands/check-repo/). With `--fix` it also opens a pull request for each infected repo.
 
 ## Synopsis
 
 ```bash
 forkguard --mine
+forkguard --mine --fix
 forkguard --mine --json
 ```
 
 ## Description
 
-This is the fastest way to know whether your whole GitHub is clean. Run it once now, and again whenever you hear about a new attack. It lists your repos, then checks four at a time. About 50 repos takes a minute or two.
+This is the fastest way to know whether your whole GitHub is clean. Run it once now, and again whenever you hear about a new attack. Checking about 50 repos takes a few minutes.
 
 It checks repos you **own**, including forks and archived repos. Repos in organizations where you are only a member or collaborator are not included.
 
-### You need to be logged in
+### You do not need to log in to look
 
-Either log in with the GitHub CLI:
+If you are not logged in, forkguard finds your GitHub name from settings already on your computer (your git settings and the links of the repos you have cloned), asks you to confirm it, and checks all your **public** repos. It never reads a saved password or token.
+
+If you are logged in, it checks everything you own, private repos too. Log in either way:
 
 ```bash
 gh auth login
 ```
 
-or set a `GITHUB_TOKEN` (or `GH_TOKEN`) environment variable with a personal access token. Without either you get: “Log in first so forkguard can list your repos”.
+or set a `GITHUB_TOKEN` (or `GH_TOKEN`) environment variable with a personal access token. When you are not logged in, forkguard prints these steps for your computer (macOS, Windows or Linux) whenever a login would help.
 
-### Checking a friend or a team
-
-Give it a GitHub name instead and it checks every **public** repo of that person or organization, the same way, without downloading anything to your disk. No login needed. It reports only; it never changes their repos.
+### Fixing: one pull request per repo
 
 ```bash
-forkguard @their-name
-forkguard https://github.com/their-name
+forkguard --mine --fix
 ```
 
-Without a token GitHub allows about 60 listing requests an hour. If you hit that, wait, or set a `GITHUB_TOKEN`. Private repos are never included.
+For each repo that is infected on its **default branch**, forkguard downloads it to a temporary folder, cleans it on a new branch, and opens a pull request with a short plain description. It **never** pushes to your main branch and never force pushes, so nothing changes until you merge. It asks once before it starts, a repo that already has a forkguard pull request is skipped, and infected side branches are only listed.
+
+Opening a pull request means writing to your repo, so this needs a login. With a token, give it **Contents: Read and write** and **Pull requests: Read and write** on the repos you want fixed.
 
 ## Output
 
@@ -621,6 +623,8 @@ Then you get the full details for every repo that is not clean.
 
 ## Options
 
+- `--fix`: Open a pull request for each repo that is infected on its default branch. Needs a login.
+- `--yes`, `-y`: Do not ask before opening the pull requests. For scripts.
 - `--json`: Print a list of repo results, one per repo, instead of text. See [JSON output](https://forkguard.pages.dev/reference/json/).
 
 ## Exit status
@@ -629,7 +633,7 @@ Then you get the full details for every repo that is not clean.
 | --- | --- |
 | `0` | Clean, or only MED findings. |
 | `1` | Something HIGH was found. |
-| `2` | forkguard itself could not run, for example when you are not logged in. |
+| `2` | forkguard itself could not run, for example when `--fix` is used without a login. |
 
 The same codes work in scripts and CI. See [Exit codes](https://forkguard.pages.dev/reference/exit-codes/).
 
@@ -704,7 +708,11 @@ After cleaning a file, forkguard looks back through git history for the last cle
 - A file that matches a known signature but has nothing it can safely cut. It is left as is and reported again as “Still needs a look”.
 - Committed `.env` files stay on disk and in git. [`forkguard pr`](https://forkguard.pages.dev/commands/pr/) takes them out of git for you.
 
-> **Warning:** Not a git repo? There is no history to undo from, so forkguard asks “Continue? (y/N)” before changing anything.
+### A folder full of projects
+
+Run `forkguard fix` in the folder that holds all your projects and it cleans every infected project inside it, however deep. Each project is cleaned against its own git history, so every original comes back. When more than one project is affected it asks once before changing anything, and ends with one line: how many files in how many projects. Add `--yes` to skip the question in a script.
+
+> **Warning:** A file that is not inside a git repo has no history to undo from, so forkguard asks “Continue? (y/N)” before changing it.
 
 ## Output
 
@@ -1387,7 +1395,9 @@ Source: https://forkguard.pages.dev/reference/options/
 | Option | Works with | What it does |
 | --- | --- | --- |
 | `--json` | checking a folder, a link, or `--mine` | Print the results as JSON instead of text. See [JSON output](https://forkguard.pages.dev/reference/json/). |
-| `--mine` | on its own | Check every repo you own on GitHub. See [`forkguard --mine`](https://forkguard.pages.dev/commands/mine/). |
+| `--mine` | on its own | Check your GitHub repos. Works without a login for public repos. See [`forkguard --mine`](https://forkguard.pages.dev/commands/mine/). |
+| `--fix` | `--mine` | Open one pull request for each infected repo. Needs a GitHub login. See [`forkguard --mine`](https://forkguard.pages.dev/commands/mine/). |
+| `--yes`, `-y` | `fix`, `--mine --fix` | Do not ask before changing several projects, or before opening pull requests. For scripts. |
 | `--upstream` | `pr` | Send the pull request to the repo you forked from. See [`forkguard pr`](https://forkguard.pages.dev/commands/pr/). |
 | `--remove` | `setup` | Take the automatic checks back out of your shell profile. |
 | `--write` | `agent` | Add the agent rules to AGENTS.md, CLAUDE.md and similar files instead of printing them. |
@@ -1768,7 +1778,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.5.0
+      - uses: PRODHOSH/forkguard@v0.6.0
 ```
 
 Open the **Actions** tab of your repo to see it run.
@@ -1805,7 +1815,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.5.0
+      - uses: PRODHOSH/forkguard@v0.6.0
         with:
           open-pr: true
 ```
@@ -1819,7 +1829,7 @@ When something is found, the Action creates a branch called `forkguard/remove-ma
 ### Check one folder of a monorepo
 
 ```yaml
-      - uses: PRODHOSH/forkguard@v0.5.0
+      - uses: PRODHOSH/forkguard@v0.6.0
         with:
           path: apps/web
 ```
@@ -1844,7 +1854,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.5.0
+      - uses: PRODHOSH/forkguard@v0.6.0
 ```
 
 ### Use the CLI directly
@@ -1859,7 +1869,7 @@ jobs:
 
 ## Pin a version
 
-`PRODHOSH/forkguard@v0.5.0` always runs that exact version, so nothing changes under you. When a new version comes out, update the number. All versions are on the [releases page](https://github.com/PRODHOSH/forkguard/releases).
+`PRODHOSH/forkguard@v0.6.0` always runs that exact version, so nothing changes under you. When a new version comes out, update the number. All versions are on the [releases page](https://github.com/PRODHOSH/forkguard/releases).
 
 ## Troubleshooting
 
@@ -1969,7 +1979,7 @@ Source: https://forkguard.pages.dev/guides/troubleshooting/
 - “forkguard is not recognized” or “command not found”: Install it globally with `npm install -g forkguard`, then open a new terminal.
 - Automatic checks do not run after setup: Close the terminal and open a new one. Setup only takes effect in new terminals.
 - npm stopped working after I switched Node versions: Update forkguard: the hook now fails open, so a missing forkguard no longer blocks npm. To unblock a current shell, run `command npm install`, or `forkguard setup --remove` from a Node version that has it.
-- “Log in first so forkguard can list your repos”: Run `gh auth login`, or set a `GITHUB_TOKEN`. Needed for `--mine`.
+- “You are not logged in to GitHub yet”: Only `--mine --fix` and private repos need a login. forkguard prints the steps for your computer: install the GitHub CLI and run `gh auth login`, or set a `GITHUB_TOKEN`.
 - “could not download” when checking a link: Check the link is right. For a private repo, make sure you are logged in with `gh auth login`.
 - “You have uncommitted changes”: `forkguard pr` needs a clean working tree. Run `git stash`, try again, then `git stash pop`.
 - “The origin remote is not on GitHub”: `forkguard pr` only works with repos on GitHub. Use `forkguard fix` instead.

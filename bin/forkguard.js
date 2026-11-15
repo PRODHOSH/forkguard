@@ -4,7 +4,7 @@ import path from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import { fileURLToPath } from 'node:url';
 import { scan } from '../src/scan.js';
-import { fix } from '../src/fix.js';
+import { fix, projectsOf } from '../src/fix.js';
 import { openPr } from '../src/pr.js';
 import { setup } from '../src/setup.js';
 import { agent } from '../src/agent.js';
@@ -12,6 +12,8 @@ import { c, printChanges, printScan } from '../src/report.js';
 import { GATED } from '../src/rules.js';
 import { isGitRepo, repoRoot } from '../src/git.js';
 import { checkMine, checkRemote, checkUser, parseRemote, parseUser, printRemote } from '../src/remote.js';
+import { getToken, guessUsernames, loginHelp } from '../src/auth.js';
+import { openFixPrs, planFixes } from '../src/githubfix.js';
 
 const hasHigh = (r) => (r.branches || []).some((b) => b.findings.some((f) => f.level === 'high'));
 
@@ -19,21 +21,28 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const { version } = JSON.parse(readFileSync(path.join(here, '..', 'package.json'), 'utf8'));
 
 const HELP = `forkguard ${version}
-Catch malware hidden in a repo before you install or run it.
+Finds the PolinRider malware in your code and removes it.
 
-  forkguard [folder]        check a project (default: this folder)
-  forkguard <github link>   check a repo on GitHub without downloading its files
-  forkguard --mine          check every repo you own on GitHub
-  forkguard @name           check every public repo of someone on GitHub (or their profile link)
-  forkguard fix [folder]    remove what it found
-  forkguard pr [folder]     remove it on a new branch and open a pull request
-                            add --upstream to send the fix to the repo you forked from
-  forkguard agent           print safety rules for AI coding agents (add --write to put
-                            them in AGENTS.md, CLAUDE.md, Cursor and Copilot files)
-  forkguard setup           check automatically before npm install, npm run dev, git clone
-                            add --remove to undo
+Most people only need these:
 
-Exit code is 1 when something dangerous is found, so it works in CI too.
+  forkguard            Check this folder, and every project inside it
+  forkguard fix        Clean everything it found
+  forkguard --mine     Check your GitHub repos. If you are not logged in, it checks
+                       your public ones and shows you how to log in for the rest.
+                       Add --fix to open a pull request for each infected repo.
+
+Other things it can do:
+
+  forkguard owner/repo     Check one GitHub repo without downloading it
+  forkguard @name          Check someone else's public repos
+  forkguard pr             Clean this repo on a new branch and open a pull request
+                           (add --upstream to send it to the repo you forked from)
+  forkguard setup          Check automatically before npm install and git clone
+                           (add --remove to undo)
+  forkguard agent          Print safety rules for AI coding agents
+                           (add --write to save them in AGENTS.md, CLAUDE.md and more)
+
+Exit code 1 means something dangerous was found, so it works in CI too.
 Add --json to get the findings as JSON.`;
 
 const args = process.argv.slice(2);
@@ -46,6 +55,14 @@ async function confirm(q) {
   const a = (await rl.question(q)).trim().toLowerCase();
   rl.close();
   return a === 'y' || a === 'yes';
+}
+
+async function ask(q) {
+  if (!process.stdin.isTTY) return '';
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  const a = (await rl.question(q)).trim();
+  rl.close();
+  return a;
 }
 
 function findProjectRoot(start) {
@@ -129,6 +146,75 @@ async function gate(tool, rest) {
   return 1;
 }
 
+/** The GitHub checks: --mine, and @name. Never asks for a login just to look. */
+async function github(user) {
+  const json = flags.has('--json');
+  const token = getToken();
+  const mine = !user;
+  let name = user;
+  let publicOnly = false;
+
+  if (mine && !token) {
+    if (flags.has('--fix')) {
+      console.error(`${c.bold('forkguard')}  To open pull requests, forkguard has to log in to GitHub first. Here is how:\n\n${loginHelp()}\n\n  Then run: forkguard --mine --fix`);
+      return 2;
+    }
+    publicOnly = true;
+    const guesses = guessUsernames();
+    name = guesses[0];
+    if (!json && process.stdin.isTTY) {
+      console.log(`${c.bold('forkguard')}  You are not logged in to GitHub, so forkguard will check your ${c.bold('public')} repos.\n  (Log in and it can check the private ones too.)\n`);
+      name = (await ask(`  Which GitHub account? ${name ? `[${name}] ` : '(your username, as in github.com/username) '}`)) || name;
+      console.log('');
+    }
+    if (!name) {
+      throw new Error(`Which GitHub account should it check? Run: forkguard @your-username\n\n  Or log in, and it will find your account by itself:\n\n${loginHelp()}`);
+    }
+  }
+
+  const results = mine && !publicOnly ? await checkMine({ json }) : await checkUser(name, { json });
+  if (json) {
+    console.log(JSON.stringify(results, null, 2));
+    return results.some(hasHigh) ? 1 : 0;
+  }
+
+  const flagged = results.filter((r) => r.error || (r.branches || []).some((b) => b.findings.length));
+  const infected = results.filter(hasHigh);
+  console.log(`\n  ${results.length} repos checked: ${c.green(`${results.length - flagged.length} clean`)}, ${infected.length ? c.red(`${infected.length} infected`) : '0 infected'}\n`);
+  for (const r of flagged) { printRemote(r); console.log(''); }
+
+  const { targets, sideBranches } = planFixes(results);
+  if (mine && flags.has('--fix') && token) {
+    if (!targets.length) {
+      console.log('  Nothing to fix. No repo has malware on its main branch.');
+    } else {
+      console.log(`  forkguard will open ${targets.length} pull request${targets.length === 1 ? '' : 's'}, one per infected repo. Nothing changes until you merge them:\n`);
+      for (const r of targets) console.log(`    ${r.name}`);
+      const yes = flags.has('--yes') || flags.has('-y') || (process.stdin.isTTY && (await ask('\n  Go ahead? (y/N) ')).toLowerCase().startsWith('y'));
+      if (!yes) {
+        console.log(flags.has('--yes') || process.stdin.isTTY ? '\n  Okay, nothing was changed.' : '\n  Nothing was changed. Add --yes to open them without being asked.');
+      } else {
+        const opened = await openFixPrs(targets, token);
+        const links = opened.filter((o) => o.url);
+        console.log(`\n  ${links.length} pull request${links.length === 1 ? '' : 's'} opened.`);
+        for (const o of links) console.log(`    ${o.url}`);
+      }
+    }
+  } else if (targets.length) {
+    console.log(`  ${targets.length} repo${targets.length === 1 ? ' is' : 's are'} infected on the main branch. forkguard can fix ${targets.length === 1 ? 'it' : 'them'}: it opens a pull request for each one, so nothing changes until you merge.`);
+    if (mine && token) console.log('  To do that, run:\n\n    forkguard --mine --fix\n');
+    else if (mine) console.log(`  To do that it has to log in to GitHub first. Here is how:\n\n${loginHelp()}\n\n  Then run:\n\n    forkguard --mine --fix\n`);
+    else console.log(`  Only the owner can fix them: from their computer, ${c.bold('forkguard --mine --fix')}.\n`);
+  }
+  if (sideBranches.length) {
+    console.log('  Also infected on side branches (check these yourself, they get no pull request):');
+    for (const s of sideBranches) console.log(`    ${s.name}: ${s.branches.join(', ')}`);
+    console.log('');
+  }
+  if (publicOnly && !targets.length) console.log('  Private repos were not checked. To include them, log in and run forkguard --mine again.\n');
+  return infected.length ? 1 : 0;
+}
+
 async function main() {
   // Gate mode first: the arguments belong to npm or git, not to forkguard.
   if (args[0] === '--gate') return gate(args[1], args.slice(2));
@@ -136,18 +222,7 @@ async function main() {
   if (flags.has('--version') || flags.has('-v')) return console.log(version), 0;
 
   const user = flags.has('--mine') ? null : parseUser(words[0]);
-  if (flags.has('--mine') || (user && !existsSync(words[0]))) {
-    const results = user ? await checkUser(user, { json: flags.has('--json') }) : await checkMine({ json: flags.has('--json') });
-    if (flags.has('--json')) {
-      console.log(JSON.stringify(results, null, 2));
-    } else {
-      const flagged = results.filter((r) => r.error || (r.branches || []).some((b) => b.findings.length));
-      const infected = results.filter(hasHigh).length;
-      console.log(`\n  ${results.length} repos checked: ${c.green(`${results.length - flagged.length} clean`)}, ${infected ? c.red(`${infected} infected`) : '0 infected'}\n`);
-      for (const r of flagged) { printRemote(r); console.log(''); }
-    }
-    return results.some(hasHigh) ? 1 : 0;
-  }
+  if (flags.has('--mine') || (user && !existsSync(words[0]))) return github(user);
 
   const [cmd, folder] = ['fix', 'pr', 'setup', 'agent'].includes(words[0]) ? [words[0], words[1]] : ['scan', words[0]];
 
@@ -197,13 +272,19 @@ async function main() {
     console.log('\n  None of these can be fixed automatically. Check them by hand.');
     return 1;
   }
-  if (!isGitRepo(target) && !(await confirm(`  ${path.basename(target)} is not a git repo, so these changes cannot be undone. Continue? (y/N) `))) return 1;
+  const projects = projectsOf(result);
+  const outside = projects.delete('(not in a git repo)');
+  if (outside && !(await confirm(`  Some of these files are not in a git repo, so those changes cannot be undone. Continue? (y/N) `))) return 1;
+  const fixable = new Set(result.findings.filter((f) => f.fix && f.fix !== 'ignore-env').map((f) => f.file)).size;
+  if (projects.size > 1 && !flags.has('--yes') && !flags.has('-y') && !(await confirm(`  This will clean ${fixable} files in ${projects.size} projects under ${path.basename(result.root)}. Continue? (y/N) `))) return 1;
 
   console.log(`${c.bold('forkguard')}  cleaning ${path.basename(result.root)}\n`);
-  printChanges(fix(result));
+  const changes = fix(result);
+  printChanges(changes);
+  if (projects.size > 1) console.log(`\n  Cleaned ${changes.filter((x) => !x.failed).length} files in ${projects.size} projects.`);
   const after = scan(target);
   if (!after.findings.length) {
-    console.log(`\n  ${c.green('Clean now.')} ${isGitRepo(target) ? 'Review with "git diff", then commit.' : ''}`);
+    console.log(`\n  ${c.green('Clean now.')} ${projects.size > 1 ? 'Review each project with "git diff", then commit.' : isGitRepo(target) ? 'Review with "git diff", then commit.' : ''}`);
     return 0;
   }
   console.log(`\n  Still needs a look:\n`);

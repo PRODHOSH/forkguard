@@ -91,13 +91,31 @@ You need [Node.js](https://nodejs.org) 18 or newer and [git](https://git-scm.com
 npm install -g forkguard
 ```
 
-**2. Check the project you are in**
+**2. Check a folder**
+
+Open a terminal in the folder you want checked, for example the one that holds all your projects, and run:
 
 ```bash
 forkguard
 ```
 
-**3. Turn on automatic protection, once**
+It checks every project inside that folder, however deep. Nothing is changed.
+
+**3. Clean what it found**
+
+```bash
+forkguard fix
+```
+
+**4. Check your GitHub**
+
+```bash
+forkguard --mine
+```
+
+Not logged in to GitHub? It checks your public repos anyway and shows you how to log in for the rest. When it finds something, `forkguard --mine --fix` opens a pull request for each infected repo.
+
+**5. Turn on automatic protection, once**
 
 ```bash
 forkguard setup
@@ -109,6 +127,16 @@ New to all this? The [Getting started guide](https://forkguard.pages.dev/quick-s
 
 ## Commands
 
+**Most people only need these three.**
+
+| Command | What it does |
+| --- | --- |
+| `forkguard` | Checks this folder and every project inside it. Changes nothing. |
+| `forkguard fix` | Cleans everything it found, in every project under this folder |
+| `forkguard --mine` | Checks your GitHub repos. Not logged in? It checks the public ones and shows you how to log in for the rest. Add `--fix` to open a pull request for each infected repo. |
+
+Everything below is for other days.
+
 ### Check
 
 | Command | What it does |
@@ -117,14 +145,13 @@ New to all this? The [Getting started guide](https://forkguard.pages.dev/quick-s
 | `forkguard path/to/folder` | Checks another folder |
 | `forkguard owner/repo` | Checks a GitHub repo, every branch, without downloading its files |
 | `forkguard https://github.com/owner/repo` | Same, with a full link |
-| `forkguard --mine` | Checks every repo you own on GitHub |
 | `forkguard @name` | Checks every public repo of a friend or team on GitHub, read only, no login |
 
 ### Clean
 
 | Command | What it does |
 | --- | --- |
-| `forkguard fix` | Cleans the folder you are in |
+| `forkguard fix` | Cleans the folder you are in, and every project inside it |
 | `forkguard pr` | Cleans it on a new branch, pushes it and opens a pull request on your repo |
 | `forkguard pr --upstream` | Sends the fix as a pull request to the repo you forked from |
 
@@ -228,7 +255,7 @@ If it finds something, clean everything it found:
 forkguard fix
 ```
 
-Run from the big folder, `fix` cuts the malware out of every project. To also restore each file's original from git history, run `forkguard fix` inside each infected project instead.
+Run from the big folder, `fix` cleans every infected project and restores each file's original from that project's git history. If more than one project is affected it asks once before changing anything, and prints one summary at the end.
 
 </details>
 
@@ -236,19 +263,24 @@ Run from the big folder, `fix` cuts the malware out of every project. To also re
 <summary><b>Are all my repos clean?</b></summary>
 <br>
 
-This one checks GitHub, so forkguard has to know who you are. Log in to the GitHub CLI once:
-
-```bash
-gh auth login
-```
-
-No GitHub CLI? Set a `GITHUB_TOKEN` environment variable instead. Then check everything you own:
-
 ```bash
 forkguard --mine
 ```
 
+You do not need to set anything up first.
+
+- **Not logged in to GitHub:** forkguard finds your GitHub name from the settings already on your computer, asks you to confirm it, and checks all your **public** repos.
+- **Logged in:** it checks everything you own, private repos too. Log in once with the GitHub CLI (`gh auth login`), or set a `GITHUB_TOKEN` if you do not have it. When you are not logged in, forkguard shows these steps for your computer.
+
 You get one line per repo, then the details for anything that needs a look.
+
+If something is infected, fix it from the same command. It opens **one pull request per infected repo** and never pushes to your main branch, so nothing changes until you merge:
+
+```bash
+forkguard --mine --fix
+```
+
+That needs the login above, because opening a pull request means writing to your repo.
 
 To check a friend's or a team's public repos, give a name instead. Nothing is downloaded to your disk and nothing is changed on their side:
 
@@ -256,7 +288,7 @@ To check a friend's or a team's public repos, give a name instead. Nothing is do
 forkguard @their-name
 ```
 
-No login needed, but without a token GitHub only allows about 60 lookups an hour from your network. Set a `GITHUB_TOKEN` if you check a lot of people.
+No login needed. Without one, GitHub only allows about 60 lookups an hour from your network. If you are logged in with the GitHub CLI, or have a `GITHUB_TOKEN`, forkguard uses that to raise the limit.
 
 </details>
 
@@ -364,7 +396,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.5.0
+      - uses: PRODHOSH/forkguard@v0.6.0
         with:
           open-pr: true
 ```

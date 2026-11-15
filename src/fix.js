@@ -42,23 +42,44 @@ function originalFromHistory(gitRoot, rel, cleaned) {
 export { cleanSource };
 
 /**
+ * Which git repo a file belongs to, and its path inside that repo. A folder full of projects has
+ * a different repo for each one, so this is worked out per file.
+ */
+export function repoOf(root, rel, cache = new Map()) {
+  const dir = path.dirname(path.join(root, rel));
+  if (!cache.has(dir)) cache.set(dir, repoRoot(dir));
+  const gitRoot = cache.get(dir);
+  return { gitRoot, repoRel: gitRoot ? toPosix(path.relative(gitRoot, path.join(root, rel))) : rel };
+}
+
+/** The names of the projects (git repos) the fixable findings are in. A file outside any repo counts as one more. */
+export function projectsOf(result) {
+  const cache = new Map();
+  const names = new Set();
+  for (const f of result.findings) {
+    if (!f.fix || f.fix === 'ignore-env') continue;
+    const { gitRoot } = repoOf(result.root, f.file, cache);
+    names.add(gitRoot ? path.relative(result.root, gitRoot) || '.' : '(not in a git repo)');
+  }
+  return names;
+}
+
+/**
  * Applies the fixes for a scan result. Returns a list of { file, action } for what changed.
  * With `untrackSecrets`, committed .env files are removed from git (kept on disk).
  */
 export function fix(result, { untrackSecrets = false } = {}) {
   const { root, findings } = result;
-  const gitRoot = repoRoot(root);
-  const prefix = gitRoot ? toPosix(path.relative(gitRoot, root)) : '';
-  const repoRel = (rel) => (prefix ? `${prefix}/${rel}` : rel);
+  const dirCache = new Map();
   const changes = [];
   const done = new Set();
   const hasEnv = findings.some((f) => f.rule === 'secret' || f.rule === 'env-not-ignored');
-  const unignoredEnv = findings.some((f) => f.rule === 'env-not-ignored');
 
   for (const f of findings) {
     if (!f.fix || f.fix === 'ignore-env' || done.has(f.file + f.fix)) continue;
     done.add(f.file + f.fix);
     const full = path.join(root, f.file);
+    const { gitRoot, repoRel } = repoOf(root, f.file, dirCache);
 
     try {
       if (f.fix === 'delete' || f.fix === 'delete-dir') {
@@ -70,7 +91,7 @@ export function fix(result, { untrackSecrets = false } = {}) {
       }
       if (f.fix === 'untrack') {
         if (untrackSecrets && gitRoot) {
-          git(gitRoot, ['rm', '--cached', '-q', '--', repoRel(f.file)]);
+          git(gitRoot, ['rm', '--cached', '-q', '--', repoRel]);
           changes.push({ file: f.file, action: 'removed from git, kept on disk' });
         }
         continue;
@@ -83,7 +104,7 @@ export function fix(result, { untrackSecrets = false } = {}) {
       if (f.fix === 'strip') {
         const cleaned = cleanSource(text);
         if (cleaned !== null) {
-          const original = originalFromHistory(gitRoot, repoRel(f.file), cleaned);
+          const original = originalFromHistory(gitRoot, repoRel, cleaned);
           if (original) {
             writeFileSync(full, original);
             changes.push({ file: f.file, action: 'restored your original from git history' });
@@ -124,14 +145,18 @@ export function fix(result, { untrackSecrets = false } = {}) {
     }
   }
 
-  // If .env files are committed, make sure .gitignore keeps them out from now on.
-  if ((untrackSecrets && hasEnv) || unignoredEnv) {
-    const gi = path.join(root, '.gitignore');
+  // If .env files are committed or not ignored, make sure the project's .gitignore keeps them out from now on.
+  const envRoots = new Set();
+  for (const f of findings) {
+    if (f.rule === 'env-not-ignored' || (untrackSecrets && f.rule === 'secret')) envRoots.add(repoOf(root, f.file, dirCache).gitRoot || root);
+  }
+  for (const dir of envRoots) {
+    const gi = path.join(dir, '.gitignore');
     const text = existsSync(gi) ? readFileSync(gi, 'utf8') : '';
     const next = cleanGitignore(text, true);
     if (next !== text) {
       writeFileSync(gi, next);
-      changes.push({ file: '.gitignore', action: 'now ignores .env files' });
+      changes.push({ file: toPosix(path.relative(root, gi)), action: 'now ignores .env files' });
     }
   }
   return changes;

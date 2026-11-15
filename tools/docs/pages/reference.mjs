@@ -11,7 +11,9 @@ export const reference = [
     blocks: [
       table(['Option', 'Works with', 'What it does'], [
         ['`--json`', 'checking a folder, a link, or `--mine`', 'Print the results as JSON instead of text. See [JSON output](page:reference/json).'],
-        ['`--mine`', 'on its own', 'Check every repo you own on GitHub. See [`forkguard --mine`](page:commands/mine).'],
+        ['`--mine`', 'on its own', 'Check your GitHub repos. Works without a login for public repos. See [`forkguard --mine`](page:commands/mine).'],
+        ['`--fix`', '`--mine`', 'Open one pull request for each infected repo. Needs a GitHub login. See [`forkguard --mine`](page:commands/mine).'],
+        ['`--yes`, `-y`', '`fix`, `--mine --fix`', 'Do not ask before changing several projects, or before opening pull requests. For scripts.'],
         ['`--upstream`', '`pr`', 'Send the pull request to the repo you forked from. See [`forkguard pr`](page:commands/pr).'],
         ['`--remove`', '`setup`', 'Take the automatic checks back out of your shell profile.'],
         ['`--write`', '`agent`', 'Add the agent rules to AGENTS.md, CLAUDE.md and similar files instead of printing them.'],

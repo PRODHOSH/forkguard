@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { scan } from './scan.js';
 import { fix } from './fix.js';
+import { getToken } from './auth.js';
 import { c, printChanges } from './report.js';
 import {
   currentBranch, ghCommand, git, githubSlug, hasTrackedChanges, remoteUrl, repoRoot, run, trackedFiles,
@@ -10,17 +11,9 @@ import {
 
 const BRANCH = 'forkguard/remove-malware';
 
-function token() {
-  if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;
-  if (process.env.GH_TOKEN) return process.env.GH_TOKEN;
-  const gh = ghCommand();
-  if (gh) {
-    try { return run(gh, ['auth', 'token']); } catch { /* not logged in */ }
-  }
-  return null;
-}
+const token = getToken;
 
-async function api(route, { method = 'GET', body } = {}) {
+export async function api(route, { method = 'GET', body } = {}) {
   const t = token();
   const res = await fetch(`https://api.github.com${route}`, {
     method,
@@ -37,30 +30,43 @@ async function api(route, { method = 'GET', body } = {}) {
   return data;
 }
 
-function freeBranchName(root) {
+/** `-c` options that let one git command use a token without saving it anywhere. */
+export function authArgs(t) {
+  return t ? ['-c', `http.https://github.com/.extraheader=AUTHORIZATION: basic ${Buffer.from(`x-access-token:${t}`).toString('base64')}`] : [];
+}
+
+function freeBranchName(root, auth) {
   let name = BRANCH;
-  for (let i = 2; git(root, ['rev-parse', '--verify', '-q', `refs/heads/${name}`], { allowFail: true }); i++) name = `${BRANCH}-${i}`;
+  const taken = (n) => git(root, ['rev-parse', '--verify', '-q', `refs/heads/${n}`], { allowFail: true })
+    || git(root, [...auth, 'ls-remote', '--exit-code', '--heads', 'origin', n], { allowFail: true });
+  for (let i = 2; taken(name); i++) name = `${BRANCH}-${i}`;
   return name;
 }
 
-function prBody(changes, findings) {
+/** Whether this repo already has an open pull request from forkguard, so we never open a second one. */
+export async function hasOpenFixPr(slug) {
+  const prs = await api(`/repos/${slug}/pulls?state=open&per_page=100`);
+  return prs.some((p) => p.head?.ref?.startsWith(BRANCH));
+}
+
+export function prBody(changes, findings) {
   const lines = changes.filter((x) => !x.failed).map((x) => `- \`${x.file}\`: ${x.action}`);
   const rewritten = findings.find((f) => f.rule === 'rewritten');
   return [
-    'This repo had malware hidden in it, the kind that runs when someone opens the folder in VS Code or runs `npm install` / `npm run dev`. It steals tokens, keys and saved passwords, then uses them to spread to more repos.',
+    'Something added hidden code to this repo. It runs when the project is opened in VS Code, or when someone runs `npm install` or `npm run dev`, and it goes after tokens, keys and saved passwords.',
     '',
-    'What this pull request removes:',
+    'This pull request takes it out:',
     '',
     ...lines,
     '',
-    rewritten ? `The latest commit (${rewritten.message.split(' ')[1]}) was rewritten after it was made, which is how this malware hides. ` : '',
-    'After merging, anyone who ran this project recently should:',
+    rewritten ? `The latest commit (${rewritten.message.split(' ')[1]}) was changed after it was made, which is how this malware hides.\n` : '',
+    'After you merge this, anyone who ran the project recently should:',
     '',
-    '1. Rotate GitHub tokens, npm tokens, cloud keys and anything in `.env` files, from another device.',
-    '2. Block force pushes on the default branch so the malware cannot rewrite history again.',
-    '3. Run a full antivirus scan.',
+    '1. Change their GitHub, npm and cloud tokens, and anything in `.env` files. Do it from a different device.',
+    '2. Turn on branch protection so history cannot be force pushed on the default branch.',
+    '3. Run an antivirus scan.',
     '',
-    'Found and cleaned with [forkguard](https://github.com/PRODHOSH/forkguard).',
+    'Checked and cleaned with [forkguard](https://forkguard.pages.dev).',
   ].filter((l, i, a) => !(l === '' && a[i - 1] === '')).join('\n');
 }
 
@@ -69,7 +75,8 @@ function prBody(changes, findings) {
  * Default target is your own repo (origin). With `upstream`, the branch is built from the
  * original repo you forked, so the pull request holds only the fix.
  */
-export async function openPr(target, { upstream = false } = {}) {
+export async function openPr(target, { upstream = false, token: given = null } = {}) {
+  const auth = authArgs(given);
   const root = repoRoot(target);
   if (!root) throw new Error('This folder is not a git repo, so there is nothing to open a pull request on.');
   const originSlug = githubSlug(remoteUrl(root));
@@ -86,12 +93,12 @@ export async function openPr(target, { upstream = false } = {}) {
     if (!info.fork || !info.parent) throw new Error(`${originSlug} is not a fork, so there is no upstream. Run "forkguard pr" without --upstream.`);
     repo = info.parent.full_name;
     base = info.parent.default_branch;
-    git(root, ['fetch', '-q', `https://github.com/${repo}.git`, `${base}:refs/forkguard/upstream`]);
+    git(root, [...auth, 'fetch', '-q', `https://github.com/${repo}.git`, `${base}:refs/forkguard/upstream`]);
     startPoint = 'refs/forkguard/upstream';
   }
   if (!base) throw new Error('You are not on a branch. Switch to the branch you want to clean first.');
 
-  const branch = freeBranchName(root);
+  const branch = freeBranchName(root, auth);
   git(root, ['switch', '-q', '-c', branch, startPoint]);
   let committed = false; // an abandoned branch is cleaned up in `finally`
   try {
@@ -123,7 +130,7 @@ export async function openPr(target, { upstream = false } = {}) {
     rmSync(path.dirname(msgFile), { recursive: true, force: true });
 
     console.log(`\n  Pushing ${branch} to ${originSlug}`);
-    git(root, ['push', '-q', '-u', 'origin', branch]);
+    git(root, [...auth, 'push', '-q', '-u', 'origin', branch]);
 
     const owner = originSlug.split('/')[0];
     const title = 'Remove injected malware';
@@ -137,7 +144,7 @@ export async function openPr(target, { upstream = false } = {}) {
         console.log(c.dim(`  gh could not open the pull request: ${String(err.stderr || err.message).trim().split('\n').pop()}`));
       }
     }
-    if (!url && token()) {
+    if (!url && (given || token())) {
       try {
         url = (await api(`/repos/${repo}/pulls`, { method: 'POST', body: { title, body, head: `${owner}:${branch}`, base } })).html_url;
       } catch (err) {

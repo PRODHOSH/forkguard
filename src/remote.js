@@ -5,6 +5,7 @@ import path from 'node:path';
 import { CODE_EXT, CONFIG_RE, MARKERS, SKIP_DIRS } from './rules.js';
 import { MAX_SIZE, finish, inspect, isEnvFile, isInteresting } from './scan.js';
 import { ghCommand, git, run } from './git.js';
+import { getToken, loginHelp } from './auth.js';
 import { c, label } from './report.js';
 
 const NO_HOOKS = ['-c', `core.hooksPath=${process.platform === 'win32' ? 'NUL' : '/dev/null'}`];
@@ -186,12 +187,12 @@ async function listMine() {
   const gh = ghCommand();
   if (gh) {
     try {
-      const out = run(gh, ['api', '--paginate', 'user/repos?affiliation=owner&per_page=100', '--jq', '.[] | [.full_name, .archived] | @tsv'], { maxBuffer: 16 * 1024 * 1024 });
-      return out.split('\n').filter(Boolean).map((l) => { const [name, archived] = l.split('\t'); return { name, archived: archived === 'true' }; });
+      const out = run(gh, ['api', '--paginate', 'user/repos?affiliation=owner&per_page=100', '--jq', '.[] | [.full_name, .archived, .fork, .default_branch] | @tsv'], { maxBuffer: 16 * 1024 * 1024 });
+      return out.split('\n').filter(Boolean).map((l) => { const [name, archived, fork, defaultBranch] = l.split('\t'); return { name, archived: archived === 'true', fork: fork === 'true', defaultBranch }; });
     } catch { /* fall through to token */ }
   }
-  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
-  if (!token) throw new Error('Log in first so forkguard can list your repos: run "gh auth login", or set GITHUB_TOKEN.');
+  const token = getToken();
+  if (!token) throw new Error(`You are not logged in to GitHub yet.\n\n${loginHelp()}`);
   const repos = [];
   for (let page = 1; ; page++) {
     const res = await fetch(`https://api.github.com/user/repos?affiliation=owner&per_page=100&page=${page}`, {
@@ -199,7 +200,7 @@ async function listMine() {
     });
     if (!res.ok) throw new Error(`GitHub said ${res.status} when listing your repos`);
     const data = await res.json();
-    repos.push(...data.map((r) => ({ name: r.full_name, archived: r.archived })));
+    repos.push(...data.map((r) => ({ name: r.full_name, archived: r.archived, fork: r.fork, defaultBranch: r.default_branch })));
     if (data.length < 100) break;
   }
   return repos;
@@ -216,6 +217,7 @@ async function checkRepos(repos, { json, intro }) {
       const res = await checkRemote({ url: `https://github.com/${r.name}.git`, name: r.name });
       res.archived = r.archived;
       res.fork = r.fork;
+      res.defaultBranch = r.defaultBranch;
       results.push(res);
       if (!json) {
         const findings = (res.branches || []).flatMap((b) => b.findings);
@@ -234,21 +236,21 @@ async function checkRepos(repos, { json, intro }) {
 /** Checks every repo you own on GitHub. */
 export async function checkMine({ json = false } = {}) {
   const repos = await listMine();
-  return checkRepos(repos, { json, intro: `checking ${repos.length} of your repos on GitHub, every branch` });
+  return checkRepos(repos, { json, intro: `checking all ${repos.length} repos you own on GitHub (public and private), every branch` });
 }
 
 /** The public repos of any GitHub user or organization. Only reads; needs no login. */
 export async function listUser(user) {
-  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  const token = getToken();
   const headers = { accept: 'application/vnd.github+json', 'user-agent': 'forkguard', ...(token ? { authorization: `Bearer ${token}` } : {}) };
   const repos = [];
   for (let page = 1; ; page++) {
     const res = await fetch(`https://api.github.com/users/${encodeURIComponent(user)}/repos?type=owner&per_page=100&page=${page}`, { headers });
     if (res.status === 404) throw new Error(`There is no GitHub user or organization called ${user}`);
-    if (res.status === 403 || res.status === 429) throw new Error('GitHub is limiting requests. Wait a few minutes, or set GITHUB_TOKEN to raise the limit.');
+    if (res.status === 403 || res.status === 429) throw new Error(`GitHub is limiting how often you can look things up without logging in. Wait a while, or log in to raise the limit:\n\n${loginHelp()}`);
     if (!res.ok) throw new Error(`GitHub said ${res.status} when listing ${user}'s repos`);
     const data = await res.json();
-    repos.push(...data.map((r) => ({ name: r.full_name, archived: r.archived, fork: r.fork })));
+    repos.push(...data.map((r) => ({ name: r.full_name, archived: r.archived, fork: r.fork, defaultBranch: r.default_branch })));
     if (data.length < 100) break;
   }
   return repos;
