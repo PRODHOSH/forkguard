@@ -166,7 +166,11 @@ export const commands = [
         p('Either log in with the GitHub CLI:'),
         code('gh auth login'),
         p('or set a `GITHUB_TOKEN` (or `GH_TOKEN`) environment variable with a personal access token. Without either you get: “Log in first so forkguard can list your repos”.'),
-      ], [p('Lists repositories with affiliation=owner via gh or the GitHub API, then runs the remote check on each, four at a time.'), p('Requires gh auth login, or GITHUB_TOKEN / GH_TOKEN.')]),
+        h3('Checking a friend or a team'),
+        p('Give it a GitHub name instead and it checks every **public** repo of that person or organization, the same way, without downloading anything to your disk. No login needed. It reports only; it never changes their repos.'),
+        code('forkguard @their-name\nforkguard https://github.com/their-name'),
+        p('Without a token GitHub allows about 60 listing requests an hour. If you hit that, wait, or set a `GITHUB_TOKEN`. Private repos are never included.'),
+      ], [p('Lists repositories with affiliation=owner via gh or the GitHub API, then runs the remote check on each, four at a time.'), p('Requires gh auth login, or GITHUB_TOKEN / GH_TOKEN.'), p('forkguard @name or a profile link lists that user or organization\'s public repos through the API (no login) and checks each. Read only.')]),
       sec('output', 'Output', [
         out('forkguard  checking 54 of your repos on GitHub, every branch\n\n  clean            you/portfolio\n  INFECTED         you/old-project\n  worth a look     you/side-project\n  clean            you/vector\n  ...\n\n  54 repos checked: 52 clean, 1 infected'),
         p('Then you get the full details for every repo that is not clean.'),

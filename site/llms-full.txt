@@ -585,6 +585,17 @@ gh auth login
 
 or set a `GITHUB_TOKEN` (or `GH_TOKEN`) environment variable with a personal access token. Without either you get: “Log in first so forkguard can list your repos”.
 
+### Checking a friend or a team
+
+Give it a GitHub name instead and it checks every **public** repo of that person or organization, the same way, without downloading anything to your disk. No login needed. It reports only; it never changes their repos.
+
+```bash
+forkguard @their-name
+forkguard https://github.com/their-name
+```
+
+Without a token GitHub allows about 60 listing requests an hour. If you hit that, wait, or set a `GITHUB_TOKEN`. Private repos are never included.
+
 ## Output
 
 ```text

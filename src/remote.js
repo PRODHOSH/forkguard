@@ -17,7 +17,7 @@ const GREP = `(?:${MARKERS.map(escapeRe).join('|')}|^.{0,400}?[ \\t]{30,}\\S.{15
 
 /** A GitHub link, a git URL, or owner/repo. Returns a clone URL and a short name, or null for a local folder. */
 export function parseRemote(arg) {
-  if (!arg) return null;
+  if (!arg || parseUser(arg)) return null; // a profile link is not a repo
   const gh = /^(?:https?:\/\/)?(?:www\.)?github\.com\/([^/\s]+)\/([^/\s#?]+?)(?:\.git)?(?:[/#?].*)?$/i.exec(arg);
   if (gh) return { url: `https://github.com/${gh[1]}/${gh[2]}.git`, name: `${gh[1]}/${gh[2]}` };
   if (/^(https?|ssh|git):\/\//.test(arg) || /^git@[^:]+:/.test(arg)) {
@@ -25,6 +25,13 @@ export function parseRemote(arg) {
   }
   if (/^[\w.-]+\/[\w.-]+$/.test(arg) && !existsSync(arg)) return { url: `https://github.com/${arg}.git`, name: arg };
   return null;
+}
+
+/** A GitHub profile link, or @name. Returns the user name, or null. A link to one repo is not a profile. */
+export function parseUser(arg) {
+  if (!arg) return null;
+  const m = /^(?:https?:\/\/)?(?:www\.)?github\.com\/([A-Za-z0-9](?:[A-Za-z0-9-]{0,38}))\/?(?:[?#].*)?$/i.exec(arg) || /^@([A-Za-z0-9](?:[A-Za-z0-9-]{0,38}))$/.exec(arg);
+  return m ? m[1] : null;
 }
 
 function cloneAsync(url, dir) {
@@ -198,10 +205,9 @@ async function listMine() {
   return repos;
 }
 
-/** Checks every repo you own on GitHub, a few at a time. */
-export async function checkMine({ json = false } = {}) {
-  const repos = await listMine();
-  if (!json) console.log(`${c.bold('forkguard')}  checking ${repos.length} of your repos on GitHub, every branch\n`);
+/** Checks a list of repos, a few at a time, printing one line each as they finish. */
+async function checkRepos(repos, { json, intro }) {
+  if (!json) console.log(`${c.bold('forkguard')}  ${intro}\n`);
   const results = [];
   let next = 0;
   const worker = async () => {
@@ -209,16 +215,48 @@ export async function checkMine({ json = false } = {}) {
       const r = repos[next++];
       const res = await checkRemote({ url: `https://github.com/${r.name}.git`, name: r.name });
       res.archived = r.archived;
+      res.fork = r.fork;
       results.push(res);
       if (!json) {
         const findings = (res.branches || []).flatMap((b) => b.findings);
         const high = findings.some((f) => f.level === 'high');
         const [text, color] = res.error ? ['could not check', c.red] : high ? ['INFECTED', c.red] : findings.length ? ['worth a look', c.yellow] : ['clean', c.green];
-        console.log(`  ${color(text.padEnd(17))}${r.name}${r.archived ? c.dim('  (archived)') : ''}`);
+        const note = [r.archived && 'archived', r.fork && 'fork'].filter(Boolean).join(', ');
+        console.log(`  ${color(text.padEnd(17))}${r.name}${note ? c.dim(`  (${note})`) : ''}`);
       }
     }
   };
   await Promise.all(Array.from({ length: Math.min(4, repos.length) }, worker));
   results.sort((a, b) => a.name.localeCompare(b.name));
   return results;
+}
+
+/** Checks every repo you own on GitHub. */
+export async function checkMine({ json = false } = {}) {
+  const repos = await listMine();
+  return checkRepos(repos, { json, intro: `checking ${repos.length} of your repos on GitHub, every branch` });
+}
+
+/** The public repos of any GitHub user or organization. Only reads; needs no login. */
+export async function listUser(user) {
+  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  const headers = { accept: 'application/vnd.github+json', 'user-agent': 'forkguard', ...(token ? { authorization: `Bearer ${token}` } : {}) };
+  const repos = [];
+  for (let page = 1; ; page++) {
+    const res = await fetch(`https://api.github.com/users/${encodeURIComponent(user)}/repos?type=owner&per_page=100&page=${page}`, { headers });
+    if (res.status === 404) throw new Error(`There is no GitHub user or organization called ${user}`);
+    if (res.status === 403 || res.status === 429) throw new Error('GitHub is limiting requests. Wait a few minutes, or set GITHUB_TOKEN to raise the limit.');
+    if (!res.ok) throw new Error(`GitHub said ${res.status} when listing ${user}'s repos`);
+    const data = await res.json();
+    repos.push(...data.map((r) => ({ name: r.full_name, archived: r.archived, fork: r.fork })));
+    if (data.length < 100) break;
+  }
+  return repos;
+}
+
+/** Checks every public repo of someone else without cloning anything to your disk. */
+export async function checkUser(user, { json = false } = {}) {
+  const repos = await listUser(user);
+  if (!repos.length) throw new Error(`${user} has no public repos to check`);
+  return checkRepos(repos, { json, intro: `checking ${repos.length} public repos of ${user} on GitHub, every branch` });
 }

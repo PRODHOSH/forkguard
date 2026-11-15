@@ -118,6 +118,7 @@ New to all this? The [Getting started guide](https://forkguard.pages.dev/quick-s
 | `forkguard owner/repo` | Checks a GitHub repo, every branch, without downloading its files |
 | `forkguard https://github.com/owner/repo` | Same, with a full link |
 | `forkguard --mine` | Checks every repo you own on GitHub |
+| `forkguard @name` | Checks every public repo of a friend or team on GitHub, read only, no login |
 
 ### Clean
 
@@ -224,6 +225,12 @@ forkguard --mine
 ```
 
 You get one line per repo, then the details for anything that needs a look.
+
+To check a friend's or a team's public repos, give a name instead. Nothing is downloaded to your disk and nothing is changed on their side:
+
+```bash
+forkguard @their-name
+```
 
 </details>
 

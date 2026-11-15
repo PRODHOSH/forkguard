@@ -11,7 +11,7 @@ import { agent } from '../src/agent.js';
 import { c, printChanges, printScan } from '../src/report.js';
 import { GATED } from '../src/rules.js';
 import { isGitRepo, repoRoot } from '../src/git.js';
-import { checkMine, checkRemote, parseRemote, printRemote } from '../src/remote.js';
+import { checkMine, checkRemote, checkUser, parseRemote, parseUser, printRemote } from '../src/remote.js';
 
 const hasHigh = (r) => (r.branches || []).some((b) => b.findings.some((f) => f.level === 'high'));
 
@@ -24,6 +24,7 @@ Catch malware hidden in a repo before you install or run it.
   forkguard [folder]        check a project (default: this folder)
   forkguard <github link>   check a repo on GitHub without downloading its files
   forkguard --mine          check every repo you own on GitHub
+  forkguard @name           check every public repo of someone on GitHub (or their profile link)
   forkguard fix [folder]    remove what it found
   forkguard pr [folder]     remove it on a new branch and open a pull request
                             add --upstream to send the fix to the repo you forked from
@@ -134,8 +135,9 @@ async function main() {
   if (flags.has('--help') || flags.has('-h') || words[0] === 'help') return console.log(HELP), 0;
   if (flags.has('--version') || flags.has('-v')) return console.log(version), 0;
 
-  if (flags.has('--mine')) {
-    const results = await checkMine({ json: flags.has('--json') });
+  const user = flags.has('--mine') ? null : parseUser(words[0]);
+  if (flags.has('--mine') || (user && !existsSync(words[0]))) {
+    const results = user ? await checkUser(user, { json: flags.has('--json') }) : await checkMine({ json: flags.has('--json') });
     if (flags.has('--json')) {
       console.log(JSON.stringify(results, null, 2));
     } else {

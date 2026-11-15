@@ -37,6 +37,7 @@ Every command, option, output and exit code in forkguard, explained in detail. I
 | `forkguard <folder>` | Checks another folder | No |
 | `forkguard <owner/repo or link>` | Checks a GitHub repo, every branch | No |
 | `forkguard --mine` | Checks every repo you own on GitHub | No |
+| `forkguard @name` | Checks every public repo of someone else, read only | No |
 | `forkguard fix [folder]` | Removes what it found, on your computer | Yes, your files |
 | `forkguard pr [folder]` | Removes it on a new branch and opens a pull request | Yes, a new branch and pull request |
 | `forkguard pr --upstream` | Sends the fix to the repo you forked from | Yes, a pull request on that repo |
@@ -155,6 +156,12 @@ gh auth login
 ```
 
 or set a `GITHUB_TOKEN` environment variable with a personal access token.
+
+**A friend's or a team's repos:** give a GitHub name instead. It checks every public repo of that person or organization, read only, with no login. Without a token GitHub allows about 60 listing requests an hour.
+
+```bash
+forkguard @their-name
+```
 
 **Result:**
 

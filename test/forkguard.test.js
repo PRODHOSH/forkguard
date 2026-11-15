@@ -190,6 +190,19 @@ test('understands GitHub links in every common form', async () => {
   assert.equal(parseRemote('.'), null);
 });
 
+test('tells a profile link from a repo link', async () => {
+  const { parseUser, parseRemote } = await import('../src/remote.js');
+  for (const arg of ['https://github.com/Some-User', 'https://github.com/Some-User/', 'github.com/Some-User?tab=repositories', '@Some-User']) {
+    assert.equal(parseUser(arg), 'Some-User', arg);
+  }
+  // A repo link, a folder, a command word and an empty value are never a profile.
+  for (const arg of ['https://github.com/a/b', 'a/b', 'fix', '.', '', undefined, '@', '@-bad name']) {
+    assert.equal(parseUser(arg), null, String(arg));
+  }
+  // And a profile link is never read as a single repo.
+  assert.equal(parseRemote('https://github.com/Some-User'), null);
+});
+
 test('checks every branch of a remote repo without writing its files', async () => {
   const { checkRemote } = await import('../src/remote.js');
   const root = tmp();
