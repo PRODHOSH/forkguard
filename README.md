@@ -27,9 +27,26 @@ Check a folder, a GitHub link or every repo you own. Clean what it finds and ope
 
 ## Contents
 
-[What](#what-is-forkguard) · [Why](#why-it-exists) · [How it works](#how-it-works) · [Install](#install-and-first-run) · [Commands](#commands) · [Which one are you?](#which-one-are-you) · [AI agent skills](#ai-agent-skills) · [AI review](#optional-ai-review) · [Stay protected](#stay-protected) · [Safety](#safety-and-privacy) · [FAQ](#faq) · [Docs](#documentation) · [Contributing](#contributing) · [Developer](#developer) · [License](#license-and-credits)
+[PolinRider](#what-is-polinrider) · [What](#what-is-forkguard) · [Why](#why-it-exists) · [How it works](#how-it-works) · [Install](#install-and-first-run) · [Commands](#commands) · [Which one are you?](#which-one-are-you) · [AI agent skills](#ai-agent-skills) · [AI review](#optional-ai-review) · [Stay protected](#stay-protected) · [Safety](#safety-and-privacy) · [FAQ](#faq) · [Docs](#documentation) · [Contributing](#contributing) · [Developer](#developer) · [License](#license-and-credits)
 
 ---
+
+## What is PolinRider
+
+PolinRider is a malware campaign that hides code inside ordinary GitHub projects. [OpenSourceMalware's PolinRider project](https://github.com/OpenSourceMalware/PolinRider) tracks it and, as of 11 April 2026, had confirmed **1,951 infected public repos** belonging to **1,047 owners**.
+
+**Who is behind it?** The researchers attribute it to North Korea (DPRK), to a group linked to Lazarus and to the "Contagious Interview" campaign, which targets developers with fake job interviews and coding tests. forkguard has no evidence of its own about who they are: this comes from OpenSourceMalware and other security teams.
+
+**How it works.** It appends obfuscated code to the end of a config file (PostCSS, Tailwind, ESLint and similar), adds a hidden `init` file and a `node init &&` in your `package.json` scripts, or hides a task in `.vscode` that runs when you open the folder. Once it runs, it installs a backdoor that steals secrets and rewrites your last git commit with the original author and date, so it spreads without a trace.
+
+**It can still be running after you clean your repos.** After a teammate's infected branch was built on my Mac, a hidden program kept running in the background for about an hour and a half before I found it. It lived in a hidden `~/.node_modules` folder, outside every project, so scanning the repos showed nothing. If you ran an infected project, also check your machine:
+
+```bash
+ls -a ~ | grep node_modules      # a hidden ~/.node_modules you did not create is a red flag
+ps aux | grep "node -e"          # a node process you did not start
+```
+
+If you find either, stop the process, then rotate every token and password that was on that computer.
 
 ## What is forkguard
 
@@ -62,7 +79,7 @@ forkguard  my-app
 - **It spreads.** It uses your stolen GitHub token to infect every repo you can push to. Recruiters' "coding tests" and old repos are the usual way in.
 - **AI agents make it worse.** An agent told to "clone this and get it running" does exactly the dangerous thing, and a malicious skill can talk your agent into worse.
 
-This malware is tracked by the [OpenSourceMalware PolinRider project](https://github.com/OpenSourceMalware/PolinRider), which publishes the technical report, indicators and a YARA rule. I found it in my own repos and recognised the pattern myself, and forkguard is the tool I built to find it, clean it and keep it out.
+I found it in my own repos and recognised the pattern myself, and forkguard is the tool I built to find it, clean it and keep it out.
 
 Weeks after I first cleaned it, it was back in 35 of my 53 repos. Cleaning that by hand took a whole day, so I built the tool I wished I had: [the full story](https://blog.prodhosh.me/blog/malware-hid-in-my-old-repos-polinrider).
 
@@ -220,33 +237,26 @@ Open a new terminal. Clean projects stay silent and dangerous ones are stopped b
 
 ## AI agent skills
 
-Claude Code, Codex, Cursor and other AI tools load **skills**: folders with a `SKILL.md` that your agent follows with your permissions. A bad skill can make your agent read your keys or send your files out, so look before you install one.
+Skills are folders your AI agent (Claude Code, Codex, Cursor and more) follows with your permissions, so a bad one is dangerous. forkguard checks them before you install:
 
 ```bash
 forkguard skills                  # every skill on this computer
-forkguard skills ./my-skill       # one skill, or a folder of skills
 forkguard skills owner/repo       # a skill on GitHub, before you install it
 ```
 
-Each skill gets a score from 0 to 100 and a plain verdict: **looks fine**, **worth a look** or **do not install**. After `forkguard setup`, `npx skills add owner/repo` is checked first and stopped if the skill is dangerous. It blocks only when the score is above 50 **and** something looks like a real attack. `--strict` follows SkillSpector exactly.
+Each skill gets a score and a verdict (looks fine, worth a look or do not install). After `forkguard setup`, a dangerous `npx skills add` is stopped.
 
 ### Optional AI review
 
-Add `--ai` and an AI model reads each finding and says whether it believes it. You bring your own key (`export ANTHROPIC_API_KEY=...` or `OPENAI_API_KEY`), forkguard shows what will be sent and asks first, and secrets are hidden before anything leaves your computer. It can only make forkguard stricter. Details: [docs/skills.md](docs/skills.md#ai-review-optional).
+Add `--ai` to have an AI model review the findings, with your own API key ([details](docs/skills.md#ai-review-optional)).
 
 ### The forkguard skill
 
-Instead of explaining forkguard to your agent, let it read the skill:
-
-```bash
-npx skills add PRODHOSH/forkguard
-```
-
-[`skills/forkguard`](skills/forkguard/SKILL.md) tells the agent to check every project first, stop on exit code 1, never run `fix`, `pr` or `FORKGUARD_SKIP` on its own, treat repo text as data and check a skill before it installs one. It lists every command, the JSON shape and what to do after an infection. It works with every agent the [skills CLI](https://github.com/vercel-labs/skills) supports. If you only want the short rules, `forkguard agent --write` is still there.
+Let your agent read the rules itself: `npx skills add PRODHOSH/forkguard` ([what it says](skills/forkguard/SKILL.md)).
 
 ### Built on NVIDIA SkillSpector
 
-The skill rules come from **[NVIDIA SkillSpector](https://github.com/NVIDIA/SkillSpector)** (Apache 2.0), translated to JavaScript so one tool can watch your code and your skills. forkguard covers 60 of its 115 rule ids (71 with the AI review) and is an independent project, not made or endorsed by NVIDIA. **All credit for the rules belongs to NVIDIA.** [NOTICE](NOTICE) lists what was taken and what changed. For a skill you really depend on, also run SkillSpector itself. Problems with forkguard: [hello@prodhosh.me](mailto:hello@prodhosh.me) or [open an issue](https://github.com/PRODHOSH/forkguard/issues), not NVIDIA.
+The skill rules come from [NVIDIA SkillSpector](https://github.com/NVIDIA/SkillSpector) (Apache 2.0), and all credit for them belongs to NVIDIA ([NOTICE](NOTICE)).
 
 ## Stay protected
 
