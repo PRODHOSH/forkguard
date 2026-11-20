@@ -62,6 +62,8 @@ forkguard  my-app
 - **It spreads.** It uses your stolen GitHub token to infect every repo you can push to. Recruiters' "coding tests" and old repos are the usual way in.
 - **AI agents make it worse.** An agent told to "clone this and get it running" does exactly the dangerous thing, and a malicious skill can talk your agent into worse.
 
+This malware is tracked by the [OpenSourceMalware PolinRider project](https://github.com/OpenSourceMalware/PolinRider), which publishes the technical report, indicators and a YARA rule. I found it in my own repos and recognised the pattern myself, and forkguard is the tool I built to find it, clean it and keep it out.
+
 Weeks after I first cleaned it, it was back in 35 of my 53 repos. Cleaning that by hand took a whole day, so I built the tool I wished I had: [the full story](https://blog.prodhosh.me/blog/malware-hid-in-my-old-repos-polinrider).
 
 ## How it works
@@ -218,37 +220,19 @@ Open a new terminal. Clean projects stay silent and dangerous ones are stopped b
 
 ## AI agent skills
 
-Claude Code, Codex, Cursor and other AI coding tools load **skills**: folders with a `SKILL.md` and sometimes scripts, which your agent follows with your permissions. A bad skill can tell your agent to ignore its safety rules, read your keys or send your files out. Installing one is a single command (`npx skills add owner/repo`, see [skills.sh](https://skills.sh)), so look first, the same way you look at a dependency.
+Claude Code, Codex, Cursor and other AI tools load **skills**: folders with a `SKILL.md` that your agent follows with your permissions. A bad skill can make your agent read your keys or send your files out, so look before you install one.
 
 ```bash
-forkguard skills                  # every skill already on this computer, for all 79 agents the skills CLI supports
+forkguard skills                  # every skill on this computer
 forkguard skills ./my-skill       # one skill, or a folder of skills
 forkguard skills owner/repo       # a skill on GitHub, before you install it
 ```
 
-Each skill gets a score from 0 to 100 and a plain verdict: **looks fine**, **worth a look** or **do not install**. Exit code 1 means do not install. Add `--json` for scripts and `--all` to list every finding.
-
-**It runs by itself after `forkguard setup`.** `npx skills add owner/repo` (also `bunx`, `pnpx`, `pnpm dlx`, `yarn dlx`, `npm exec`) downloads the source to a temporary folder first, checks it and stops the install if the skill is dangerous. If the check cannot run, the install goes ahead. To install anyway: `FORKGUARD_SKIP=1 npx skills add owner/repo`.
-
-**One thing forkguard adds.** SkillSpector's static rules also flag harmless text ("never judge a logo"). Its optional AI review reads each finding and says whether it believes it, but it never removes one, so a harmless skill can still score high. So forkguard blocks only when the score is above 50 **and** something looks like a real attack. `--strict` follows SkillSpector exactly.
+Each skill gets a score from 0 to 100 and a plain verdict: **looks fine**, **worth a look** or **do not install**. After `forkguard setup`, `npx skills add owner/repo` is checked first and stopped if the skill is dangerous. It blocks only when the score is above 50 **and** something looks like a real attack. `--strict` follows SkillSpector exactly.
 
 ### Optional AI review
 
-The offline check matches known patterns. SkillSpector also has an **AI stage**, and forkguard can run it with **your own API key**. forkguard provides no key and no service: you bring one, and it is used only for that run.
-
-```bash
-export ANTHROPIC_API_KEY=your-key        # or OPENAI_API_KEY, or a model on your own computer
-forkguard skills owner/repo --ai
-```
-
-- **What it adds.** It reads each finding and says whether it believes it ("confirmed" or "not confirmed", with a plain explanation). It also looks for problems a regex cannot see, such as polite reframings of "ignore your rules", instructions to log everything you say, or a description that does not match the code. That is 11 more of SkillSpector's rule ids: **71 of 115** with the review, 60 without.
-- **Your key, your terminal.** Set it with `export` (Windows PowerShell: `$env:ANTHROPIC_API_KEY = "..."`). Never type a key into the forkguard command itself: it would end up in your shell history. Run `--ai` with no key set and forkguard shows the steps for your computer, or lets you paste one (hidden, never saved) for that run. GitHub works the same way: `export GITHUB_TOKEN=...`.
-- **You see what is sent, and say yes.** It prints how many files and about how many tokens will be sent, and to whom, and asks first (`--yes` skips the question, for scripts). Keys, tokens, private keys and `.env` values are hidden before anything leaves your computer. You pay your provider for the tokens.
-- **Providers.** Anthropic (`ANTHROPIC_API_KEY`), OpenAI (`OPENAI_API_KEY`), or any OpenAI-compatible server such as Ollama on your own machine (`FORKGUARD_AI_BASE_URL` and `FORKGUARD_AI_MODEL`), which needs no key and sends nothing out. `FORKGUARD_AI_MODEL` picks a model.
-- **It can only make forkguard stricter.** The text a model reads comes from the skill, and a skill can try to talk a model into calling it harmless. So the review can add a reason to block, and can never lift a block.
-- **Install guard.** Set `FORKGUARD_AI=1` and `npx skills add` also runs the review (with your key set) before it installs.
-
-Full details, every variable and the differences from SkillSpector: [docs/skills.md](docs/skills.md#ai-review-optional).
+Add `--ai` and an AI model reads each finding and says whether it believes it. You bring your own key (`export ANTHROPIC_API_KEY=...` or `OPENAI_API_KEY`), forkguard shows what will be sent and asks first, and secrets are hidden before anything leaves your computer. It can only make forkguard stricter. Details: [docs/skills.md](docs/skills.md#ai-review-optional).
 
 ### The forkguard skill
 
@@ -262,51 +246,32 @@ npx skills add PRODHOSH/forkguard
 
 ### Built on NVIDIA SkillSpector
 
-The skill rules are **[NVIDIA SkillSpector's](https://github.com/NVIDIA/SkillSpector)** (Apache 2.0), translated to JavaScript so one tool can watch your code and your skills, with no Python, no packages and no AI key. forkguard is an independent project by Prodhosh V.S, not made or endorsed by NVIDIA. **All credit for the rules belongs to NVIDIA.** [NOTICE](NOTICE) lists exactly what was taken and what was changed.
-
-| What came across | |
-| --- | --- |
-| Rule ids covered | **60 of SkillSpector's 115**, **71** with the optional AI review |
-| Regex rules | **472**, copied out of its source by a script, not retyped |
-| YARA rules | **all 28**, in its 5 rule files (226 patterns) |
-| Not included | Python data-flow analysis, MCP checks, package lookups and a few more: the other 44 rule ids, listed in [docs/skills.md](docs/skills.md) |
-
-This is a fast first check. For a skill you really depend on, **also run [SkillSpector](https://github.com/NVIDIA/SkillSpector)** itself: the two cover different ground. Problem with forkguard or a wrong rule? Write to [hello@prodhosh.me](mailto:hello@prodhosh.me) or [open an issue](https://github.com/PRODHOSH/forkguard/issues), not to NVIDIA.
+The skill rules come from **[NVIDIA SkillSpector](https://github.com/NVIDIA/SkillSpector)** (Apache 2.0), translated to JavaScript so one tool can watch your code and your skills. forkguard covers 60 of its 115 rule ids (71 with the AI review) and is an independent project, not made or endorsed by NVIDIA. **All credit for the rules belongs to NVIDIA.** [NOTICE](NOTICE) lists what was taken and what changed. For a skill you really depend on, also run SkillSpector itself. Problems with forkguard: [hello@prodhosh.me](mailto:hello@prodhosh.me) or [open an issue](https://github.com/PRODHOSH/forkguard/issues), not NVIDIA.
 
 ## Stay protected
 
-**On your computer.** Run `forkguard setup` once and open a new terminal. After that:
+**On your computer.** Run this once, then open a new terminal:
 
-| When you run | forkguard |
-| --- | --- |
-| `npm`, `pnpm`, `yarn` or `bun` with `install`, `run`, `dev`, `start`, `build`, `test` | Checks the project first and **stops the command** if it is dangerous |
-| `npx skills add owner/repo` (also `bunx`, `pnpx`, `pnpm dlx`) | Checks the skill first and stops the install if it is dangerous |
-| `git clone`, `pull`, `merge`, `checkout`, `switch` | Checks what came in and warns you |
-| Anything else | Passes straight through |
+```bash
+forkguard setup
+```
 
-It also offers to turn off VS Code's automatic tasks, the setting this malware uses to start when you open a folder. If forkguard is missing or crashes, your command still runs.
+From then on, forkguard checks a project before `npm install`, `npm run dev` and similar commands, and stops them if the project is dangerous. It also checks what comes in after `git clone` or `git pull`, and a skill before `npx skills add`. Everything else passes straight through, and if forkguard is missing, your command still runs.
 
-**On GitHub.** Check every push and pull request:
+**On GitHub.** Check every push and pull request with the [GitHub Action](docs/github-action.md):
 
 ```yaml
 name: forkguard
 on: [push, pull_request]
-
-permissions:
-  contents: write
-  pull-requests: write
-
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: PRODHOSH/forkguard@v0.8.1
-        with:
-          open-pr: true   # also open a pull request that removes what was found
 ```
 
-The build fails when anything HIGH is found. More options: [GitHub Action guide](docs/github-action.md).
+The build fails when anything dangerous is found.
 
 ## Safety and privacy
 
@@ -437,3 +402,5 @@ If forkguard saved you from a bad day, a star helps other developers find it.
 [Apache 2.0](LICENSE). Use it, change it, share it, as long as you keep the license and the credit in [NOTICE](NOTICE).
 
 The AI agent skill checks are derived from [NVIDIA SkillSpector](https://github.com/NVIDIA/SkillSpector), Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES, also Apache 2.0. forkguard is not made or endorsed by NVIDIA.
+
+The PolinRider campaign is documented by the [OpenSourceMalware PolinRider project](https://github.com/OpenSourceMalware/PolinRider). forkguard is not affiliated with it.
