@@ -1,12 +1,24 @@
-import { readFileSync, writeFileSync, rmSync, existsSync, readdirSync, rmdirSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, rmdirSync, lstatSync } from 'node:fs';
 import path from 'node:path';
 import { cleanGitignore, cleanScripts, cleanSettings, cleanSource, cleanTasks, isOriginalOf } from './clean.js';
 import { fileHistory, git, repoRoot, showFile, toPosix } from './git.js';
+import { inside, isRegularFile, safeRemove, safeWrite } from './safe.js';
 
-/** After deleting a file, remove folders it leaves empty, up to the project root. */
+/**
+ * After deleting a file, remove folders it leaves empty, up to the project root. Only real folders
+ * are removed: a link is never followed, and nothing outside the project is touched.
+ */
 function pruneEmpty(full, root) {
-  let dir = path.dirname(full);
-  while (dir.startsWith(root) && dir !== root) {
+  const stop = path.resolve(root);
+  let dir = path.dirname(path.resolve(full));
+  while (dir !== stop && inside(root, dir)) {
+    let st;
+    try {
+      st = lstatSync(dir);
+    } catch {
+      return;
+    }
+    if (!st.isDirectory() || st.isSymbolicLink()) return;
     try {
       if (readdirSync(dir).length) return;
       rmdirSync(dir);
@@ -18,8 +30,7 @@ function pruneEmpty(full, root) {
 }
 
 function remove(full, root) {
-  rmSync(full, { recursive: true, force: true });
-  pruneEmpty(full, root);
+  if (safeRemove(root, full)) pruneEmpty(full, root);
 }
 
 /**
@@ -97,6 +108,7 @@ export function fix(result, { untrackSecrets = false } = {}) {
         continue;
       }
       if (!existsSync(full)) continue;
+      if (!isRegularFile(full)) throw new Error('refusing to write: it is a symbolic link or a special file, not a regular file');
       const text = readFileSync(full, 'utf8');
       let next = null;
       let action = 'cleaned';
@@ -106,7 +118,7 @@ export function fix(result, { untrackSecrets = false } = {}) {
         if (cleaned !== null) {
           const original = originalFromHistory(gitRoot, repoRel, cleaned);
           if (original) {
-            writeFileSync(full, original);
+            safeWrite(root, full, original);
             changes.push({ file: f.file, action: 'restored your original from git history' });
             continue;
           }
@@ -137,7 +149,7 @@ export function fix(result, { untrackSecrets = false } = {}) {
       }
 
       if (next !== null && next !== text) {
-        writeFileSync(full, next);
+        safeWrite(root, full, next);
         changes.push({ file: f.file, action });
       }
     } catch (err) {
@@ -152,11 +164,19 @@ export function fix(result, { untrackSecrets = false } = {}) {
   }
   for (const dir of envRoots) {
     const gi = path.join(dir, '.gitignore');
-    const text = existsSync(gi) ? readFileSync(gi, 'utf8') : '';
-    const next = cleanGitignore(text, true);
-    if (next !== text) {
-      writeFileSync(gi, next);
-      changes.push({ file: toPosix(path.relative(root, gi)), action: 'now ignores .env files' });
+    const rel = toPosix(path.relative(root, gi));
+    try {
+      if (existsSync(gi) && !isRegularFile(gi)) throw new Error('refusing to write: it is a symbolic link or a special file, not a regular file');
+      const text = existsSync(gi) ? readFileSync(gi, 'utf8') : '';
+      const next = cleanGitignore(text, true);
+      if (next !== text) {
+        // `dir` is the git repo this file belongs to: its own .gitignore is the one that matters, even
+        // when the scanned folder is a subfolder of it. Links and escapes are still refused.
+        safeWrite(dir, gi, next);
+        changes.push({ file: rel, action: 'now ignores .env files' });
+      }
+    } catch (err) {
+      changes.push({ file: rel, action: `could not fix: ${err.message}`, failed: true });
     }
   }
   return changes;

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, symlinkSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -564,6 +564,160 @@ test('--mine --fix opens a pull request only when the main branch is infected', 
   const { targets, sideBranches } = planFixes(results);
   assert.deepEqual(targets.map((r) => r.name), ['me/a']);
   assert.deepEqual(sideBranches, [{ name: 'me/a', branches: ['dev'] }, { name: 'me/b', branches: ['old'] }]);
+});
+
+// ---- audit finding 1: a write must never follow a link or leave the project ----
+
+function makeLink(target, link, type) {
+  try {
+    symlinkSync(target, link, type);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Windows needs Developer Mode (or an admin shell) for symbolic links to files. Junctions always work.
+const canLinkFile = (() => {
+  const dir = tmp();
+  try {
+    writeFileSync(path.join(dir, 'target'), 'x');
+    return makeLink(path.join(dir, 'target'), path.join(dir, 'link'), 'file');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+})();
+const noFileLinks = canLinkFile ? false : 'this platform does not allow creating symbolic links to files';
+const linkDir = (target, link) => makeLink(target, link, process.platform === 'win32' ? 'junction' : 'dir');
+
+test('fix never writes through a symbolic link', { skip: noFileLinks }, () => {
+  const base = tmp();
+  const repo = path.join(base, 'project');
+  mkdirSync(repo);
+  const outside = path.join(base, 'precious.txt');
+  writeFileSync(outside, 'precious\n');
+  symlinkSync(outside, path.join(repo, 'postcss.config.js'), 'file');
+  const changes = fix({ root: repo, findings: [{ level: 'high', file: 'postcss.config.js', rule: 'hidden-code', fix: 'strip' }] });
+  assert.equal(readFileSync(outside, 'utf8'), 'precious\n', 'the file outside the project must not change');
+  assert.ok(changes.some((x) => x.failed && /symbolic link/.test(x.action)), JSON.stringify(changes));
+  assert.ok(existsSync(path.join(repo, 'postcss.config.js')), 'the link itself is left for the user to look at');
+  rmSync(base, { recursive: true, force: true });
+});
+
+test('fix refuses to add .env to a .gitignore that is a symbolic link', { skip: noFileLinks }, () => {
+  const base = tmp();
+  const repo = path.join(base, 'project');
+  mkdirSync(repo);
+  const outside = path.join(base, 'global-ignore');
+  writeFileSync(outside, 'node_modules\n');
+  symlinkSync(outside, path.join(repo, '.gitignore'), 'file');
+  const changes = fix({ root: repo, findings: [{ level: 'high', file: '.env', rule: 'env-not-ignored', fix: 'ignore-env' }] });
+  assert.equal(readFileSync(outside, 'utf8'), 'node_modules\n', 'the shared ignore file must not be rewritten');
+  assert.ok(changes.some((x) => x.failed && x.file === '.gitignore'), JSON.stringify(changes));
+  rmSync(base, { recursive: true, force: true });
+});
+
+test('fix refuses to write into a folder that links outside the project', (t) => {
+  const base = tmp();
+  const repo = path.join(base, 'project');
+  const outside = path.join(base, 'elsewhere');
+  mkdirSync(repo);
+  mkdirSync(outside);
+  writeFileSync(path.join(outside, 'config.bat'), 'node_modules\nconfig.bat\n');
+  if (!linkDir(outside, path.join(repo, 'vendor'))) {
+    rmSync(base, { recursive: true, force: true });
+    t.skip('this platform does not allow creating links');
+    return;
+  }
+  const changes = fix({ root: repo, findings: [{ level: 'high', file: 'vendor/config.bat', rule: 'gitignore', fix: 'gitignore' }] });
+  assert.equal(readFileSync(path.join(outside, 'config.bat'), 'utf8'), 'node_modules\nconfig.bat\n', 'nothing outside the project may change');
+  assert.ok(changes.some((x) => x.failed), JSON.stringify(changes));
+  rmSync(base, { recursive: true, force: true });
+});
+
+test('fix removes a dropper that is a link without touching what it points at', (t) => {
+  const base = tmp();
+  const repo = path.join(base, 'project');
+  const outside = path.join(base, 'elsewhere');
+  mkdirSync(repo);
+  mkdirSync(outside);
+  writeFileSync(path.join(outside, 'keep.txt'), 'keep\n');
+  const link = path.join(repo, 'config.bat');
+  if (!linkDir(outside, link)) {
+    rmSync(base, { recursive: true, force: true });
+    t.skip('this platform does not allow creating links');
+    return;
+  }
+  const changes = fix({ root: repo, findings: [{ level: 'high', file: 'config.bat', rule: 'dropper', fix: 'delete' }] });
+  assert.ok(!existsSync(link), 'the link should be removed');
+  assert.equal(readFileSync(path.join(outside, 'keep.txt'), 'utf8'), 'keep\n', 'the folder it pointed at must survive');
+  assert.ok(changes.some((x) => x.action === 'deleted'), JSON.stringify(changes));
+  rmSync(base, { recursive: true, force: true });
+});
+
+test('fix refuses a finding whose path points outside the project', () => {
+  const base = tmp();
+  const repo = path.join(base, 'project');
+  mkdirSync(repo);
+  const outside = path.join(base, 'keep.txt');
+  writeFileSync(outside, 'keep\n');
+  const changes = fix({ root: repo, findings: [{ level: 'high', file: '../keep.txt', rule: 'dropper', fix: 'delete' }] });
+  assert.equal(readFileSync(outside, 'utf8'), 'keep\n');
+  assert.ok(existsSync(outside), 'a ../ path must never delete outside the project');
+  assert.ok(changes.some((x) => x.failed && /outside the project/.test(x.action)), JSON.stringify(changes));
+  rmSync(base, { recursive: true, force: true });
+});
+
+test('agent --write never writes through a symbolic link', { skip: noFileLinks }, () => {
+  const base = tmp();
+  const root = path.join(base, 'project');
+  mkdirSync(root);
+  const outside = path.join(base, 'notes.md');
+  writeFileSync(outside, '# Mine\n');
+  symlinkSync(outside, path.join(root, 'CLAUDE.md'), 'file');
+  const res = spawnSync(process.execPath, [BIN, 'agent', root, '--write'], { encoding: 'utf8' });
+  assert.equal(res.status, 0, res.stdout + res.stderr);
+  assert.match(res.stdout, /skip/);
+  assert.equal(readFileSync(outside, 'utf8'), '# Mine\n', 'the file the link points at must not change');
+  assert.ok(!readFileSync(outside, 'utf8').includes('forkguard'), 'no rules may be written outside the project');
+  rmSync(base, { recursive: true, force: true });
+});
+
+test('a target that is itself a link is refused on every platform', (t) => {
+  const base = tmp();
+  const root = path.join(base, 'project');
+  const outside = path.join(base, 'elsewhere');
+  mkdirSync(root);
+  mkdirSync(outside);
+  writeFileSync(path.join(outside, 'keep.txt'), 'keep\n');
+  if (!linkDir(outside, path.join(root, 'CLAUDE.md'))) {
+    rmSync(base, { recursive: true, force: true });
+    t.skip('this platform does not allow creating links');
+    return;
+  }
+  const res = spawnSync(process.execPath, [BIN, 'agent', root, '--write'], { encoding: 'utf8' });
+  assert.equal(res.status, 0, res.stdout + res.stderr);
+  assert.match(res.stdout, /refusing to write through a symbolic link/);
+  assert.deepEqual(readdirSync(outside), ['keep.txt'], 'nothing may be written into the folder the link points at');
+  rmSync(base, { recursive: true, force: true });
+});
+
+test('fix refuses a config file that links to a folder outside the project', (t) => {
+  const base = tmp();
+  const root = path.join(base, 'project');
+  const outside = path.join(base, 'elsewhere');
+  mkdirSync(root);
+  mkdirSync(outside);
+  writeFileSync(path.join(outside, 'keep.txt'), 'keep\n');
+  if (!linkDir(outside, path.join(root, 'postcss.config.js'))) {
+    rmSync(base, { recursive: true, force: true });
+    t.skip('this platform does not allow creating links');
+    return;
+  }
+  const changes = fix({ root, findings: [{ level: 'high', file: 'postcss.config.js', rule: 'hidden-code', fix: 'strip' }] });
+  assert.ok(changes.some((x) => x.failed && /symbolic link/.test(x.action)), JSON.stringify(changes));
+  assert.deepEqual(readdirSync(outside), ['keep.txt']);
+  rmSync(base, { recursive: true, force: true });
 });
 
 test('the pull request text is plain and lists what changed', async () => {

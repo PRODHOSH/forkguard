@@ -1,6 +1,7 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { c } from './report.js';
+import { assertWritable, ensureDir, safeWrite } from './safe.js';
 
 const START = '<!-- >>> forkguard >>> -->';
 const END = '<!-- <<< forkguard <<< -->';
@@ -32,14 +33,17 @@ const TARGETS = [
 const escape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const BLOCK_RE = new RegExp(`\\n?${escape(START)}[\\s\\S]*?${escape(END)}\\n?`, 'g');
 
-function writeBlock(full, frontmatter = '') {
-  mkdirSync(path.dirname(full), { recursive: true });
+function writeBlock(root, full, frontmatter = '') {
+  // A cloned repo can ship CLAUDE.md as a link to a file outside the project. Check before reading
+  // through it, then write only to a real file inside `root`.
+  assertWritable(root, full);
+  ensureDir(root, path.dirname(full));
   const before = existsSync(full) ? readFileSync(full, 'utf8') : '';
   const without = before.replace(BLOCK_RE, '\n').replace(/\s+$/, '');
   const head = without || frontmatter.trimEnd();
   const next = `${head}${head ? '\n\n' : ''}${block()}\n`;
   if (next === before) return false;
-  writeFileSync(full, next);
+  safeWrite(root, full, next);
   return true;
 }
 
@@ -55,8 +59,12 @@ export function agent(dir, { write = false } = {}) {
   const chosen = existing.length ? existing : TARGETS.slice(0, 1);
   console.log(`${c.bold('forkguard')}  adding safety rules for AI agents\n`);
   for (const t of chosen) {
-    const changed = writeBlock(path.join(dir, t.file), t.frontmatter);
-    console.log(`  ${c.green('done')}  ${t.name}${changed ? '' : c.dim('  (no change)')}`);
+    try {
+      const changed = writeBlock(dir, path.join(dir, t.file), t.frontmatter);
+      console.log(`  ${c.green('done')}  ${t.name}${changed ? '' : c.dim('  (no change)')}`);
+    } catch (err) {
+      console.log(`  ${c.red('skip')}  ${t.name}${c.dim(`  ${err.message}`)}`);
+    }
   }
   if (!existing.length) console.log(c.dim('\n  Also use Claude Code, Cursor or Copilot? Create CLAUDE.md, .cursor/rules or .github/copilot-instructions.md and run this again.'));
 }
