@@ -720,6 +720,21 @@ test('fix refuses a config file that links to a folder outside the project', (t)
   rmSync(base, { recursive: true, force: true });
 });
 
+test('warns when .gitignore drops the .env rule even if no .env file exists yet', () => {
+  const root = tmp();
+  gitInit(root);
+  put(root, '.gitignore', 'node_modules\n');
+  put(root, '.env.local.example', 'API_KEY=\n');
+  const found = scan(root).findings.filter((f) => f.rule === 'env-not-ignored');
+  assert.deepEqual(found.map((f) => f.file), ['.gitignore']);
+  fix(scan(root));
+  assert.match(readFileSync(path.join(root, '.gitignore'), 'utf8'), /\.env\*/);
+  assert.equal(scan(root).findings.filter((f) => f.rule === 'env-not-ignored').length, 0);
+  put(root, '.gitignore', 'node_modules\n.env.local\n');
+  assert.equal(scan(root).findings.filter((f) => f.rule === 'env-not-ignored').length, 0);
+  rmSync(root, { recursive: true, force: true });
+});
+
 test('the pull request text is plain and lists what changed', async () => {
   const { prBody } = await import('../src/pr.js');
   const body = prBody([{ file: 'init', action: 'deleted' }, { file: 'package.json', action: 'cleaned' }], []);

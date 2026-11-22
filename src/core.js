@@ -22,6 +22,9 @@ export function describe(rel) {
   return { rel, name, ext: dot > 0 ? name.slice(dot).toLowerCase() : '' };
 }
 
+/** `.env.example`, `.env.local.example` and friends: a project that ships one expects real .env files next to it. */
+export const isEnvExample = (name) => /^\.env(\.[^/]*)?$/.test(name) && /example|sample|template/i.test(name);
+
 export const isEnvFile = (name) => /^\.env(\.[^/]*)?$/.test(name) && !/example|sample|template/i.test(name);
 
 /** Whether forkguard needs to look inside a file with this name at all. */

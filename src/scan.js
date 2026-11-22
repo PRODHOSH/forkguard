@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import path from 'node:path';
-import { BAD_PACKAGES, DROPPER_EXT, DROPPER_NAMES, MAX_SIZE, SKIP_DIRS, findHiddenTail, findMarker, finish, inspect, isEnvFile, isInteresting } from './core.js';
+import { BAD_PACKAGES, DROPPER_EXT, DROPPER_NAMES, MAX_SIZE, SKIP_DIRS, findHiddenTail, findMarker, finish, inspect, isEnvExample, isEnvFile, isInteresting } from './core.js';
 import { isIgnored, realPath, repoRoot, rewrittenHead, toPosix, trackedFiles } from './git.js';
 
 // The rules live in core.js, which has no Node-only imports. Re-exported so existing imports keep working.
@@ -77,11 +77,13 @@ export function scan(target) {
   const add = (level, file, rule, message, fix = null) => findings.push({ level, file, rule, message, fix });
   let checked = 0;
   const fontDirs = new Map(); // fonts folder -> { fake: bool, decoy: bool }
+  const envExamples = [];
   const gitRoot = repoRoot(root);
   const tracked = new Set(gitRoot ? trackedFiles(gitRoot) : []);
   const gitPrefix = gitRoot ? toPosix(path.relative(gitRoot, root)) : '';
 
   for (const f of walk(root)) {
+    if (isEnvExample(f.name)) envExamples.push(f.rel);
     if (isEnvFile(f.name)) {
       checked++;
       // A .env that git would happily commit. The malware has been seen taking .env out of .gitignore.
@@ -109,6 +111,17 @@ export function scan(target) {
   }
 
   if (gitRoot) {
+    // A project that ships .env.example expects real .env files, so .gitignore has to ignore them even
+    // when none exist on this computer yet. The malware and careless edits have both removed that line.
+    if (envExamples.length && !findings.some((f) => f.rule === 'env-not-ignored')) {
+      const dir = path.posix.dirname(envExamples[0]);
+      const base = dir === '.' ? gitPrefix : gitPrefix ? `${gitPrefix}/${dir}` : dir;
+      const at = (name) => (base ? `${base}/${name}` : name);
+      if (!isIgnored(gitRoot, at('.env')) && !isIgnored(gitRoot, at('.env.local'))) {
+        add('medium', dir === '.' ? '.gitignore' : `${dir}/.gitignore`, 'env-not-ignored',
+          'This project has an .env.example but .gitignore does not ignore .env files, so a real one could get committed', 'ignore-env');
+      }
+    }
     for (const file of tracked) {
       const rel = gitPrefix ? (file.startsWith(gitPrefix + '/') ? file.slice(gitPrefix.length + 1) : null) : file;
       if (rel && isEnvFile(path.posix.basename(rel))) add('medium', rel, 'secret', 'Secret file is committed to the repo', 'untrack');
