@@ -27,7 +27,7 @@ Check a folder, a GitHub link or every repo you own. Clean what it finds and ope
 
 ## Contents
 
-[PolinRider](#what-is-polinrider) · [What](#what-is-forkguard) · [Why](#why-it-exists) · [How it works](#how-it-works) · [Install](#install-and-first-run) · [Commands](#commands) · [Which one are you?](#which-one-are-you) · [AI agent skills](#ai-agent-skills) · [AI review](#optional-ai-review) · [Stay protected](#stay-protected) · [Safety](#safety-and-privacy) · [FAQ](#faq) · [Docs](#documentation) · [Contributing](#contributing) · [Developer](#developer) · [License](#license-and-credits)
+[PolinRider](#what-is-polinrider) · [What](#what-is-forkguard) · [Why](#why-it-exists) · [How it works](#how-it-works) · [Install](#install-and-first-run) · [Commands](#commands) · [Which one are you?](#which-one-are-you) · [AI agent skills](#ai-agent-skills) · [AI review](#optional-ai-review) · [If infected](#if-you-were-infected) · [Stay protected](#stay-protected) · [Safety](#safety-and-privacy) · [FAQ](#faq) · [Docs](#documentation) · [Contributing](#contributing) · [Developer](#developer) · [License](#license-and-credits)
 
 ---
 
@@ -122,6 +122,8 @@ That is the whole core loop. Just want to try it? `npx forkguard` works without 
 | `forkguard owner/repo` | Checks a GitHub repo, every branch, without downloading its files. Links and git URLs work too |
 | `forkguard --mine` | Checks all your repos. Public ones need no login. Add `--fix` to open a pull request for each infected repo |
 | `forkguard @name` | Checks the public repos of a person or team. No login |
+| `forkguard host` | Checks this computer for the malware: hidden folders, running processes, startup items, shell history and your projects. Read-only |
+| `forkguard pushes` | Lists force-pushes and deleted branches on your repos and flags a script pushing to many of them at once. Needs a login |
 | `forkguard skills` | Checks the AI agent skills on this computer. Give it a folder or `owner/repo` to check one before you install it |
 | `forkguard skills ... --ai` | Adds an AI review with your own API key: it checks each finding and looks for problems the rules cannot see |
 | **Clean** | |
@@ -258,6 +260,19 @@ Let your agent read the rules itself: `npx skills add PRODHOSH/forkguard` ([what
 
 The skill rules come from [NVIDIA SkillSpector](https://github.com/NVIDIA/SkillSpector) (Apache 2.0), and all credit for them belongs to NVIDIA ([NOTICE](NOTICE)).
 
+## If you were infected
+
+Cleaning the repos is not enough. The malware steals logins, and a stolen token keeps working until you revoke it. Do this, from a different, clean device:
+
+1. Run `forkguard host` on every computer you use, and keep an affected one offline.
+2. On GitHub, in this order: sign out of all sessions, revoke every authorized OAuth app and GitHub App, delete every personal access token, remove SSH keys you do not know, regenerate your 2FA recovery codes, then change your password. All of it is under [github.com/settings](https://github.com/settings).
+3. Rotate npm tokens, cloud and database keys, and the values in your `.env` files.
+4. Run `gh auth login` again, then `forkguard --mine --fix` to clean your repos.
+5. An hour later run `forkguard pushes`. If something was force-pushed after you cut access, a token or another computer still has it.
+6. Ask everyone who works on your repos to run `forkguard` and to re-clone instead of pulling.
+
+The full checklist is in [Cleaning an infected project](https://forkguard.pages.dev/guides/cleaning/).
+
 ## Stay protected
 
 **On your computer.** Run this once, then open a new terminal:
@@ -278,7 +293,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.8.2
+      - uses: PRODHOSH/forkguard@v0.9.0
 ```
 
 The build fails when anything dangerous is found.

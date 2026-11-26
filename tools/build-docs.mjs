@@ -26,7 +26,7 @@ const TAGLINE = 'Catch malware hidden in a repo before you install or run it.';
 const tag = (pages, file) => pages.map((pg) => ({ ...pg, src: file }));
 const ORDER = [
   '', 'install', 'quick-start',
-  'commands/check', 'commands/check-repo', 'commands/mine', 'commands/fix', 'commands/pr', 'commands/setup', 'commands/skills', 'commands/agent',
+  'commands/check', 'commands/check-repo', 'commands/mine', 'commands/fix', 'commands/pr', 'commands/host', 'commands/pushes', 'commands/setup', 'commands/skills', 'commands/agent',
   'reference/rules', 'reference/json', 'reference/options', 'reference/exit-codes', 'reference/environment',
   'guides/read-results', 'guides/cleaning', 'guides/before-you-clone', 'guides/automatic-protection', 'guides/github-action', 'guides/ai-agents', 'guides/troubleshooting',
   'internals/how-it-works', 'internals/safety', 'about',

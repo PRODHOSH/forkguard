@@ -1,6 +1,7 @@
 import { readFileSync, existsSync, readdirSync, rmdirSync, lstatSync } from 'node:fs';
 import path from 'node:path';
 import { cleanGitignore, cleanScripts, cleanSettings, cleanSource, cleanTasks, isOriginalOf } from './clean.js';
+import { SKIP_DIRS, cleanGradle } from './rules.js';
 import { fileHistory, git, repoRoot, showFile, toPosix } from './git.js';
 import { inside, isRegularFile, safeRemove, safeWrite } from './safe.js';
 
@@ -50,6 +51,45 @@ function originalFromHistory(gitRoot, rel, cleaned) {
   return null;
 }
 
+/** Every .py file under `dir`, skipping folders that are never project code. */
+function pythonFiles(dir, out = []) {
+  let entries = [];
+  try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return out; }
+  for (const e of entries) {
+    if (e.isSymbolicLink()) continue;
+    if (e.isDirectory()) { if (!SKIP_DIRS.has(e.name)) pythonFiles(path.join(dir, e.name), out); } else if (e.name.endsWith('.py')) out.push(path.join(dir, e.name));
+  }
+  return out;
+}
+
+/**
+ * After a Python loader file is deleted, other files may still import it (`import utils.transport`),
+ * which would break them. Takes out only those import lines, for the modules that were deleted.
+ */
+function dropImportsOf(root, deleted) {
+  const changes = [];
+  const mods = deleted.map((rel) => ({ pkg: path.basename(path.dirname(rel)), mod: path.basename(rel, '.py') })).filter((m) => m.pkg && m.pkg !== '.');
+  if (!mods.length) return changes;
+  for (const full of pythonFiles(root)) {
+    let text;
+    try { text = readFileSync(full, 'utf8'); } catch { continue; }
+    let next = text;
+    for (const { pkg, mod } of mods) {
+      const lines = [`import\\s+[\\w.]*\\b${pkg}\\.${mod}\\b[^\\n]*`, `from\\s+[\\w.]*\\b${pkg}\\s+import\\s+[^\\n]*\\b${mod}\\b[^\\n]*`];
+      next = next.replace(new RegExp(`^[ \\t]*(?:${lines.join('|')})\\r?\\n`, 'gm'), '');
+    }
+    if (next !== text) {
+      try {
+        safeWrite(root, full, next);
+        changes.push({ file: toPosix(path.relative(root, full)), action: 'removed the import of the deleted file' });
+      } catch (err) {
+        changes.push({ file: toPosix(path.relative(root, full)), action: `could not fix: ${err.message}`, failed: true });
+      }
+    }
+  }
+  return changes;
+}
+
 export { cleanSource };
 
 /**
@@ -85,6 +125,7 @@ export function fix(result, { untrackSecrets = false } = {}) {
   const changes = [];
   const done = new Set();
   const hasEnv = findings.some((f) => f.rule === 'secret' || f.rule === 'env-not-ignored');
+  const deletedPython = [];
 
   for (const f of findings) {
     if (!f.fix || f.fix === 'ignore-env' || done.has(f.file + f.fix)) continue;
@@ -97,6 +138,7 @@ export function fix(result, { untrackSecrets = false } = {}) {
         if (existsSync(full)) {
           remove(full, root);
           changes.push({ file: f.file, action: 'deleted' });
+          if (f.rule === 'python-loader') deletedPython.push(f.file);
         }
         continue;
       }
@@ -126,6 +168,9 @@ export function fix(result, { untrackSecrets = false } = {}) {
         }
       } else if (f.fix === 'script') {
         next = cleanScripts(text);
+      } else if (f.fix === 'gradle') {
+        next = cleanGradle(text);
+        action = 'removed the hidden launcher';
       } else if (f.fix === 'gitignore') {
         next = cleanGitignore(text, hasEnv);
       } else if (f.fix === 'autorun') {
@@ -156,6 +201,8 @@ export function fix(result, { untrackSecrets = false } = {}) {
       changes.push({ file: f.file, action: `could not fix: ${err.message}`, failed: true });
     }
   }
+
+  changes.push(...dropImportsOf(root, deletedPython));
 
   // If .env files are committed or not ignored, make sure the project's .gitignore keeps them out from now on.
   const envRoots = new Set();

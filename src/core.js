@@ -2,8 +2,9 @@
 // the CLI, a Cloudflare Worker, a browser. Feed it a file name and its bytes (a Buffer or any
 // Uint8Array) and it tells you what is wrong. Reading files and talking to git is somebody else's job.
 import {
-  BAD_PACKAGES, CODE_EXT, CONFIG_RE, DROPPER_EXT, DROPPER_NAMES, FONT_EXT, LOCKFILES, LONG_LINE, SCRIPT_EXT,
-  badScript, findHiddenTail, findLoader, findMarker, hasPrelude, isHistoryRewriter, isRealFont, longestLine, looksLikeText, riskyLifecycle,
+  BAD_PACKAGES, CODE_EXT, CONFIG_RE, DROPPER_EXT, DROPPER_NAMES, FONT_EXT, GRADLE_RE, LOCKFILES, LONG_LINE, SCRIPT_EXT,
+  badScript, findGradleLoader, findHiddenTail, findLoader, findMarker, findPythonLoader, hasPrelude, isBareName, isHistoryRewriter, isRealFont,
+  longestLine, looksLikeText, riskyLifecycle,
 } from './rules.js';
 
 export * from './rules.js';
@@ -29,7 +30,8 @@ export const isEnvFile = (name) => /^\.env(\.[^/]*)?$/.test(name) && !/example|s
 
 /** Whether forkguard needs to look inside a file with this name at all. */
 export function isInteresting(name, ext) {
-  return CODE_EXT.includes(ext) || name === 'init' || FONT_EXT.includes(ext) || DROPPER_NAMES.has(name.toLowerCase()) ||
+  // A file with no extension (`init`, `service`, ...) is where the loader hides, whatever it is called.
+  return CODE_EXT.includes(ext) || name === 'init' || ext === '.py' || GRADLE_RE.test(name) || (ext === '' && isBareName(name)) || FONT_EXT.includes(ext) || DROPPER_NAMES.has(name.toLowerCase()) ||
     DROPPER_EXT.includes(ext) || SCRIPT_EXT.includes(ext) || ['package.json', '.gitignore', 'tasks.json', 'settings.json', 'extension.json', 'README.md'].includes(name) ||
     LOCKFILES.has(name);
 }
@@ -41,6 +43,7 @@ export function isInteresting(name, ext) {
 export function inspect(f, buf, add, fontDirs) {
   const isCode = CODE_EXT.includes(f.ext);
   const isInit = f.name === 'init';
+  const isBare = f.ext === '' && isBareName(f.name);
 
   if (DROPPER_NAMES.has(f.name.toLowerCase()) || DROPPER_EXT.includes(f.ext)) {
     add('high', f.rel, 'dropper', 'File this malware drops to spread itself', 'delete');
@@ -71,16 +74,33 @@ export function inspect(f, buf, add, fontDirs) {
     return;
   }
 
-  if (isCode || isInit) {
+  if (f.ext === '.py') {
+    const verdict = findPythonLoader(text);
+    if (verdict) {
+      add('high', f.rel, 'python-loader',
+        verdict === 'delete' ? 'Python file that reads code from a blockchain API and runs it with node' : 'Python code that reads code from a blockchain API and runs it with node. It sits inside a real file, so remove it by hand',
+        verdict === 'delete' ? 'delete' : null);
+    }
+    return;
+  }
+
+  if (GRADLE_RE.test(f.rel)) {
+    const g = findGradleLoader(text);
+    if (g.tasks.length) add('high', f.rel, 'gradle-loader', `Gradle task "${g.tasks[0]}" starts a hidden node process every time you build`, 'gradle');
+    else if (g.hook) add('high', f.rel, 'gradle-loader', `Every build runs the "${g.hook}" task first, and it looks like a hidden launcher`, 'gradle');
+    return;
+  }
+
+  if (isCode || isInit || isBare) {
     const tail = findHiddenTail(text);
     const marker = findMarker(text);
     const loader = findLoader(text);
     if (loader) {
-      add('high', f.rel, 'loader', 'Downloads code from a hidden URL in an env variable and runs it', isInit ? 'delete' : 'strip');
+      add('high', f.rel, 'loader', 'Downloads code from a hidden URL in an env variable and runs it', isInit || isBare ? 'delete' : 'strip');
     }
     if (tail || marker) {
       const where = tail ? `Code hidden after ${tail.blanks} blank spaces on line ${tail.line}` : 'Contains a known malware signature';
-      add('high', f.rel, 'hidden-code', where, isInit ? 'delete' : 'strip');
+      add('high', f.rel, 'hidden-code', where, isInit || isBare ? 'delete' : 'strip');
     } else if (CONFIG_RE.test(f.rel) && hasPrelude(text) && text.includes('exports: {}')) {
       add('medium', f.rel, 'prelude', 'Has the fake require() lines this malware adds to configs', 'strip');
     } else if (CONFIG_RE.test(f.rel) && longestLine(text) >= LONG_LINE) {

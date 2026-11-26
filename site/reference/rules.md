@@ -10,6 +10,8 @@ forkguard was built against a malware campaign researchers call **PolinRider**, 
 | --- | --- | --- | --- |
 | [`hidden-code`](https://forkguard.pages.dev/reference/rules/#hidden-code) | HIGH | Code pushed far right behind blank spaces, or a known signature, in a code file | cut it out |
 | [`loader`](https://forkguard.pages.dev/reference/rules/#loader) | HIGH | A block that decodes a URL from an env variable, downloads code and runs it | remove the block |
+| [`gradle-loader`](https://forkguard.pages.dev/reference/rules/#gradle-loader) | HIGH | A Gradle task that starts a hidden node process, or a build that runs it first | remove the task |
+| [`python-loader`](https://forkguard.pages.dev/reference/rules/#python-loader) | HIGH | Python that reads code from a blockchain API and runs it with node | delete the file |
 | [`script`](https://forkguard.pages.dev/reference/rules/#script) | HIGH | A package.json script running `node init` or a font file first | remove that step |
 | [`bad-package`](https://forkguard.pages.dev/reference/rules/#bad-package) | HIGH | A known malicious npm package, in package.json or a lockfile | a person decides |
 | [`bad-package-installed`](https://forkguard.pages.dev/reference/rules/#bad-package-installed) | HIGH | A known malicious package already in `node_modules` | a person decides |
@@ -73,6 +75,16 @@ tailwindcss-animate-style
 One of those packages is already in `node_modules`, next to a `package.json`. Its install step has probably already run.
 
 **Fix:** none automatically. Delete `node_modules`, drop the package from `package.json`, and treat the computer as exposed: rotate your tokens and keys.
+
+The hidden file is not always called `init`. A file with **no extension** and any name (`service` has been seen) is checked the same way, and so is `node service` as a step in a `package.json` script. A normal `node service.js` is left alone.
+
+### gradle-loader
+
+Seen in Android and other Gradle projects. A task in `build.gradle` starts a hidden node process (`nohup node ...` on macOS and Linux, `Start-Process node` on Windows) and another build file is told to run it first, so every build starts the malware. A build that runs `node` in the open, such as `commandLine "node", "scripts/bundle.js"`, is not flagged. **Fix:** cuts out the task and the line that runs it first.
+
+### python-loader
+
+A Python file that reads a payload from a blockchain API (the transaction data of a public address), writes it to a temporary file and runs it with `node`. It is imported from a real script, so running that script starts it. A script that only reads from a blockchain API is not flagged. **Fix:** deletes the file and removes the import lines that pointed at it. If the loader sits inside a real file, forkguard reports it and leaves it for you.
 
 ### fake-font
 

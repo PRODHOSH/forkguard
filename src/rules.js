@@ -149,13 +149,14 @@ export function looksLikeText(buf) {
 }
 
 /** Script commands in package.json that run the hidden loader before the real command. */
-// `node init`, `node ./init` or `node init.js` as a whole word. Not `node init-db.js` or `node initialize.js`.
-export const INIT_CMD = String.raw`node\s+(?:\.\/)?init(?:\.js)?(?=\s|&|;|\||$|["'])`;
+// `node init`, `node ./init`, `node init.js` or a bare `node service` as a whole word. Not `node init-db.js`, `node initialize.js` or `node service.js`.
+export const INIT_CMD = String.raw`node\s+(?:\.\/)?(?:init(?:\.js)?|service)(?=\s|&|;|\||$|["'])`;
 // Running a font file, or anything inside a fonts folder, as code. Not `node public/make-sitemap.js`.
 export const FONT_CMD = String.raw`node\s+\S*(?:fonts?\/\S+|\.(?:ttf|woff2?|otf|eot|ttc)(?=\s|&|;|\||$|["']))`;
 
 export function badScript(cmd) {
-  if (new RegExp(INIT_CMD).test(cmd)) return 'runs a hidden file called init before your real command';
+  const hit = new RegExp(INIT_CMD).exec(cmd);
+  if (hit) return `runs a hidden file called ${/service/.test(hit[0]) ? 'service' : 'init'} before your real command`;
   if (new RegExp(FONT_CMD).test(cmd)) return 'runs a font file or a file from a fonts folder as code';
   return null;
 }
@@ -166,4 +167,75 @@ export function riskyLifecycle(name, cmd) {
     return `"${name}" downloads or decodes something during install`;
   }
   return null;
+}
+
+/** A project file with no extension and no dot in its name, such as `init` or `service`. The loader hides in one of these. */
+export const isBareName = (name) => !name.includes('.');
+
+// Gradle files: a build file has no reason to start a hidden node process.
+export const GRADLE_RE = /(^|\/)(build|settings)\.gradle(\.kts)?$/;
+const GRADLE_LAUNCH = /nohup\s+node\b|Start-Process\s+(?:-FilePath\s+)?['"]?node\b/i;
+const GRADLE_TASK = /(?:tasks\.register\(\s*["']\w+["'][^)]*\)|task\s+\w+\s*\([^)]*\)|tasks\.register\s*<[^>]*>\s*\(\s*["']\w+["'][^)]*\))\s*\{/g;
+// A task named like a server that another build file is told to run first.
+const GRADLE_HOOK = /dependsOn\(\s*rootProject\.tasks\.named\(\s*["']([A-Za-z]*(?:start|run|launch|api|server|service|daemon)[A-Za-z]*)["']\s*\)\s*\)/i;
+
+/** The index just after the `}` that closes the block opened at `open` (the index of its `{`), or -1. */
+function blockEnd(text, open) {
+  let depth = 0;
+  for (let i = open; i < text.length; i++) {
+    if (text[i] === '{') depth++;
+    else if (text[i] === '}' && --depth === 0) return i + 1;
+  }
+  return -1;
+}
+
+/** Finds Gradle tasks that start a hidden node process, and build files that run a task like that first. */
+export function findGradleLoader(text) {
+  const tasks = [];
+  for (const m of text.matchAll(GRADLE_TASK)) {
+    const end = blockEnd(text, m.index + m[0].length - 1);
+    if (end !== -1 && GRADLE_LAUNCH.test(text.slice(m.index, end))) tasks.push(/["'](\w+)["']/.exec(m[0])?.[1] || /task\s+(\w+)/.exec(m[0])?.[1]);
+  }
+  const hook = GRADLE_HOOK.exec(text);
+  return { tasks: tasks.filter(Boolean), hook: hook ? hook[1] : null };
+}
+
+/** Cuts the launching task out of a Gradle file, and the line that makes a build run it. */
+export function cleanGradle(text) {
+  let out = text;
+  const names = [];
+  for (let again = true; again;) {
+    again = false;
+    for (const m of out.matchAll(GRADLE_TASK)) {
+      const end = blockEnd(out, m.index + m[0].length - 1);
+      if (end !== -1 && GRADLE_LAUNCH.test(out.slice(m.index, end))) {
+        names.push(/["'](\w+)["']/.exec(m[0])?.[1] || /task\s+(\w+)/.exec(m[0])?.[1]);
+        out = out.slice(0, m.index).replace(/[ \t]*$/, '') + out.slice(end).replace(/^[ \t]*\r?\n/, '');
+        again = true;
+        break;
+      }
+    }
+  }
+  const hook = GRADLE_HOOK.exec(out);
+  if (hook) names.push(hook[1]);
+  for (const name of names.filter(Boolean)) {
+    const ref = `["']${name}["']`;
+    // tasks.named("preBuild") { dependsOn(rootProject.tasks.named("startApi")) }
+    out = out.replace(new RegExp(`[ \\t]*tasks\\.named\\(\\s*["']\\w+["']\\s*\\)\\s*\\{\\s*dependsOn\\([^\\n]*${ref}[^\\n]*\\)\\s*\\}[ \\t]*\\r?\\n?`, 'g'), '');
+    // preBuild.dependsOn startApi, or a dependsOn line on its own
+    out = out.replace(new RegExp(`^[ \\t]*[\\w.]*dependsOn[^\\n]*(?:${ref}|\\b${name}\\b)[^\\n]*\\r?\\n`, 'gm'), '');
+  }
+  return out === text ? null : out.replace(/(\r?\n){3,}/g, '$1$1');
+}
+
+// Python that reads a payload from a blockchain API and hands it to node.
+const CHAIN_API = /ethplorer|getAddressTransactions|eth_getTransactionByHash|api\.trongrid|aptoslabs|etherscan\.io\/api|bscscan\.com\/api/i;
+export const CHAIN_GREP = 'ethplorer|getAddressTransactions|eth_getTransactionByHash|api.trongrid|aptoslabs|etherscan.io/api|bscscan.com/api';
+
+/** Returns 'delete' when the whole file is the loader, 'review' when it sits inside real code, or null. */
+export function findPythonLoader(text) {
+  if (!CHAIN_API.test(text)) return null;
+  if (!/subprocess|os\.system|\bPopen\b|_sp\.run/.test(text)) return null;
+  if (!/["']node["']|\bnode\s+\S+\.js/.test(text)) return null;
+  return /^\s*(def|class)\s/m.test(text) ? 'review' : 'delete';
 }

@@ -7,6 +7,8 @@ import { scan } from '../src/scan.js';
 import { fix, projectsOf } from '../src/fix.js';
 import { openPr } from '../src/pr.js';
 import { setup } from '../src/setup.js';
+import { hostCheck, printHost } from '../src/host.js';
+import { checkPushes } from '../src/pushes.js';
 import { agent } from '../src/agent.js';
 import { c, printChanges, printScan } from '../src/report.js';
 import { GATED } from '../src/rules.js';
@@ -38,6 +40,10 @@ Other things it can do:
   forkguard @name          Check someone else's public repos
   forkguard pr             Clean this repo on a new branch and open a pull request
                            (add --upstream to send it to the repo you forked from)
+  forkguard host           Check this computer: hidden folders, running processes, startup items,
+                           shell history and your projects. Read-only.
+  forkguard pushes         Show force-pushes and deleted branches on your repos, and spot a script
+                           pushing to many of them at once (add --days 7, or owner/repo names)
   forkguard skills         Check the AI agent skills on this computer (Claude Code, Codex, Cursor...)
                            (or one skill folder, or owner/repo before you install it)
                            (add --ai for an AI review. You bring your own API key, set as an
@@ -357,6 +363,22 @@ async function main() {
   if (flags.has('--mine') || (user && !existsSync(words[0]))) return github(user);
 
   if (words[0] === 'skills') return skillsCommand(words[1]);
+
+  if (words[0] === 'host') {
+    const result = hostCheck();
+    if (flags.has('--json')) console.log(JSON.stringify(result, null, 2));
+    else printHost(result, { c });
+    return result.verdict === 'likely-infected' || result.verdict === 'projects-infected' ? 1 : 0;
+  }
+
+  if (words[0] === 'pushes') {
+    const dayArg = args.find((a) => a.startsWith('--days='))?.split('=')[1] ?? (args.includes('--days') ? args[args.indexOf('--days') + 1] : null);
+    const days = Math.max(1, Math.min(30, Number(dayArg) || 3));
+    const repos = words.slice(1).filter((w) => /^[\w.-]+\/[\w.-]+$/.test(w));
+    const result = await checkPushes({ repos, days, json: flags.has('--json'), c });
+    if (flags.has('--json')) console.log(JSON.stringify(result, null, 2));
+    return result.waves ? 1 : 0;
+  }
 
   const [cmd, folder] = ['fix', 'pr', 'setup', 'agent'].includes(words[0]) ? [words[0], words[1]] : ['scan', words[0]];
 

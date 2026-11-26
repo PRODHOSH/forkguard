@@ -62,6 +62,8 @@ Run `npx forkguard skills` with no argument to check every skill already install
 | `forkguard owner/repo` or a GitHub link | Checks a repo, every branch, without downloading its files | No |
 | `forkguard @name` | Checks all the public repos of a person or team, read only, no login | No |
 | `forkguard --mine` | Checks every repo the user owns. Public ones need no login. Private ones need `gh auth login` or a `GITHUB_TOKEN` | No |
+| `forkguard host` | Checks this computer: hidden loader folders, running processes, startup items, shell profiles and history, and the projects on it. Never opens a password or key | No |
+| `forkguard pushes` | Lists force-pushes and deleted branches on the user's repos (`--days N`, or `owner/repo` names) and flags a script pushing to many repos within minutes. Needs `gh auth login` | No |
 | `forkguard skills [folder or owner/repo]` | Checks AI agent skills. `--ai` adds an AI review with the user's own key | No (`--ai` sends skill text to the user's AI provider, after they say yes) |
 | `forkguard fix` | Removes what it found, restoring original files from git history. Asks before changing several projects. `--yes` skips the question | **Yes**, local files |
 | `forkguard pr` | Cleans the repo on a new branch, pushes it and opens a pull request. `--upstream` sends it to the repo the user forked from | **Yes**, a branch and a pull request |
@@ -96,7 +98,8 @@ For skills, each item has `skill`, `score`, `verdict` (`SAFE`, `CAUTION` or `DO_
 1. Stop. Do not run, install or open the project.
 2. Tell the user in plain words: which project, which files, what forkguard said.
 3. Ask whether to clean it. If yes, run `npx forkguard fix` in that folder, or `npx forkguard pr` to fix it on a new branch and open a pull request.
-4. After cleaning, the user must change their GitHub, npm and cloud tokens and turn on branch protection. If the project was already run, assume the tokens on that machine are exposed. `references/after-infection.md` has the checklist.
+4. Run `npx forkguard host` on the user's computer, and `npx forkguard pushes` if repos on GitHub were rewritten. A force-push the user did not make means a token of theirs is in someone else's hands: the user must revoke it first (only they can), or the cleanup is pushed back over.
+5. After cleaning, the user must change their GitHub, npm and cloud tokens and turn on branch protection. If the project was already run, assume the tokens on that machine are exposed. `references/after-infection.md` has the checklist.
 
 ## Making this automatic
 

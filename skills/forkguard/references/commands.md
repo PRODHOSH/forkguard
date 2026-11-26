@@ -22,6 +22,8 @@ Everything here is also on https://forkguard.pages.dev. Exit codes are the same 
 | `forkguard pr [folder]` | New branch `forkguard/remove-malware`, a plain commit message, push, pull request with a plain description. `--upstream` targets the repo the user forked from. Needs `gh auth login` or a token |
 | `forkguard --mine --fix` | One pull request per repo infected on its default branch. Skips repos that already have a forkguard pull request. Lists infected side branches but does not open pull requests for them. Asks once first, or use `--yes`. Needs a login |
 | `forkguard setup` | Adds a marked block to the shell profile (`.zshrc`, `.bashrc`, PowerShell `profile.ps1`) that checks before `npm`, `pnpm`, `yarn`, `bun` (install, add, run, dev, start, build, test, exec, dlx), `npx`, `bunx`, `pnpx` (`skills add` only), and after `git clone`, `pull`, `merge`, `checkout`, `switch`. It can also turn off VS Code's automatic tasks. `--remove` takes it all out |
+| `forkguard host` | Checks this computer for the malware. Read only |
+| `forkguard pushes [--days N] [owner/repo]` | Lists force-pushes and deleted branches on the user's repos, and flags a wave |
 | `forkguard agent [--write]` | Prints or writes rules for AI agents |
 
 ## Skills, in more detail

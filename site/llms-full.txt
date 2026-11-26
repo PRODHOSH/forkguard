@@ -2,9 +2,9 @@
 
 > Catch malware hidden in a repo before you install or run it.
 
-forkguard is a free, open source, zero-dependency Node.js command line tool (Node 18+, Apache 2.0) that finds malware hidden in repositories before you install or run them. It targets the PolinRider campaign: code hidden after hundreds of blank spaces, rewritten commits, fake font files, VS Code tasks that run on folder open, and poisoned npm packages. It can check a folder, a GitHub repo (every branch, without writing its files to disk) or every repo you own, clean what it finds (restoring original files from git history), open a pull request with the fix, and check automatically before npm install and after git clone. It also checks AI agent skills (Claude Code, Codex, Cursor) before you install them, with rules from NVIDIA SkillSpector, and can add an AI review with your own API key. Exit codes: 0 clean, 1 dangerous finding, 2 error. Current npm version: 0.8.2.
+forkguard is a free, open source, zero-dependency Node.js command line tool (Node 18+, Apache 2.0) that finds malware hidden in repositories before you install or run them. It targets the PolinRider campaign: code hidden after hundreds of blank spaces, rewritten commits, fake font files, VS Code tasks that run on folder open, and poisoned npm packages. It can check a folder, a GitHub repo (every branch, without writing its files to disk) or every repo you own, clean what it finds (restoring original files from git history), open a pull request with the fix, and check automatically before npm install and after git clone. It also checks AI agent skills (Claude Code, Codex, Cursor) before you install them, with rules from NVIDIA SkillSpector, and can add an AI review with your own API key. Exit codes: 0 clean, 1 dangerous finding, 2 error. Current npm version: 0.9.0.
 
-Site: https://forkguard.pages.dev/  ·  Source: https://github.com/PRODHOSH/forkguard  ·  Version: 0.8.2
+Site: https://forkguard.pages.dev/  ·  Source: https://github.com/PRODHOSH/forkguard  ·  Version: 0.9.0
 
 ---
 
@@ -309,6 +309,7 @@ Checks every file in the folder that this malware is known to use, and reports e
 ### What it reads
 
 - JavaScript and TypeScript files (`.js .mjs .cjs .ts .mts .cts .jsx .tsx .vue .svelte`) and any file named `init`.
+- Files with no extension (such as `service`), `.py` files that talk to a blockchain API, and Gradle build files (`build.gradle`, `settings.gradle`, `.kts`).
 - `package.json` and lockfiles (`package-lock.json`, `npm-shrinkwrap.json`, `yarn.lock`, `pnpm-lock.yaml`, `bun.lock`).
 - `.vscode/tasks.json`, `.vscode/settings.json` and `.vscode/extension.json`.
 - Font files (`.woff .woff2 .ttf .otf .ttc .eot`) and `README.md` files inside fonts folders.
@@ -912,6 +913,135 @@ forkguard pr --upstream
 
 ---
 
+Source: https://forkguard.pages.dev/commands/host/
+
+# forkguard host
+
+> Is this computer affected? A read-only check of the places this malware leaves traces.
+
+## Name
+
+`forkguard host` looks at the computer you are on for signs of the malware. It never deletes, stops or runs anything, and it never opens a password or a key.
+
+## Synopsis
+
+```bash
+forkguard host
+forkguard host --json
+```
+
+## Description
+
+Cleaning your repos does not tell you whether the malware ran on your computer. This does. It works on macOS, Linux and Windows and checks:
+
+- **Hidden folders** in your home folder that the loader uses (`~/.node_modules`, and a few names public reports list), and its own files.
+- **Running processes**: a node process running a hidden `init` or `service` file, a font file, or something inside the hidden folder.
+- **Startup items**: launch agents (macOS), systemd and autostart (Linux), the startup folder and Run key (Windows), and cron.
+- **Shell profiles** such as `.zshrc` and `.bashrc` that download and run code or start a hidden node process.
+- **Shell history**: a command tied to the malware. Only the matching words are shown, never the whole line.
+- **Temp folders** for dropped files, **VS Code** automatic tasks, and **global npm packages** that are known to be malicious.
+- **Your projects** in the usual folders (`Developer`, `Projects`, `code`, `dev`, `src`, `repos`), with the same check as plain `forkguard`.
+
+It also lists the logins and keys on the computer that the malware could have read if it ran here (your npm login, the GitHub CLI login, SSH keys, cloud keys). It only notes that the files exist. It never opens them.
+
+### The result
+
+| Result | Meaning |
+| --- | --- |
+| Likely affected | Something on the computer itself matches the malware. Follow the steps it prints, in order. |
+| Projects infected | The computer looks fine, but some projects on it are infected. Run [`forkguard fix`](https://forkguard.pages.dev/commands/fix/). |
+| Worth a look | A MED item, for example a shell profile line that downloads code. |
+| Nothing found | Nothing is there right now. The malware can run once, take what it can and remove itself, so rotate your keys anyway if you ever opened an infected project. |
+
+## Examples
+
+```bash
+forkguard host
+```
+
+## Exit status
+
+| Code | Meaning |
+| --- | --- |
+| `0` | Clean, or only MED findings. |
+| `1` | Something HIGH was found. |
+| `2` | forkguard itself could not run. |
+
+The same codes work in scripts and CI. See [Exit codes](https://forkguard.pages.dev/reference/exit-codes/).
+
+## See also
+
+- [Cleaning an infected project](https://forkguard.pages.dev/guides/cleaning/): what to do next
+- [forkguard pushes](https://forkguard.pages.dev/commands/pushes/): who force-pushed to your repos
+
+## Where to next
+
+- [Cleaning an infected project](https://forkguard.pages.dev/guides/cleaning/): What to do next, in order.
+- [forkguard pushes](https://forkguard.pages.dev/commands/pushes/): Who force-pushed to your repos.
+- [Every rule](https://forkguard.pages.dev/reference/rules/): What it catches.
+
+---
+
+Source: https://forkguard.pages.dev/commands/pushes/
+
+# forkguard pushes
+
+> Who force-pushed to your repos, and when.
+
+## Name
+
+`forkguard pushes` shows the force-pushes and deleted branches on your repos from the last few days, and flags a script going through many repos at once.
+
+## Synopsis
+
+```bash
+forkguard pushes
+forkguard pushes --days 7
+forkguard pushes owner/repo another/repo
+forkguard pushes --json
+```
+
+- `--days N`: How far back to look, 1 to 30. The default is 3.
+- `owner/repo`: Only these repos. By default, every repo you own.
+- `--json`: Print the events as JSON.
+
+## Description
+
+This malware spreads by taking your newest commit, adding its payload and force-pushing the result back with your name, your time and your message. It looks like your own work. GitHub does record every force-push, with the account that made it, and this command reads that record.
+
+Each line shows when, which repo and branch, the commit before and after, and the account. If force-pushes hit three or more repos within ten minutes of each other, that is called a **wave**: a script, not a person. The account shown is the one whose login was used, so a wave you did not make means a token or session of yours is somewhere else.
+
+It needs a GitHub login (`gh auth login`). It only reads.
+
+## Examples
+
+```bash
+forkguard pushes --days 2
+```
+
+## Exit status
+
+| Code | Meaning |
+| --- | --- |
+| `0` | Clean, or only MED findings. |
+| `1` | Something HIGH was found. |
+| `2` | forkguard itself could not run. |
+
+The same codes work in scripts and CI. See [Exit codes](https://forkguard.pages.dev/reference/exit-codes/).
+
+## See also
+
+- [Cleaning an infected project](https://forkguard.pages.dev/guides/cleaning/): the account checklist
+- [forkguard host](https://forkguard.pages.dev/commands/host/): check each computer
+
+## Where to next
+
+- [Cleaning an infected project](https://forkguard.pages.dev/guides/cleaning/): The account checklist.
+- [forkguard host](https://forkguard.pages.dev/commands/host/): Check each computer.
+- [forkguard --mine](https://forkguard.pages.dev/commands/mine/): Check all your repos.
+
+---
+
 Source: https://forkguard.pages.dev/commands/setup/
 
 # forkguard setup
@@ -1264,6 +1394,8 @@ forkguard was built against a malware campaign researchers call **PolinRider**, 
 | --- | --- | --- | --- |
 | [`hidden-code`](https://forkguard.pages.dev/reference/rules/#hidden-code) | HIGH | Code pushed far right behind blank spaces, or a known signature, in a code file | cut it out |
 | [`loader`](https://forkguard.pages.dev/reference/rules/#loader) | HIGH | A block that decodes a URL from an env variable, downloads code and runs it | remove the block |
+| [`gradle-loader`](https://forkguard.pages.dev/reference/rules/#gradle-loader) | HIGH | A Gradle task that starts a hidden node process, or a build that runs it first | remove the task |
+| [`python-loader`](https://forkguard.pages.dev/reference/rules/#python-loader) | HIGH | Python that reads code from a blockchain API and runs it with node | delete the file |
 | [`script`](https://forkguard.pages.dev/reference/rules/#script) | HIGH | A package.json script running `node init` or a font file first | remove that step |
 | [`bad-package`](https://forkguard.pages.dev/reference/rules/#bad-package) | HIGH | A known malicious npm package, in package.json or a lockfile | a person decides |
 | [`bad-package-installed`](https://forkguard.pages.dev/reference/rules/#bad-package-installed) | HIGH | A known malicious package already in `node_modules` | a person decides |
@@ -1327,6 +1459,16 @@ tailwindcss-animate-style
 One of those packages is already in `node_modules`, next to a `package.json`. Its install step has probably already run.
 
 **Fix:** none automatically. Delete `node_modules`, drop the package from `package.json`, and treat the computer as exposed: rotate your tokens and keys.
+
+The hidden file is not always called `init`. A file with **no extension** and any name (`service` has been seen) is checked the same way, and so is `node service` as a step in a `package.json` script. A normal `node service.js` is left alone.
+
+### gradle-loader
+
+Seen in Android and other Gradle projects. A task in `build.gradle` starts a hidden node process (`nohup node ...` on macOS and Linux, `Start-Process node` on Windows) and another build file is told to run it first, so every build starts the malware. A build that runs `node` in the open, such as `commandLine "node", "scripts/bundle.js"`, is not flagged. **Fix:** cuts out the task and the line that runs it first.
+
+### python-loader
+
+A Python file that reads a payload from a blockchain API (the transaction data of a public address), writes it to a temporary file and runs it with `node`. It is imported from a real script, so running that script starts it. A script that only reads from a blockchain API is not flagged. **Fix:** deletes the file and removes the import lines that pointed at it. If the loader sits inside a real file, forkguard reports it and leaves it for you.
 
 ### fake-font
 
@@ -1485,6 +1627,7 @@ Each id is explained in [What it catches](https://forkguard.pages.dev/reference/
 
 ```text
 hidden-code   loader        script         lifecycle
+gradle-loader python-loader
 bad-package   bad-package-installed   fake-font
 decoy-folder  autorun       autorun-setting dropper
 gitignore     prelude       config-long-line odd-vscode-file
@@ -1499,6 +1642,7 @@ env-not-ignored   secret    rewritten      npm-infected
 | `delete-dir` | Deletes the folder. |
 | `strip` | Cuts the malware out of your file. |
 | `script` | Removes the injected step from a package.json script. |
+| `gradle` | Cuts the hidden launcher task out of a Gradle build file, and the line that runs it first. |
 | `autorun` | Removes the folder-open task from `.vscode/tasks.json`. |
 | `setting` | Turns automatic tasks off in `.vscode/settings.json`. |
 | `gitignore` | Removes the malware’s line from `.gitignore`. |
@@ -1710,12 +1854,30 @@ Source: https://forkguard.pages.dev/guides/cleaning/
 > Found something? Do this next. The order matters.
 
 1. **Stop.** Do not run `npm install` or `npm run dev`, and do not open the folder in VS Code.
-2. **Clean it** with [`forkguard fix`](https://forkguard.pages.dev/commands/fix/), or [`forkguard pr`](https://forkguard.pages.dev/commands/pr/) to clean GitHub as well.
-3. **From another device,** change your passwords and keys: GitHub tokens, SSH keys, your npm token, cloud keys, and everything in your `.env` files. The malware steals these, so assume they are known.
-4. **Stop history rewrites.** In your GitHub repo go to Settings, then Rules, then Rulesets, and block force pushes on your main branch.
-5. **If forkguard says npm itself is infected,** reinstall Node.js from nodejs.org before running npm again.
-6. **Check everything else:** run [`forkguard --mine`](https://forkguard.pages.dev/commands/mine/) to check all your repos.
-7. **Run a full antivirus scan,** and tell anyone else who works on the same repos.
+2. **Check the computer** with [`forkguard host`](https://forkguard.pages.dev/commands/host/). It looks for the hidden loader, running processes, startup items and shell history, and it never changes anything.
+3. **Cut off access first,** from another device: see the checklist below. Cleaning repos while a stolen token still works only gets the malware pushed straight back.
+4. **Clean it** with [`forkguard fix`](https://forkguard.pages.dev/commands/fix/), or [`forkguard pr`](https://forkguard.pages.dev/commands/pr/) to clean GitHub as well.
+5. **Rotate your keys.** GitHub tokens, SSH keys, your npm token, cloud keys, and everything in your `.env` files. The malware steals these, so assume they are known.
+6. **Stop history rewrites.** In your GitHub repo go to Settings, then Rules, then Rulesets, and block force pushes on your main branch.
+7. **If forkguard says npm itself is infected,** reinstall Node.js from nodejs.org before running npm again.
+8. **Check everything else:** run [`forkguard --mine`](https://forkguard.pages.dev/commands/mine/) to check all your repos, and [`forkguard pushes`](https://forkguard.pages.dev/commands/pushes/) an hour later to see whether anything was force-pushed back.
+9. **Run a full antivirus scan,** and tell anyone else who works on the same repos to run forkguard and to re-clone instead of pulling.
+
+## Cut off access: the GitHub checklist
+
+Do these in order, from a clean device. Each one closes a different way back in.
+
+1. Sign out of every session: github.com/settings/sessions.
+2. Revoke every authorized OAuth app, especially GitHub CLI and VS Code, and every authorized GitHub App: github.com/settings/applications.
+3. Delete every personal access token, classic and fine-grained: github.com/settings/tokens.
+4. Remove SSH keys you do not recognise: github.com/settings/keys.
+5. Check installed GitHub Apps and, in each repo, the deploy keys, webhooks and Actions secrets: github.com/settings/installations.
+6. Regenerate your 2FA recovery codes, remove passkeys you do not know, then change your password: github.com/settings/security.
+7. Do the same in each organization you belong to.
+8. Log in again with `gh auth login`, and delete the old `github.com` entry in your system keychain.
+9. Rotate npm tokens (npmjs.com/settings), cloud keys and database keys, and update them wherever they are used.
+
+> **Tip:** A force-push you did not make is the clearest sign someone is using your login. [`forkguard pushes`](https://forkguard.pages.dev/commands/pushes/) lists them, and flags a script going through many repos within minutes.
 
 ## fix or pr?
 
@@ -1738,6 +1900,8 @@ This malware steals tokens, keys and saved passwords, then uses your GitHub toke
 - **npm is infected.** An infected npm restarts the malware on every npm command. forkguard checks for this.
 - **A bad package is still in your dependencies.** Look for `bad-package` findings, and remove the package.
 - **A newer variant.** At least one repo was reinfected with the April 2026 variant after a cleanup of the original. Update forkguard and run it again.
+- **A token you did not revoke.** The malware keeps working from anywhere your old token is valid. If force-pushes continue after a cleanup, revoke again and look at [`forkguard pushes`](https://forkguard.pages.dev/commands/pushes/).
+- **Another computer.** A second laptop with an infected copy of the repos can push the payload back. Run [`forkguard host`](https://forkguard.pages.dev/commands/host/) on every computer you use.
 
 > **Tip:** Add the [GitHub Action](https://forkguard.pages.dev/guides/github-action/) with a nightly schedule, so a reinfection turns your build red within a day.
 
@@ -1927,7 +2091,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.8.2
+      - uses: PRODHOSH/forkguard@v0.9.0
 ```
 
 Open the **Actions** tab of your repo to see it run.
@@ -1964,7 +2128,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.8.2
+      - uses: PRODHOSH/forkguard@v0.9.0
         with:
           open-pr: true
 ```
@@ -1978,7 +2142,7 @@ When something is found, the Action creates a branch called `forkguard/remove-ma
 ### Check one folder of a monorepo
 
 ```yaml
-      - uses: PRODHOSH/forkguard@v0.8.2
+      - uses: PRODHOSH/forkguard@v0.9.0
         with:
           path: apps/web
 ```
@@ -2003,7 +2167,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.8.2
+      - uses: PRODHOSH/forkguard@v0.9.0
 ```
 
 ### Use the CLI directly
@@ -2018,7 +2182,7 @@ jobs:
 
 ## Pin a version
 
-`PRODHOSH/forkguard@v0.8.2` always runs that exact version, so nothing changes under you. When a new version comes out, update the number. All versions are on the [releases page](https://github.com/PRODHOSH/forkguard/releases).
+`PRODHOSH/forkguard@v0.9.0` always runs that exact version, so nothing changes under you. When a new version comes out, update the number. All versions are on the [releases page](https://github.com/PRODHOSH/forkguard/releases).
 
 ## Troubleshooting
 

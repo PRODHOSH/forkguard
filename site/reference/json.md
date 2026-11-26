@@ -68,6 +68,7 @@ Each id is explained in [What it catches](https://forkguard.pages.dev/reference/
 
 ```text
 hidden-code   loader        script         lifecycle
+gradle-loader python-loader
 bad-package   bad-package-installed   fake-font
 decoy-folder  autorun       autorun-setting dropper
 gitignore     prelude       config-long-line odd-vscode-file
@@ -82,6 +83,7 @@ env-not-ignored   secret    rewritten      npm-infected
 | `delete-dir` | Deletes the folder. |
 | `strip` | Cuts the malware out of your file. |
 | `script` | Removes the injected step from a package.json script. |
+| `gradle` | Cuts the hidden launcher task out of a Gradle build file, and the line that runs it first. |
 | `autorun` | Removes the folder-open task from `.vscode/tasks.json`. |
 | `setting` | Turns automatic tasks off in `.vscode/settings.json`. |
 | `gitignore` | Removes the malware’s line from `.gitignore`. |

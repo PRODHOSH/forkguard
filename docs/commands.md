@@ -20,6 +20,8 @@ Every command, option, output and exit code in forkguard, explained in detail. I
 - [`forkguard owner/repo` (check a GitHub repo)](#forkguard-ownerrepo-check-a-github-repo)
 - [`forkguard --mine` and `@name` (check many repos)](#forkguard---mine-and-name-check-many-repos)
 - [`forkguard skills` (check AI agent skills)](#forkguard-skills-check-ai-agent-skills)
+- [`forkguard host` (check this computer)](#forkguard-host-check-this-computer)
+- [`forkguard pushes` (who force-pushed)](#forkguard-pushes-who-force-pushed)
 - [`forkguard fix`](#forkguard-fix)
 - [`forkguard pr`](#forkguard-pr)
 - [`forkguard setup`](#forkguard-setup)
@@ -42,6 +44,8 @@ Every command, option, output and exit code in forkguard, explained in detail. I
 | `forkguard --mine` | Checks every repo you own on GitHub | No |
 | `forkguard @name` | Checks every public repo of someone else | No |
 | `forkguard skills [folder or owner/repo]` | Checks AI agent skills | No |
+| `forkguard host` | Checks this computer for the malware | No |
+| `forkguard pushes` | Lists force-pushes and deleted branches on your repos | No |
 | **Clean** | | |
 | `forkguard fix [folder]` | Removes what it found, on your computer | Yes, your files |
 | `forkguard pr [folder]` | Removes it on a new branch and opens a pull request | Yes, a new branch and pull request |
@@ -54,7 +58,7 @@ Every command, option, output and exit code in forkguard, explained in detail. I
 | `forkguard agent --write` | Saves those rules in `AGENTS.md`, `CLAUDE.md` and similar | Yes, those files |
 | `npx skills add PRODHOSH/forkguard` | Installs the forkguard skill into your AI agents | Yes, your agents' skill folders (this is the skills CLI, not forkguard) |
 
-Only `fix`, `pr`, `--mine --fix`, `setup` and `agent --write` ever change anything. Checking is always read only.
+Only `fix`, `pr`, `--mine --fix`, `setup` and `agent --write` ever change anything. Checking, `host` and `pushes` are always read only.
 
 ---
 
@@ -252,6 +256,47 @@ forkguard skills owner/repo --ai
 Set the key as an environment variable in your terminal, never in the command: a key typed into a command is saved in your shell history. Every variable, what is sent and how the review changes the verdict: [AI review](skills.md#ai-review-optional).
 
 **After `forkguard setup`**, `npx skills add owner/repo` (and `bunx`, `pnpx`, `pnpm dlx`, `yarn dlx`, `npm exec`) runs this check first and stops the install when a skill would exit `1`. `--skill name` limits the check to the skills you asked for.
+
+---
+
+## `forkguard host` (check this computer)
+
+Is this computer affected? Read only: nothing is deleted, stopped or run, and no password or key is ever opened.
+
+```bash
+forkguard host
+forkguard host --json
+```
+
+It looks at:
+
+- hidden folders in your home folder that the loader uses (`~/.node_modules` and a few names public reports list), and its own files
+- running processes: a node process running a hidden `init` or `service` file, a font file, or something inside the hidden folder
+- startup items (launch agents on macOS, systemd and autostart on Linux, the startup folder and Run key on Windows) and cron
+- shell profiles and shell history, showing only the words that matched, never the whole line
+- temp folders, VS Code automatic tasks and global npm packages that are known to be malicious
+- your projects in the usual folders (`Developer`, `Projects`, `code`, `dev`, `src`, `repos`)
+
+It also lists the logins and keys on the computer that the malware could have read (npm login, GitHub CLI login, SSH keys, cloud keys). It only notes that the files exist.
+
+**Result:** likely affected, projects infected, worth a look, or nothing found. Nothing found only means nothing is there right now: the malware can run once, take what it can and remove itself. Exit code `1` for likely affected or infected projects.
+
+---
+
+## `forkguard pushes` (who force-pushed)
+
+Force-pushes and deleted branches on your repos, newest first, with the account that made them.
+
+```bash
+forkguard pushes                      # every repo you own, last 3 days
+forkguard pushes --days 7
+forkguard pushes owner/repo another/repo
+forkguard pushes --json
+```
+
+The malware spreads by taking your newest commit, adding its payload and force-pushing it back with your name and the old date, so it looks like your own work. GitHub records every force-push, and this command reads that record. Force-pushes to three or more repos within ten minutes are reported as a **wave**: a script, not a person. If you did not do it, a login or token of yours is in use somewhere else. Revoke your tokens and sessions, then run `forkguard host` on each of your computers.
+
+Needs a GitHub login (`gh auth login`). Only reads. Exit code `1` when a wave is found.
 
 ---
 

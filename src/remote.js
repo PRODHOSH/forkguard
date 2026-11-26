@@ -2,7 +2,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { CODE_EXT, CONFIG_RE, MARKERS, SKIP_DIRS } from './rules.js';
+import { CHAIN_GREP, CODE_EXT, CONFIG_RE, MARKERS, SKIP_DIRS, isBareName } from './rules.js';
 import { MAX_SIZE, finish, inspect, isEnvFile, isInteresting } from './scan.js';
 import { ghCommand, git, run } from './git.js';
 import { getToken, loginHelp } from './auth.js';
@@ -88,17 +88,21 @@ export function scanRef(dir, ref) {
     const rel = rec.slice(tab + 1);
     if (type !== 'blob' || skipped(rel) || Number(size) > MAX_SIZE) continue; // same size limit as the folder scan
     const name = path.posix.basename(rel);
-    entries.push({ sha, rel, name, ext: path.posix.extname(name).toLowerCase() });
+    entries.push({ sha, rel, name, ext: path.posix.extname(name).toLowerCase(), size: Number(size) });
   }
 
   // Code files can number in the thousands, so let git find the suspicious ones first.
   const codeSpecs = [...CODE_EXT.map((e) => `*${e}`), 'init', '*/init'];
   const hits = grepFiles(dir, ref, GREP, codeSpecs);
   const prelude = grepFiles(dir, ref, 'exports: {}', codeSpecs, true);
+  const pyHits = grepFiles(dir, ref, CHAIN_GREP, ['*.py']);
 
   const want = entries.filter((f) => {
     if (isEnvFile(f.name)) return false;
     if (!isInteresting(f.name, f.ext)) return false;
+    if (f.ext === '.py') return pyHits === null ? f.size <= 200000 : pyHits.has(f.rel);
+    // The loader hides in a big file with no extension (init, service, ...). Small ones, like LICENSE or Makefile, are not it.
+    if (f.ext === '' && isBareName(f.name) && f.name !== 'init') return f.size >= 5000;
     const isCode = CODE_EXT.includes(f.ext) || f.name === 'init';
     if (isCode) return hits === null || hits.has(f.rel) || (CONFIG_RE.test(f.rel) && prelude?.has(f.rel));
     if (f.name === 'README.md') return /fonts?$/i.test(path.posix.dirname(f.rel));
@@ -183,7 +187,7 @@ export function printRemote(result) {
   }
 }
 
-async function listMine() {
+export async function listMine() {
   const gh = ghCommand();
   if (gh) {
     try {

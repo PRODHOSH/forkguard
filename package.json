@@ -1,7 +1,7 @@
 {
   "name": "forkguard",
-  "version": "0.8.2",
-  "description": "Catch malware hidden in a repo before you install or run it, clean it up, open a pull request, and check AI agent skills before you install them.",
+  "version": "0.9.0",
+  "description": "Catch malware hidden in a repo before you install or run it, clean it up, open a pull request, check this computer, and check AI agent skills before you install them.",
   "type": "module",
   "bin": {
     "forkguard": "bin/forkguard.js"

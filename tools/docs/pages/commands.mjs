@@ -38,6 +38,7 @@ export const commands = [
         h3('What it reads'),
         ul(
           'JavaScript and TypeScript files (`.js .mjs .cjs .ts .mts .cts .jsx .tsx .vue .svelte`) and any file named `init`.',
+          'Files with no extension (such as `service`), `.py` files that talk to a blockchain API, and Gradle build files (`build.gradle`, `settings.gradle`, `.kts`).',
           '`package.json` and lockfiles (`package-lock.json`, `npm-shrinkwrap.json`, `yarn.lock`, `pnpm-lock.yaml`, `bun.lock`).',
           '`.vscode/tasks.json`, `.vscode/settings.json` and `.vscode/extension.json`.',
           'Font files (`.woff .woff2 .ttf .otf .ttc .eot`) and `README.md` files inside fonts folders.',
@@ -498,6 +499,70 @@ export const commands = [
       ], [code('forkguard agent\nforkguard agent --write', 'text')]),
       EXIT(),
       SEE('[AI agents and vibe coding](page:guides/ai-agents): the guide', '[JSON output](page:reference/json): what agents read'),
+    ],
+  },
+
+  // ------------------------------------------------------------------ host
+  {
+    slug: 'commands/host',
+    kind: 'command',
+    group: 'Commands',
+    title: 'forkguard host',
+    nav: 'forkguard host',
+    description: 'forkguard host checks this computer for the PolinRider malware: hidden folders, running processes, startup items, shell history and infected projects. Read only.',
+    lede: 'Is this computer affected? A read-only check of the places this malware leaves traces.',
+    sections: [
+      sec('name', 'Name', [p('`forkguard host` looks at the computer you are on for signs of the malware. It never deletes, stops or runs anything, and it never opens a password or a key.')], [p('forkguard host - check this computer for the malware. Read only.')]),
+      sec('synopsis', 'Synopsis', [code('forkguard host\nforkguard host --json')], [code('forkguard host [--json]', 'text')]),
+      sec('description', 'Description', [
+        p('Cleaning your repos does not tell you whether the malware ran on your computer. This does. It works on macOS, Linux and Windows and checks:'),
+        ul(
+          '**Hidden folders** in your home folder that the loader uses (`~/.node_modules`, and a few names public reports list), and its own files.',
+          '**Running processes**: a node process running a hidden `init` or `service` file, a font file, or something inside the hidden folder.',
+          '**Startup items**: launch agents (macOS), systemd and autostart (Linux), the startup folder and Run key (Windows), and cron.',
+          '**Shell profiles** such as `.zshrc` and `.bashrc` that download and run code or start a hidden node process.',
+          '**Shell history**: a command tied to the malware. Only the matching words are shown, never the whole line.',
+          '**Temp folders** for dropped files, **VS Code** automatic tasks, and **global npm packages** that are known to be malicious.',
+          '**Your projects** in the usual folders (`Developer`, `Projects`, `code`, `dev`, `src`, `repos`), with the same check as plain `forkguard`.',
+        ),
+        p('It also lists the logins and keys on the computer that the malware could have read if it ran here (your npm login, the GitHub CLI login, SSH keys, cloud keys). It only notes that the files exist. It never opens them.'),
+        h3('The result'),
+        table(['Result', 'Meaning'], [
+          ['Likely affected', 'Something on the computer itself matches the malware. Follow the steps it prints, in order.'],
+          ['Projects infected', 'The computer looks fine, but some projects on it are infected. Run [`forkguard fix`](page:commands/fix).'],
+          ['Worth a look', 'A MED item, for example a shell profile line that downloads code.'],
+          ['Nothing found', 'Nothing is there right now. The malware can run once, take what it can and remove itself, so rotate your keys anyway if you ever opened an infected project.'],
+        ]),
+      ], [p('Checks home-folder loader folders, processes, startup items, cron, shell profiles and history, temp files, VS Code settings, global npm packages and projects. Lists credential files by name only. Exit 1 for likely affected or infected projects.')]),
+      sec('examples', 'Examples', [code('forkguard host')], [code('forkguard host\nforkguard host --json', 'text')]),
+      EXIT(),
+      SEE('[Cleaning an infected project](page:guides/cleaning): what to do next', '[forkguard pushes](page:commands/pushes): who force-pushed to your repos'),
+    ],
+  },
+
+  // ------------------------------------------------------------------ pushes
+  {
+    slug: 'commands/pushes',
+    kind: 'command',
+    group: 'Commands',
+    title: 'forkguard pushes',
+    nav: 'forkguard pushes',
+    description: 'forkguard pushes lists force-pushes and deleted branches on your GitHub repos and spots a script pushing to many of them within minutes.',
+    lede: 'Who force-pushed to your repos, and when.',
+    sections: [
+      sec('name', 'Name', [p('`forkguard pushes` shows the force-pushes and deleted branches on your repos from the last few days, and flags a script going through many repos at once.')], [p('forkguard pushes - list force-pushes and deleted branches.')]),
+      sec('synopsis', 'Synopsis', [
+        code('forkguard pushes\nforkguard pushes --days 7\nforkguard pushes owner/repo another/repo\nforkguard pushes --json'),
+        dl(['`--days N`', 'How far back to look, 1 to 30. The default is 3.'], ['`owner/repo`', 'Only these repos. By default, every repo you own.'], ['`--json`', 'Print the events as JSON.']),
+      ], [code('forkguard pushes [owner/repo ...] [--days N] [--json]', 'text')]),
+      sec('description', 'Description', [
+        p('This malware spreads by taking your newest commit, adding its payload and force-pushing the result back with your name, your time and your message. It looks like your own work. GitHub does record every force-push, with the account that made it, and this command reads that record.'),
+        p('Each line shows when, which repo and branch, the commit before and after, and the account. If force-pushes hit three or more repos within ten minutes of each other, that is called a **wave**: a script, not a person. The account shown is the one whose login was used, so a wave you did not make means a token or session of yours is somewhere else.'),
+        p('It needs a GitHub login (`gh auth login`). It only reads.'),
+      ], [p('Reads GitHub activity (force_push and branch_deletion) for your repos. A wave is 3+ repos within 10 minutes. Exit 1 when a wave is found.')]),
+      sec('examples', 'Examples', [code('forkguard pushes --days 2')], [code('forkguard pushes\nforkguard pushes --days 7', 'text')]),
+      EXIT(),
+      SEE('[Cleaning an infected project](page:guides/cleaning): the account checklist', '[forkguard host](page:commands/host): check each computer'),
     ],
   },
 ];

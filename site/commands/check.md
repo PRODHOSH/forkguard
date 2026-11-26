@@ -24,6 +24,7 @@ Checks every file in the folder that this malware is known to use, and reports e
 ### What it reads
 
 - JavaScript and TypeScript files (`.js .mjs .cjs .ts .mts .cts .jsx .tsx .vue .svelte`) and any file named `init`.
+- Files with no extension (such as `service`), `.py` files that talk to a blockchain API, and Gradle build files (`build.gradle`, `settings.gradle`, `.kts`).
 - `package.json` and lockfiles (`package-lock.json`, `npm-shrinkwrap.json`, `yarn.lock`, `pnpm-lock.yaml`, `bun.lock`).
 - `.vscode/tasks.json`, `.vscode/settings.json` and `.vscode/extension.json`.
 - Font files (`.woff .woff2 .ttf .otf .ttc .eot`) and `README.md` files inside fonts folders.

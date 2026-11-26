@@ -64,7 +64,7 @@ This malware spreads by rewriting the latest commit in repos it can reach, often
        runs-on: ubuntu-latest
        steps:
          - uses: actions/checkout@v4
-         - uses: PRODHOSH/forkguard@v0.8.2
+         - uses: PRODHOSH/forkguard@v0.9.0
    ```
 
 3. Commit and push it.
@@ -110,7 +110,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.8.2
+      - uses: PRODHOSH/forkguard@v0.9.0
         with:
           open-pr: true
 ```
@@ -126,7 +126,7 @@ When something is found, the Action creates a branch called `forkguard/remove-ma
 **Check only one folder in a monorepo:**
 
 ```yaml
-      - uses: PRODHOSH/forkguard@v0.8.2
+      - uses: PRODHOSH/forkguard@v0.9.0
         with:
           path: apps/web
 ```
@@ -149,7 +149,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.8.2
+      - uses: PRODHOSH/forkguard@v0.9.0
 ```
 
 **Use the CLI directly in your own workflow:**
@@ -190,7 +190,7 @@ Add `--strict` to fail on any score above 50, and `--json` to read the findings 
 
 ## 8. Pinning a version
 
-`PRODHOSH/forkguard@v0.8.2` always runs that exact version, so nothing changes under you. When a new version comes out, update the number. All versions are listed on the [releases page](https://github.com/PRODHOSH/forkguard/releases).
+`PRODHOSH/forkguard@v0.9.0` always runs that exact version, so nothing changes under you. When a new version comes out, update the number. All versions are listed on the [releases page](https://github.com/PRODHOSH/forkguard/releases).
 
 ---
 
