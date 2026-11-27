@@ -108,6 +108,9 @@ export function hiddenTailAt(line) {
   const m = /[ \t]{30,}\S/.exec(line);
   if (!m || m.index >= 400) return null;
   const blanks = m[0].length - 1;
+  // A run at the very start of a line is indentation, and deeply nested JSX can be indented by 48 spaces or more.
+  // A hidden payload comes after code, or after a run far longer than any indentation.
+  if (line.slice(0, m.index).trim() === '' && blanks < 150) return null;
   const rest = line.slice(m.index + m[0].length - 1);
   const tail = rest.length;
   const hit = { column: m.index, blanks, end: m.index };

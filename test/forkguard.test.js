@@ -866,6 +866,21 @@ test('ordinary code that decodes, fetches or evaluates on its own is not flagged
   rmSync(root, { recursive: true, force: true });
 });
 
+test('deeply indented JSX with a long class string is not mistaken for hidden code', () => {
+  const root = tmp();
+  const line = `${' '.repeat(48)}<div className="grid grid-cols-[60px_minmax(110px,0.8fr)_minmax(80px,0.5fr)] items-center gap-1 text-xs">{label}</div>`;
+  put(root, 'src/page.tsx', `export default function P() {\n  return (\n${line}\n  );\n}\n`);
+  assert.equal(scan(root).findings.length, 0);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('a payload that starts at the beginning of a line after a very long run of blanks is still caught', () => {
+  const root = tmp();
+  put(root, 'service', `${' '.repeat(199)}var a=function(){${'q'.repeat(300)}};a();\n`);
+  assert.equal(scan(root).findings.filter((f) => f.rule === 'hidden-code').length, 1);
+  rmSync(root, { recursive: true, force: true });
+});
+
 test('aligned code and short comments after many blanks are not flagged', () => {
   const root = tmp();
   const row = `{ icon: "M13 10V3L4 14h7v7l9-11h-7z",${' '.repeat(121)}label: "AI Optimisation",   sub: "Picks the best format, crop and quality, automatically.", bg: "bg-rose-50",   border: "border-rose-100",   stroke: "x" },`;

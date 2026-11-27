@@ -293,7 +293,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: PRODHOSH/forkguard@v0.9.2
+      - uses: PRODHOSH/forkguard@v0.9.3
 ```
 
 The build fails when anything dangerous is found.
