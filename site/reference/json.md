@@ -68,7 +68,7 @@ Each id is explained in [What it catches](https://forkguard.pages.dev/reference/
 
 ```text
 hidden-code   loader        script         lifecycle
-gradle-loader python-loader chain-loader
+gradle-loader python-loader chain-loader decode-exec
 bad-package   bad-package-installed   fake-font
 decoy-folder  autorun       autorun-setting dropper
 gitignore     prelude       config-long-line odd-vscode-file

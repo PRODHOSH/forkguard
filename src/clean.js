@@ -1,6 +1,6 @@
 // forkguard cleaners: turn an infected file's text into a clean one. Pure string functions with no
 // Node-only imports, so the CLI and a GitHub App can share them. Nothing here reads or writes disk.
-import { FONT_CMD, INIT_CMD, PRELUDE, cleanGradle, findHiddenTail, hiddenTailAt, findLoader, findMarker, hasPrelude, stripLoader } from './rules.js';
+import { FONT_CMD, INIT_CMD, PRELUDE, cleanGradle, findBlankLineRun, findHiddenTail, hiddenTailAt, findLoader, findMarker, hasPrelude, stripLoader } from './rules.js';
 
 /** How many brackets a piece of code leaves open: ( [ { minus ) ] }, ignoring text inside quotes. */
 function openBrackets(code) {
@@ -24,6 +24,12 @@ function openBrackets(code) {
  * finish it go too, but only if they really do close it. Otherwise they stay.
  */
 function cutHiddenTails(text) {
+  const run = findBlankLineRun(text);
+  if (run) {
+    // The code sits after a hundred empty lines. Everything from the first empty line on goes.
+    const kept = text.split('\n').slice(0, run.start).join('\n');
+    return cutHiddenTails(kept) ?? kept + '\n';
+  }
   let changed = false;
   const lines = text.split('\n');
   const out = [];

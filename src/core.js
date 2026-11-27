@@ -3,7 +3,7 @@
 // Uint8Array) and it tells you what is wrong. Reading files and talking to git is somebody else's job.
 import {
   BAD_PACKAGES, CODE_EXT, CONFIG_RE, DROPPER_EXT, DROPPER_NAMES, FONT_EXT, GRADLE_RE, LOCKFILES, LONG_LINE, SCRIPT_EXT,
-  badScript, findChainLoader, findGradleLoader, findHiddenTail, findLoader, findMarker, findPythonLoader, hasPrelude, isBareName, isHistoryRewriter, isRealFont,
+  badScript, findChainLoader, findDecodeExec, findGradleLoader, findHiddenTail, findLoader, findMarker, findPythonLoader, hasPrelude, isBareName, isHistoryRewriter, isRealFont,
   longestLine, looksLikeText, riskyLifecycle,
 } from './rules.js';
 
@@ -99,11 +99,14 @@ export function inspect(f, buf, add, fontDirs) {
     if (chain) {
       add('high', f.rel, 'chain-loader', chain === 'encoded' ? 'Reads a payload from a blockchain API (the names are hidden as base64) and runs it' : 'Reads a payload from a blockchain API and runs it', tail || marker ? null : null);
     }
+    if (!chain && findDecodeExec(text)) {
+      add('high', f.rel, 'decode-exec', 'Decodes data, fetches something over the network and runs the result, which is how the loader works');
+    }
     if (loader) {
       add('high', f.rel, 'loader', 'Downloads code from a hidden URL in an env variable and runs it', isInit || isBare ? 'delete' : 'strip');
     }
     if (tail || marker) {
-      const where = tail ? `Code hidden after ${tail.blanks} blank spaces on line ${tail.line}` : 'Contains a known malware signature';
+      const where = tail ? `Code hidden after ${tail.blanks} blank ${tail.kind === 'lines' ? 'lines' : 'spaces'} on line ${tail.line}` : 'Contains a known malware signature';
       add('high', f.rel, 'hidden-code', where, isInit || isBare ? 'delete' : 'strip');
     } else if (CONFIG_RE.test(f.rel) && hasPrelude(text) && text.includes('exports: {}')) {
       add('medium', f.rel, 'prelude', 'Has the fake require() lines this malware adds to configs', 'strip');

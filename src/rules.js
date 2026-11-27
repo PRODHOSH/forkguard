@@ -91,25 +91,43 @@ export const GATED = {
  * right so it is invisible in an editor, after a normal looking line like `export default config;`.
  * Returns where the hidden part starts, or null.
  */
+const spaceRatio = (s) => (s.length ? (s.split(' ').length - 1) / s.length : 0);
+
 /**
  * One line, checked for code tucked behind a long run of blanks. Returns where it starts, or null.
- * Two shapes have been seen: 30 or more blanks and a long tail of 1,500 characters or more, and a long run
- * of 100 or more blanks with a shorter tail (a payload of about 1,200 characters, found in a Playwright config).
- * The shorter tail only counts when it is packed tight, with almost no spaces, so hand-aligned code is left alone.
+ * Real payloads were seen with 199, 249, 300 and 776 blanks and tails from 1,200 to several thousand characters,
+ * so no single length is trusted. Three shapes are flagged:
+ *   1. 30 or more blanks and a tail of 1,500 characters or more, whatever the tail looks like
+ *   2. 40 or more blanks and a tail of 150 characters or more that is packed tight
+ *   3. 100 or more blanks and any tail of 30 characters or more that is packed tight
+ * "Packed tight" means almost no spaces. Hand-aligned code reads like English, with spaces between its words,
+ * so a table of props with a long run of blanks is left alone.
  */
 export function hiddenTailAt(line) {
-  if (line.length < 190) return null;
+  if (line.length < 70) return null;
   const m = /[ \t]{30,}\S/.exec(line);
   if (!m || m.index >= 400) return null;
   const blanks = m[0].length - 1;
-  const tail = line.length - (m.index + m[0].length) + 1;
-  if (blanks >= 30 && tail >= 1500) return { column: m.index, blanks, end: m.index };
-  if (blanks >= 100 && tail >= 60) {
-    // Hand-aligned code (a table of props, say) also has long runs of blanks, but it reads like English with
-    // spaces between words. Hidden payloads are packed tight, so look at how many spaces the tail has.
-    const rest = line.slice(m.index + m[0].length - 1);
-    const spaces = rest.split(' ').length - 1;
-    if (spaces / rest.length < 0.05) return { column: m.index, blanks, end: m.index };
+  const rest = line.slice(m.index + m[0].length - 1);
+  const tail = rest.length;
+  const hit = { column: m.index, blanks, end: m.index };
+  if (blanks >= 30 && tail >= 1500) return hit;
+  if (blanks >= 40 && tail >= 150 && spaceRatio(rest) < 0.04) return hit;
+  if (blanks >= 100 && tail >= 30 && spaceRatio(rest) < 0.05) return hit;
+  return null;
+}
+
+/**
+ * The other way to hide it: more than a hundred empty lines, then the code. An editor opens at the top and
+ * shows nothing wrong. Returns where the run starts and where the code starts (line numbers from 0), or null.
+ */
+export function findBlankLineRun(text) {
+  const lines = text.split('\n');
+  let run = 0;
+  for (let i = 0; i < lines.length; i++) {
+    if (!lines[i].trim()) { run++; continue; }
+    if (run >= 120 && lines[i].length >= 150 && spaceRatio(lines[i]) < 0.05) return { start: i - run, end: i, lines: run };
+    run = 0;
   }
   return null;
 }
@@ -118,10 +136,11 @@ export function findHiddenTail(text) {
   let offset = 0;
   for (const line of text.split('\n')) {
     const hit = hiddenTailAt(line);
-    if (hit) return { line: text.slice(0, offset).split('\n').length, column: hit.column, blanks: hit.blanks };
+    if (hit) return { line: text.slice(0, offset).split('\n').length, column: hit.column, blanks: hit.blanks, kind: 'spaces' };
     offset += line.length + 1;
   }
-  return null;
+  const lines = findBlankLineRun(text);
+  return lines ? { line: lines.end + 1, column: 0, blanks: lines.lines, kind: 'lines' } : null;
 }
 
 /**
@@ -277,4 +296,23 @@ export function findChainLoader(text) {
   if (!RUNNER.test(text)) return null;
   if (CHAIN_WORDS.some((w) => text.includes(w))) return 'plain';
   return b64Forms ? (CHAIN_NEEDLES.slice(CHAIN_WORDS.length).some((n) => text.includes(n)) ? 'encoded' : null) : null;
+}
+
+// What the loader does, whatever it looks like and however it is hidden: it decodes data, fetches something
+// over the network and runs the result. Each piece is common on its own. All three close together is not.
+const DECODER = /\batob\s*\(|Buffer\.from\([^)]{0,200}["'](?:base64|hex)["']|\bfromCharCode\b/g;
+const EXECUTOR = /new\s+Function\s*\(|(?<![.\w])eval\s*\(|\(\s*0\s*,\s*eval\s*\)|\bvm\.(?:runIn\w+|Script)\b|\._compile\s*\(/g;
+const FETCHER = /\bfetch\s*\(|\bhttps?\.(?:get|request)\s*\(|require\(\s*["']https?["']\s*\)|XMLHttpRequest|node-fetch|\baxios\b/;
+export const DECODE_EXEC_GREP = ['atob\\(', 'Buffer\\.from\\([^)]*(base64|hex)', 'fromCharCode'];
+export const EXEC_GREP = ['new\\s+Function\\s*\\(', '\\beval\\s*\\(', 'vm\\.run', '_compile\\s*\\('];
+
+/** True when a code file decodes data, fetches from the network and runs the result, all within a few lines of each other. */
+export function findDecodeExec(text) {
+  if (text.length > 300000) return false; // a bundled library, not a loader
+  for (const m of text.matchAll(EXECUTOR)) {
+    const near = text.slice(Math.max(0, m.index - 1800), m.index + 1800);
+    DECODER.lastIndex = 0;
+    if (DECODER.test(near) && FETCHER.test(near)) return true;
+  }
+  return false;
 }

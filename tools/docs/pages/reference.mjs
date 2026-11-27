@@ -122,7 +122,7 @@ export const reference = [
       ]),
       h2('Rule ids'),
       p('Each id is explained in [What it catches](page:reference/rules).'),
-      code('hidden-code   loader        script         lifecycle\ngradle-loader python-loader chain-loader\nbad-package   bad-package-installed   fake-font\ndecoy-folder  autorun       autorun-setting dropper\ngitignore     prelude       config-long-line odd-vscode-file\nenv-not-ignored   secret    rewritten      npm-infected', 'text'),
+      code('hidden-code   loader        script         lifecycle\ngradle-loader python-loader chain-loader decode-exec\nbad-package   bad-package-installed   fake-font\ndecoy-folder  autorun       autorun-setting dropper\ngitignore     prelude       config-long-line odd-vscode-file\nenv-not-ignored   secret    rewritten      npm-infected', 'text'),
       h2('Fix values'),
       table(['`fix`', 'What fix does'], [
         ['`delete`', 'Deletes the file.'],
@@ -157,6 +157,7 @@ export const reference = [
         ['[`hidden-code`](#hidden-code)', 'HIGH', 'Code pushed far right behind blank spaces, or a known signature, in a code file', 'cut it out'],
         ['[`loader`](#loader)', 'HIGH', 'A block that decodes a URL from an env variable, downloads code and runs it', 'remove the block'],
         ['[`chain-loader`](#chain-loader)', 'HIGH', 'A JavaScript or TypeScript file that reads a payload from a blockchain API, often with the names hidden as base64, and runs it', 'cut the hidden code, or a person decides'],
+        ['[`decode-exec`](#decode-exec)', 'HIGH', 'Code that decodes data, fetches something over the network and runs the result, close together', 'a person decides'],
         ['[`gradle-loader`](#gradle-loader)', 'HIGH', 'A Gradle task that starts a hidden node process, or a build that runs it first', 'remove the task'],
         ['[`python-loader`](#python-loader)', 'HIGH', 'Python that reads code from a blockchain API and runs it with node', 'delete the file'],
         ['[`script`](#script)', 'HIGH', 'A package.json script running `node init` or a font file first', 'remove that step'],
@@ -181,7 +182,7 @@ export const reference = [
 
       h2('HIGH rules'),
       h3('hidden-code', 'hidden-code'),
-      p('The signature trick of this malware. A normal line such as `export default config;` is followed by hundreds of blank spaces and then the payload, so an editor shows nothing unless you scroll far right. forkguard flags a line when a run of spaces or tabs starts within the first 400 characters and is followed by a long tail. Two shapes are checked: a run of 30 or more with a tail of 1,500 characters or more, and a run of 100 or more with a shorter tail of 60 characters or more that is packed tight, with almost no spaces. The second one catches a payload of about 1,200 characters seen in a Playwright config; hand-aligned code, which has spaces between its words, is left alone. When the hidden code runs over several lines, the lines that finish it are cut too. The message says where: “Code hidden after 776 blank spaces on line 35”.'),
+      p('The signature trick of this malware. A normal line such as `export default config;` is followed by hundreds of blank spaces and then the payload, so an editor shows nothing unless you scroll far right. forkguard flags a line when a run of spaces or tabs starts within the first 400 characters and is followed by a long tail. No single length is trusted, because payloads have been seen with 199 to 776 blanks and tails from 1,200 to several thousand characters. Three shapes are checked: 30 or more blanks with a tail of 1,500 characters or more; 40 or more blanks with a packed tail of 150 characters or more; and 100 or more blanks with a packed tail of 30 characters or more. Packed means almost no spaces, so hand-aligned code, which reads like English, is left alone. More than 120 empty lines followed by code is flagged the same way. When the hidden code runs over several lines, the lines that finish it are cut too. The message says where: “Code hidden after 776 blank spaces on line 35”.'),
       p('It also flags any code file that contains a **known signature**: strings that only show up in this malware. These are the shared globals the payload sets up, its decoder function names, the wallet addresses and endpoint hostnames it uses as a dead drop, the staging hostnames its VS Code tasks fetch from, and its encryption keys, across both the original and the April 2026 variant. The message is “Contains a known malware signature”.'),
       p('**Fix:** cuts the hidden tail off every affected line and keeps your code, then looks in git history for your exact original. If the file is `init`, it is deleted. A signature with no hidden tail to cut is reported but left for you.'),
 
@@ -205,6 +206,8 @@ export const reference = [
       p('The hidden file is not always called `init`. A file with **no extension** and any name (`service` has been seen) is checked the same way, and so is `node service` as a step in a `package.json` script. A normal `node service.js` is left alone.'),
       h3('chain-loader', 'chain-loader'),
       p('The same trick as `python-loader`, in JavaScript and TypeScript. The file contains the name of a blockchain API (or its base64 form, which is how it hides) and also runs what it gets, with `new Function` or `eval`. Mentioning an API alone is not enough, and neither is running code alone. It is usually found together with `hidden-code`, and cutting the hidden code removes it. **Fix:** none on its own.'),
+      h3('decode-exec', 'decode-exec'),
+      p('Catches the loader by what it does, whatever it looks like and however it is hidden. A code file that decodes data (`atob`, base64 or hex), fetches something over the network, and runs the result (`new Function`, `eval`, `vm`), all within a few lines of each other. Each piece is common alone, and alone it is not flagged. Files over 300 KB are treated as bundled libraries and skipped. **Fix:** none on its own; if the code is also hidden behind blanks, cutting that removes it.'),
       h3('gradle-loader', 'gradle-loader'),
       p('Seen in Android and other Gradle projects. A task in `build.gradle` starts a hidden node process (`nohup node ...` on macOS and Linux, `Start-Process node` on Windows) and another build file is told to run it first, so every build starts the malware. A build that runs `node` in the open, such as `commandLine "node", "scripts/bundle.js"`, is not flagged. **Fix:** cuts out the task and the line that runs it first.'),
       h3('python-loader', 'python-loader'),

