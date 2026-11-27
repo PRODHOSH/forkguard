@@ -1,6 +1,6 @@
 // forkguard cleaners: turn an infected file's text into a clean one. Pure string functions with no
 // Node-only imports, so the CLI and a GitHub App can share them. Nothing here reads or writes disk.
-import { FONT_CMD, INIT_CMD, PRELUDE, findHiddenTail, findLoader, findMarker, hasPrelude, stripLoader } from './rules.js';
+import { FONT_CMD, INIT_CMD, PRELUDE, cleanGradle, findHiddenTail, findLoader, findMarker, hasPrelude, stripLoader } from './rules.js';
 
 /** Cuts the hidden tail off every line that has one. */
 function cutHiddenTails(text) {
@@ -147,6 +147,7 @@ export function applyFix(kind, text, { hasEnvFiles = false } = {}) {
     case 'delete-dir': return { remove: true };
     case 'strip': { const cleaned = cleanSource(text); return cleaned === null ? { skip: true } : { text: cleaned }; }
     case 'script': return { text: cleanScripts(text) };
+    case 'gradle': { const cleaned = cleanGradle(text); return cleaned === null ? { skip: true } : { text: cleaned }; }
     case 'gitignore': return { text: cleanGitignore(text, hasEnvFiles) };
     case 'autorun': return cleanTasks(text);
     case 'setting': return cleanSettings(text);

@@ -800,6 +800,14 @@ test('finds a Python loader that reads a blockchain API, deletes it and the impo
   rmSync(root, { recursive: true, force: true });
 });
 
+test('applyFix cleans a Gradle launcher from plain text, so a GitHub App can do it without a disk', async () => {
+  const { applyFix } = await import('../src/clean.js');
+  const infected = `plugins {\n    id 'x'\n}\n\ntasks.register("startApi", Exec) {\n    commandLine "sh", "-c", "nohup node service >/dev/null 2>&1 &"\n}\n`;
+  const r = applyFix('gradle', infected);
+  assert.ok(r.text && !/nohup|startApi/.test(r.text) && /plugins/.test(r.text), JSON.stringify(r));
+  assert.deepEqual(applyFix('gradle', "plugins {\n    id 'x'\n}\n"), { skip: true });
+});
+
 test('a Python script that only talks to a blockchain API is not flagged', () => {
   const root = tmp();
   put(root, 'price.py', 'import urllib.request\nrows = urllib.request.urlopen("https://api.ethplorer.io/getAddressInfo/0x1")\nprint(rows.read())\n');
