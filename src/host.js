@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { BAD_PACKAGES } from './rules.js';
-import { scan } from './scan.js';
+import { checkNpm, scan } from './scan.js';
 
 // Folders in the home directory that hold the loader or its tools (public reports and what was found on infected computers).
 export const HIDDEN_DIRS = [
@@ -191,14 +191,18 @@ export function hostCheck({ home = os.homedir(), platform = process.platform, ru
     for (const n of list(globalRoot)) if (BAD_PACKAGES.includes(n)) add('high', 'package', `${n} is installed globally and is a known malicious package`, globalRoot);
   }
 
-  // 9. Projects on disk
+  // 9. npm itself: an infected npm starts the loader again on every npm command
+  checked.push('npm itself');
+  for (const f of checkNpm()) add('high', 'npm', f.message, f.file.replace(/^npm on this computer \(|\)$/g, '').replace(home, '~'));
+
+  // 10. Projects on disk
   checked.push('Projects on disk');
   const roots = projects ?? ['Developer', 'Projects', 'code', 'dev', 'src', 'repos', 'workspace', 'Sites'].map((d) => path.join(home, d)).filter(existsSync);
   let projectFiles = 0;
   for (const r of roots) {
     const res = scan(r);
     projectFiles += res.checked;
-    for (const f of res.findings.filter((x) => x.level === 'high')) {
+    for (const f of res.findings.filter((x) => x.level === 'high' && x.rule !== 'npm-infected')) {
       add('high', 'project', `${f.message}`, path.join(r, f.file).replace(home, '~'));
     }
   }

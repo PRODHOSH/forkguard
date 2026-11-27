@@ -3,7 +3,7 @@
 // Uint8Array) and it tells you what is wrong. Reading files and talking to git is somebody else's job.
 import {
   BAD_PACKAGES, CODE_EXT, CONFIG_RE, DROPPER_EXT, DROPPER_NAMES, FONT_EXT, GRADLE_RE, LOCKFILES, LONG_LINE, SCRIPT_EXT,
-  badScript, findGradleLoader, findHiddenTail, findLoader, findMarker, findPythonLoader, hasPrelude, isBareName, isHistoryRewriter, isRealFont,
+  badScript, findChainLoader, findGradleLoader, findHiddenTail, findLoader, findMarker, findPythonLoader, hasPrelude, isBareName, isHistoryRewriter, isRealFont,
   longestLine, looksLikeText, riskyLifecycle,
 } from './rules.js';
 
@@ -95,6 +95,10 @@ export function inspect(f, buf, add, fontDirs) {
     const tail = findHiddenTail(text);
     const marker = findMarker(text);
     const loader = findLoader(text);
+    const chain = findChainLoader(text);
+    if (chain) {
+      add('high', f.rel, 'chain-loader', chain === 'encoded' ? 'Reads a payload from a blockchain API (the names are hidden as base64) and runs it' : 'Reads a payload from a blockchain API and runs it', tail || marker ? null : null);
+    }
     if (loader) {
       add('high', f.rel, 'loader', 'Downloads code from a hidden URL in an env variable and runs it', isInit || isBare ? 'delete' : 'strip');
     }

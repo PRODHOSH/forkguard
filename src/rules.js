@@ -57,10 +57,10 @@ export const DROPPER_EXT = ['.orc'];
 export const CODE_EXT = ['.js', '.mjs', '.cjs', '.ts', '.mts', '.cts', '.jsx', '.tsx', '.vue', '.svelte'];
 export const FONT_EXT = ['.woff', '.woff2', '.ttf', '.otf', '.ttc', '.eot'];
 
-export const CONFIG_RE = /(^|\/)((postcss|tailwind|eslint|next|vite|babel|jest|webpack|astro|vue|nuxt|svelte|rollup|tsup|vitest|gridsome)\.config\.[cm]?[jt]s|truffle\.js)$/;
+export const CONFIG_RE = /(^|\/)((postcss|tailwind|eslint|next|vite|babel|jest|webpack|astro|vue|nuxt|svelte|rollup|tsup|vitest|gridsome|playwright|cypress|metro|drizzle|prettier|commitlint|knip|tsdown|unbuild)\.config\.[cm]?[jt]s|truffle\.js)$/;
 
 // A config file has no reason to hold a line this long. Injected payloads are one enormous line.
-export const LONG_LINE = 2000;
+export const LONG_LINE = 1000;
 export const longestLine = (text) => text.split('\n').reduce((m, l) => Math.max(m, l.length), 0);
 
 // Scripts that rewrite your last commit and force push it: the malware's way of hiding and spreading.
@@ -91,15 +91,34 @@ export const GATED = {
  * right so it is invisible in an editor, after a normal looking line like `export default config;`.
  * Returns where the hidden part starts, or null.
  */
+/**
+ * One line, checked for code tucked behind a long run of blanks. Returns where it starts, or null.
+ * Two shapes have been seen: 30 or more blanks and a long tail of 1,500 characters or more, and a long run
+ * of 100 or more blanks with a shorter tail (a payload of about 1,200 characters, found in a Playwright config).
+ * The shorter tail only counts when it is packed tight, with almost no spaces, so hand-aligned code is left alone.
+ */
+export function hiddenTailAt(line) {
+  if (line.length < 190) return null;
+  const m = /[ \t]{30,}\S/.exec(line);
+  if (!m || m.index >= 400) return null;
+  const blanks = m[0].length - 1;
+  const tail = line.length - (m.index + m[0].length) + 1;
+  if (blanks >= 30 && tail >= 1500) return { column: m.index, blanks, end: m.index };
+  if (blanks >= 100 && tail >= 60) {
+    // Hand-aligned code (a table of props, say) also has long runs of blanks, but it reads like English with
+    // spaces between words. Hidden payloads are packed tight, so look at how many spaces the tail has.
+    const rest = line.slice(m.index + m[0].length - 1);
+    const spaces = rest.split(' ').length - 1;
+    if (spaces / rest.length < 0.05) return { column: m.index, blanks, end: m.index };
+  }
+  return null;
+}
+
 export function findHiddenTail(text) {
   let offset = 0;
   for (const line of text.split('\n')) {
-    if (line.length >= 1530) {
-      const m = /[ \t]{30,}\S/.exec(line);
-      if (m && m.index < 400 && line.length - (m.index + m[0].length) >= 1500) {
-        return { line: text.slice(0, offset).split('\n').length, column: m.index, blanks: m[0].length - 1 };
-      }
-    }
+    const hit = hiddenTailAt(line);
+    if (hit) return { line: text.slice(0, offset).split('\n').length, column: hit.column, blanks: hit.blanks };
     offset += line.length + 1;
   }
   return null;
@@ -238,4 +257,24 @@ export function findPythonLoader(text) {
   if (!/subprocess|os\.system|\bPopen\b|_sp\.run/.test(text)) return null;
   if (!/["']node["']|\bnode\s+\S+\.js/.test(text)) return null;
   return /^\s*(def|class)\s/m.test(text) ? 'review' : 'delete';
+}
+
+// A payload read from a blockchain API and run, in JavaScript or TypeScript. The API names are often
+// hidden as base64, so both the plain words and their base64 forms are looked for. Split here so this
+// file never contains them whole.
+const CHAIN_WORDS = [j('eth', 'plorer'), j('getAddress', 'Transactions'), j('eth_getTransaction', 'ByHash'), j('api.tron', 'grid'), j('apto', 'slabs')];
+// base64 of a word depends on where it sits among the three-letter groups, so look for all three alignments.
+const b64Forms = (s) => [0, 1, 2].map((k) => {
+  const sub = s.slice(k);
+  const n = sub.length - (sub.length % 3);
+  return n >= 6 ? btoa(sub.slice(0, n)) : null;
+}).filter(Boolean);
+export const CHAIN_NEEDLES = [...CHAIN_WORDS, ...CHAIN_WORDS.flatMap(b64Forms)];
+const RUNNER = /new\s+Function\s*\(|\beval\s*\)?\s*\(|\bFunction\s*\(\s*["']/;
+
+/** 'plain' or 'encoded' when a code file reads from a blockchain API and also runs what it gets. */
+export function findChainLoader(text) {
+  if (!RUNNER.test(text)) return null;
+  if (CHAIN_WORDS.some((w) => text.includes(w))) return 'plain';
+  return b64Forms ? (CHAIN_NEEDLES.slice(CHAIN_WORDS.length).some((n) => text.includes(n)) ? 'encoded' : null) : null;
 }

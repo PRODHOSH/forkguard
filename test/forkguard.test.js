@@ -787,7 +787,9 @@ test('a normal Gradle build that runs node in the open is left alone', () => {
 
 test('finds a Python loader that reads a blockchain API, deletes it and the import of it', () => {
   const root = tmp();
-  const loader = `import json as _json\nimport subprocess as _sp\nimport urllib.request as _ur\n_rows = _ur.urlopen("https://api.ethplorer.io/getAddressTransactions/0xabc")\n_src = bytes.fromhex("00").decode()\n_sp.run(["node", "x.js"])\n`;
+  const CHAIN = ['eth', 'plorer'].join('');
+  const TX = ['Trans', 'actions'].join('');
+  const loader = `import json as _json\nimport subprocess as _sp\nimport urllib.request as _ur\n_rows = _ur.urlopen("https://api.${CHAIN}.io/getAddress${TX}/0xabc")\n_src = bytes.fromhex("00").decode()\n_sp.run(["node", "x.js"])\n`;
   put(root, 'tools/utils/transport.py', loader);
   put(root, 'tools/utils/__init__.py', '');
   put(root, 'tools/fetch.py', 'import utils.transport\nimport json\n\nprint(1)\n');
@@ -797,6 +799,49 @@ test('finds a Python loader that reads a blockchain API, deletes it and the impo
   assert.equal(existsSync(path.join(root, 'tools/utils/transport.py')), false);
   assert.equal(readFileSync(path.join(root, 'tools/fetch.py'), 'utf8'), 'import json\n\nprint(1)\n');
   assert.equal(scan(root).findings.filter((f) => f.level === 'high').length, 0);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('finds code hidden behind a long run of blanks even when the tail is short, and cuts only the tail', () => {
+  const root = tmp();
+  const head = 'export default defineConfig({\r\n  testDir: "tests",\r\n});';
+  put(root, 'playwright.config.ts', `${head}${' '.repeat(250)}${'(async()=>{' + 'x'.repeat(1100) + '})();'}\r\n`);
+  const found = scan(root).findings.filter((f) => f.rule === 'hidden-code');
+  assert.deepEqual(found.map((f) => f.file), ['playwright.config.ts']);
+  fix(scan(root));
+  assert.equal(readFileSync(path.join(root, 'playwright.config.ts'), 'utf8').trimEnd(), head);
+  assert.equal(scan(root).findings.length, 0);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('hidden code that runs over several lines is cut with its closing lines, and the file keeps its line endings', () => {
+  const root = tmp();
+  const real = "const a = require('x')\nmodule.exports = (p) => a(p)";
+  put(root, 'lib.js', `${real}${' '.repeat(120)}(function(){try{${'q'.repeat(120)}\nvar z=1;\nif(!z)return;\n}catch(e){}})();\n`);
+  assert.equal(scan(root).findings.filter((f) => f.rule === 'hidden-code').length, 1);
+  fix(scan(root));
+  assert.equal(readFileSync(path.join(root, 'lib.js'), 'utf8'), `${real}\n`);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('aligned code and short comments after many blanks are not flagged', () => {
+  const root = tmp();
+  const row = `{ icon: "M13 10V3L4 14h7v7l9-11h-7z",${' '.repeat(121)}label: "AI Optimisation",   sub: "Picks the best format, crop and quality, automatically.", bg: "bg-rose-50",   border: "border-rose-100",   stroke: "x" },`;
+  put(root, 'cards.tsx', `export const cards = [\n  ${row}\n];\n`);
+  put(root, 'table.ts', `const a = 1;${' '.repeat(40)}// aligned\nconst b = 2;${' '.repeat(150)}// ok\n`);
+  assert.equal(scan(root).findings.length, 0);
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('finds a payload read from a blockchain API even when the API names are hidden as base64', () => {
+  const root = tmp();
+  const hidden = Buffer.from(`api.${['eth', 'plorer'].join('')}.io/x`).toString('base64');
+  const run = ['new', 'Function'].join(' ');
+  put(root, 'src/setup.ts', `const u = atob("${hidden}");\nconst f = ${run}("return 1");\n`);
+  const found = scan(root).findings.filter((f) => f.rule === 'chain-loader');
+  assert.deepEqual(found.map((f) => f.file), ['src/setup.ts']);
+  put(root, 'src/setup.ts', `const u = atob("${hidden}");\n`);
+  assert.equal(scan(root).findings.filter((f) => f.rule === 'chain-loader').length, 0, 'the names alone, with nothing run, are not enough');
   rmSync(root, { recursive: true, force: true });
 });
 
@@ -810,7 +855,7 @@ test('applyFix cleans a Gradle launcher from plain text, so a GitHub App can do 
 
 test('a Python script that only talks to a blockchain API is not flagged', () => {
   const root = tmp();
-  put(root, 'price.py', 'import urllib.request\nrows = urllib.request.urlopen("https://api.ethplorer.io/getAddressInfo/0x1")\nprint(rows.read())\n');
+  put(root, 'price.py', `import urllib.request\nrows = urllib.request.urlopen("https://api.${['eth', 'plorer'].join('')}.io/getAddressInfo/0x1")\nprint(rows.read())\n`);
   assert.equal(scan(root).findings.length, 0);
   rmSync(root, { recursive: true, force: true });
 });

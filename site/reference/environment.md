@@ -5,6 +5,7 @@
 | Variable | What it does |
 | --- | --- |
 | `FORKGUARD_SKIP=1` | Skips the automatic check for one command. Only read by the shell hooks. |
+| `FORKGUARD_NO_NPM_CHECK=1` | Does not look at npm itself on this computer. For test runs and containers. Leave it off in normal use: an infected npm restarts the malware on every command. |
 | `GITHUB_TOKEN`, `GH_TOKEN` | Used to talk to GitHub when the GitHub CLI is not available. Needed by `--mine`, and by `pr` for opening the pull request. |
 | `NO_COLOR=1` | Turns off colors in the output. |
 | `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` | Your own key for `forkguard skills --ai`. Never typed into the command, never saved, never printed. |

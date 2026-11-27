@@ -50,6 +50,7 @@ function npmCliCandidates() {
  */
 export function checkNpm() {
   const found = [];
+  if (process.env.FORKGUARD_NO_NPM_CHECK === '1') return found; // for test runs and containers with no npm of their own
   for (const file of npmCliCandidates()) {
     const buf = read(file);
     if (!buf) continue;

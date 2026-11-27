@@ -1,25 +1,51 @@
 // forkguard cleaners: turn an infected file's text into a clean one. Pure string functions with no
 // Node-only imports, so the CLI and a GitHub App can share them. Nothing here reads or writes disk.
-import { FONT_CMD, INIT_CMD, PRELUDE, cleanGradle, findHiddenTail, findLoader, findMarker, hasPrelude, stripLoader } from './rules.js';
+import { FONT_CMD, INIT_CMD, PRELUDE, cleanGradle, findHiddenTail, hiddenTailAt, findLoader, findMarker, hasPrelude, stripLoader } from './rules.js';
 
-/** Cuts the hidden tail off every line that has one. */
+/** How many brackets a piece of code leaves open: ( [ { minus ) ] }, ignoring text inside quotes. */
+function openBrackets(code) {
+  let depth = 0;
+  let quote = '';
+  for (let i = 0; i < code.length; i++) {
+    const ch = code[i];
+    if (quote) {
+      if (ch === '\\') i++;
+      else if (ch === quote) quote = '';
+    } else if (ch === '"' || ch === "'" || ch === '`') quote = ch;
+    else if (ch === '(' || ch === '[' || ch === '{') depth++;
+    else if (ch === ')' || ch === ']' || ch === '}') depth--;
+  }
+  return depth;
+}
+
+/**
+ * Cuts the hidden tail off every line that has one. When the hidden code is not finished on that line
+ * (it opens a function that closes a few lines later, as in the copy found inside npm), the lines that
+ * finish it go too, but only if they really do close it. Otherwise they stay.
+ */
 function cutHiddenTails(text) {
   let changed = false;
-  const lines = text.split('\n').map((line) => {
-    if (line.length < 1530) return line;
-    const m = /[ \t]{30,}\S/.exec(line);
-    if (m && m.index < 400 && line.length - (m.index + m[0].length) >= 1500) {
-      changed = true;
-      return line.slice(0, m.index).replace(/[ \t]+$/, '') + (line.endsWith('\r') ? '\r' : '');
+  const lines = text.split('\n');
+  const out = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const hit = hiddenTailAt(line);
+    if (!hit) { out.push(line); continue; }
+    changed = true;
+    out.push(line.slice(0, hit.end).replace(/[ \t]+$/, '') + (line.endsWith('\r') ? '\r' : ''));
+    let open = openBrackets(line.slice(hit.end));
+    if (open > 0) {
+      let j = i + 1;
+      while (j < lines.length && j - i <= 200 && open > 0) open += openBrackets(lines[j++]);
+      if (open <= 0) i = j - 1; // the payload closes there: drop those lines too
     }
-    return line;
-  });
-  return changed ? lines.join('\n') : null;
+  }
+  return changed ? out.join('\n') : null;
 }
 
 /** Removes the fake require() lines and only the blank lines that sit between them. */
 function dropPrelude(text) {
-  const crlf = text.includes('\r\n');
+  const crlf = (text.match(/\r\n/g) || []).length > (text.match(/(?<!\r)\n/g) || []).length;
   const lines = text.replace(/\r\n/g, '\n').split('\n');
   const out = [];
   let removed = false;

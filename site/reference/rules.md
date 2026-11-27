@@ -10,6 +10,7 @@ forkguard was built against a malware campaign researchers call **PolinRider**, 
 | --- | --- | --- | --- |
 | [`hidden-code`](https://forkguard.pages.dev/reference/rules/#hidden-code) | HIGH | Code pushed far right behind blank spaces, or a known signature, in a code file | cut it out |
 | [`loader`](https://forkguard.pages.dev/reference/rules/#loader) | HIGH | A block that decodes a URL from an env variable, downloads code and runs it | remove the block |
+| [`chain-loader`](https://forkguard.pages.dev/reference/rules/#chain-loader) | HIGH | A JavaScript or TypeScript file that reads a payload from a blockchain API, often with the names hidden as base64, and runs it | cut the hidden code, or a person decides |
 | [`gradle-loader`](https://forkguard.pages.dev/reference/rules/#gradle-loader) | HIGH | A Gradle task that starts a hidden node process, or a build that runs it first | remove the task |
 | [`python-loader`](https://forkguard.pages.dev/reference/rules/#python-loader) | HIGH | Python that reads code from a blockchain API and runs it with node | delete the file |
 | [`script`](https://forkguard.pages.dev/reference/rules/#script) | HIGH | A package.json script running `node init` or a font file first | remove that step |
@@ -24,7 +25,7 @@ forkguard was built against a malware campaign researchers call **PolinRider**, 
 | [`prelude`](https://forkguard.pages.dev/reference/rules/#prelude) | MED | Fake `createRequire` lines at the top of a config file | remove the lines |
 | [`gitignore`](https://forkguard.pages.dev/reference/rules/#gitignore) | MED | `.gitignore` hiding the dropped `config.bat` | remove the line |
 | [`lifecycle`](https://forkguard.pages.dev/reference/rules/#lifecycle) | MED | An install script that downloads or decodes something | a person decides |
-| [`config-long-line`](https://forkguard.pages.dev/reference/rules/#config-long-line) | MED | A config file with a line of 2,000+ characters | a person decides |
+| [`config-long-line`](https://forkguard.pages.dev/reference/rules/#config-long-line) | MED | A config file with a line of 1,000+ characters | a person decides |
 | [`odd-vscode-file`](https://forkguard.pages.dev/reference/rules/#odd-vscode-file) | MED | `.vscode/extension.json`, which VS Code does not use | a person decides |
 | [`env-not-ignored`](https://forkguard.pages.dev/reference/rules/#env-not-ignored) | MED | A `.env` file git is not ignoring | add it to `.gitignore` |
 | [`secret`](https://forkguard.pages.dev/reference/rules/#secret) | MED | A `.env` file that is committed | `pr` removes it from git |
@@ -36,7 +37,7 @@ HIGH means it can run by itself and steal from you: do not install, run or open 
 
 ### hidden-code
 
-The signature trick of this malware. A normal line such as `export default config;` is followed by hundreds of blank spaces and then the payload, so an editor shows nothing unless you scroll far right. forkguard flags a line when it is at least 1,530 characters long, has a run of 30 or more spaces or tabs that starts within the first 400 characters, and has at least 1,500 characters after the run. The message says where: “Code hidden after 776 blank spaces on line 35”.
+The signature trick of this malware. A normal line such as `export default config;` is followed by hundreds of blank spaces and then the payload, so an editor shows nothing unless you scroll far right. forkguard flags a line when a run of spaces or tabs starts within the first 400 characters and is followed by a long tail. Two shapes are checked: a run of 30 or more with a tail of 1,500 characters or more, and a run of 100 or more with a shorter tail of 60 characters or more that is packed tight, with almost no spaces. The second one catches a payload of about 1,200 characters seen in a Playwright config; hand-aligned code, which has spaces between its words, is left alone. When the hidden code runs over several lines, the lines that finish it are cut too. The message says where: “Code hidden after 776 blank spaces on line 35”.
 
 It also flags any code file that contains a **known signature**: strings that only show up in this malware. These are the shared globals the payload sets up, its decoder function names, the wallet addresses and endpoint hostnames it uses as a dead drop, the staging hostnames its VS Code tasks fetch from, and its encryption keys, across both the original and the April 2026 variant. The message is “Contains a known malware signature”.
 
@@ -77,6 +78,10 @@ One of those packages is already in `node_modules`, next to a `package.json`. It
 **Fix:** none automatically. Delete `node_modules`, drop the package from `package.json`, and treat the computer as exposed: rotate your tokens and keys.
 
 The hidden file is not always called `init`. A file with **no extension** and any name (`service` has been seen) is checked the same way, and so is `node service` as a step in a `package.json` script. A normal `node service.js` is left alone.
+
+### chain-loader
+
+The same trick as `python-loader`, in JavaScript and TypeScript. The file contains the name of a blockchain API (or its base64 form, which is how it hides) and also runs what it gets, with `new Function` or `eval`. Mentioning an API alone is not enough, and neither is running code alone. It is usually found together with `hidden-code`, and cutting the hidden code removes it. **Fix:** none on its own.
 
 ### gradle-loader
 
@@ -136,7 +141,7 @@ An install-time script (`preinstall`, `install`, `postinstall`, `prepare`, `prep
 
 ### config-long-line
 
-A config file with a line of 2,000 characters or more. Real configs do not have lines like that; injected code does. This catches new variants that no signature knows yet. **Fix:** none. Read the file.
+A config file with a line of 1,000 characters or more. Real configs do not have lines like that; injected code does. This catches new variants that no signature knows yet. **Fix:** none. Read the file.
 
 ### odd-vscode-file
 

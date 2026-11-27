@@ -482,6 +482,7 @@ Useful for scripts and CI.
 | Variable | What it does |
 | --- | --- |
 | `FORKGUARD_SKIP=1` | Skips the automatic check for one command. For you to type, never for an AI agent |
+| `FORKGUARD_NO_NPM_CHECK=1` | Does not look at npm itself on this computer. For test runs and containers. Leave it off in normal use |
 | `FORKGUARD_SKILLS_STRICT=1` | Same as `--strict` for skills, including the install guard |
 | `GITHUB_TOKEN` or `GH_TOKEN` | Used to talk to GitHub when the GitHub CLI is not available. Set it in your terminal: `export GITHUB_TOKEN=...` |
 | `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` | Your key for `forkguard skills --ai`. Never typed into the command, never saved, never printed |

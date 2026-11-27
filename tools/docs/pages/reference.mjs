@@ -70,6 +70,7 @@ export const reference = [
     blocks: [
       table(['Variable', 'What it does'], [
         ['`FORKGUARD_SKIP=1`', 'Skips the automatic check for one command. Only read by the shell hooks.'],
+        ['`FORKGUARD_NO_NPM_CHECK=1`', 'Does not look at npm itself on this computer. For test runs and containers. Leave it off in normal use: an infected npm restarts the malware on every command.'],
         ['`GITHUB_TOKEN`, `GH_TOKEN`', 'Used to talk to GitHub when the GitHub CLI is not available. Needed by `--mine`, and by `pr` for opening the pull request.'],
         ['`NO_COLOR=1`', 'Turns off colors in the output.'],
         ['`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`', 'Your own key for `forkguard skills --ai`. Never typed into the command, never saved, never printed.'],
@@ -121,7 +122,7 @@ export const reference = [
       ]),
       h2('Rule ids'),
       p('Each id is explained in [What it catches](page:reference/rules).'),
-      code('hidden-code   loader        script         lifecycle\ngradle-loader python-loader\nbad-package   bad-package-installed   fake-font\ndecoy-folder  autorun       autorun-setting dropper\ngitignore     prelude       config-long-line odd-vscode-file\nenv-not-ignored   secret    rewritten      npm-infected', 'text'),
+      code('hidden-code   loader        script         lifecycle\ngradle-loader python-loader chain-loader\nbad-package   bad-package-installed   fake-font\ndecoy-folder  autorun       autorun-setting dropper\ngitignore     prelude       config-long-line odd-vscode-file\nenv-not-ignored   secret    rewritten      npm-infected', 'text'),
       h2('Fix values'),
       table(['`fix`', 'What fix does'], [
         ['`delete`', 'Deletes the file.'],
@@ -155,6 +156,7 @@ export const reference = [
       table(['Rule', 'Level', 'Looks for', 'Fix'], [
         ['[`hidden-code`](#hidden-code)', 'HIGH', 'Code pushed far right behind blank spaces, or a known signature, in a code file', 'cut it out'],
         ['[`loader`](#loader)', 'HIGH', 'A block that decodes a URL from an env variable, downloads code and runs it', 'remove the block'],
+        ['[`chain-loader`](#chain-loader)', 'HIGH', 'A JavaScript or TypeScript file that reads a payload from a blockchain API, often with the names hidden as base64, and runs it', 'cut the hidden code, or a person decides'],
         ['[`gradle-loader`](#gradle-loader)', 'HIGH', 'A Gradle task that starts a hidden node process, or a build that runs it first', 'remove the task'],
         ['[`python-loader`](#python-loader)', 'HIGH', 'Python that reads code from a blockchain API and runs it with node', 'delete the file'],
         ['[`script`](#script)', 'HIGH', 'A package.json script running `node init` or a font file first', 'remove that step'],
@@ -169,7 +171,7 @@ export const reference = [
         ['[`prelude`](#prelude)', 'MED', 'Fake `createRequire` lines at the top of a config file', 'remove the lines'],
         ['[`gitignore`](#gitignore)', 'MED', '`.gitignore` hiding the dropped `config.bat`', 'remove the line'],
         ['[`lifecycle`](#lifecycle)', 'MED', 'An install script that downloads or decodes something', 'a person decides'],
-        ['[`config-long-line`](#config-long-line)', 'MED', 'A config file with a line of 2,000+ characters', 'a person decides'],
+        ['[`config-long-line`](#config-long-line)', 'MED', 'A config file with a line of 1,000+ characters', 'a person decides'],
         ['[`odd-vscode-file`](#odd-vscode-file)', 'MED', '`.vscode/extension.json`, which VS Code does not use', 'a person decides'],
         ['[`env-not-ignored`](#env-not-ignored)', 'MED', 'A `.env` file git is not ignoring', 'add it to `.gitignore`'],
         ['[`secret`](#secret)', 'MED', 'A `.env` file that is committed', '`pr` removes it from git'],
@@ -179,7 +181,7 @@ export const reference = [
 
       h2('HIGH rules'),
       h3('hidden-code', 'hidden-code'),
-      p('The signature trick of this malware. A normal line such as `export default config;` is followed by hundreds of blank spaces and then the payload, so an editor shows nothing unless you scroll far right. forkguard flags a line when it is at least 1,530 characters long, has a run of 30 or more spaces or tabs that starts within the first 400 characters, and has at least 1,500 characters after the run. The message says where: “Code hidden after 776 blank spaces on line 35”.'),
+      p('The signature trick of this malware. A normal line such as `export default config;` is followed by hundreds of blank spaces and then the payload, so an editor shows nothing unless you scroll far right. forkguard flags a line when a run of spaces or tabs starts within the first 400 characters and is followed by a long tail. Two shapes are checked: a run of 30 or more with a tail of 1,500 characters or more, and a run of 100 or more with a shorter tail of 60 characters or more that is packed tight, with almost no spaces. The second one catches a payload of about 1,200 characters seen in a Playwright config; hand-aligned code, which has spaces between its words, is left alone. When the hidden code runs over several lines, the lines that finish it are cut too. The message says where: “Code hidden after 776 blank spaces on line 35”.'),
       p('It also flags any code file that contains a **known signature**: strings that only show up in this malware. These are the shared globals the payload sets up, its decoder function names, the wallet addresses and endpoint hostnames it uses as a dead drop, the staging hostnames its VS Code tasks fetch from, and its encryption keys, across both the original and the April 2026 variant. The message is “Contains a known malware signature”.'),
       p('**Fix:** cuts the hidden tail off every affected line and keeps your code, then looks in git history for your exact original. If the file is `init`, it is deleted. A signature with no hidden tail to cut is reported but left for you.'),
 
@@ -201,6 +203,8 @@ export const reference = [
       p('**Fix:** none automatically. Delete `node_modules`, drop the package from `package.json`, and treat the computer as exposed: rotate your tokens and keys.'),
 
       p('The hidden file is not always called `init`. A file with **no extension** and any name (`service` has been seen) is checked the same way, and so is `node service` as a step in a `package.json` script. A normal `node service.js` is left alone.'),
+      h3('chain-loader', 'chain-loader'),
+      p('The same trick as `python-loader`, in JavaScript and TypeScript. The file contains the name of a blockchain API (or its base64 form, which is how it hides) and also runs what it gets, with `new Function` or `eval`. Mentioning an API alone is not enough, and neither is running code alone. It is usually found together with `hidden-code`, and cutting the hidden code removes it. **Fix:** none on its own.'),
       h3('gradle-loader', 'gradle-loader'),
       p('Seen in Android and other Gradle projects. A task in `build.gradle` starts a hidden node process (`nohup node ...` on macOS and Linux, `Start-Process node` on Windows) and another build file is told to run it first, so every build starts the malware. A build that runs `node` in the open, such as `commandLine "node", "scripts/bundle.js"`, is not flagged. **Fix:** cuts out the task and the line that runs it first.'),
       h3('python-loader', 'python-loader'),
@@ -235,7 +239,7 @@ export const reference = [
       h3('lifecycle', 'lifecycle'),
       p('An install-time script (`preinstall`, `install`, `postinstall`, `prepare`, `prepublish`) that uses `curl`, `wget`, `powershell`, `iwr`, `Invoke-WebRequest`, `certutil`, `base64`, `eval` or pipes into a shell. Plenty of legitimate packages do some of this, so it is MED. **Fix:** none. Read it and decide.'),
       h3('config-long-line', 'config-long-line'),
-      p('A config file with a line of 2,000 characters or more. Real configs do not have lines like that; injected code does. This catches new variants that no signature knows yet. **Fix:** none. Read the file.'),
+      p('A config file with a line of 1,000 characters or more. Real configs do not have lines like that; injected code does. This catches new variants that no signature knows yet. **Fix:** none. Read the file.'),
       h3('odd-vscode-file', 'odd-vscode-file'),
       p('`.vscode/extension.json` is not a VS Code file (the real one is `extensions.json`). It has been seen in infected repos. **Fix:** none. Read it and delete it if it is not yours.'),
       h3('env-not-ignored', 'env-not-ignored'),
