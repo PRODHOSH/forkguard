@@ -982,3 +982,25 @@ test('the pull request text is plain and lists what changed', async () => {
   assert.ok(!/undefined|\n\n\n/.test(body));
   assert.match(body, /Change their GitHub, npm and cloud tokens/);
 });
+
+test('catches wfx-loot CI workflow injection, shell stealer, and postinstall hook', () => {
+  const root = tmp();
+  const wfKey = 'WF_' + 'CALLBACK';
+  const c2 = '194.150.166' + '.244';
+  put(root, '.github/workflows/ci.yml', `name: CI\nenv:\n  ${wfKey}: "http://${c2}:8080/exfil"\n`);
+  put(root, '.ci-a1b2c3.sh', `#!/bin/sh\necho "${wfKey}"\n`);
+  put(root, 'package.json', JSON.stringify({ name: 'demo', scripts: { postinstall: 'sh .ci-a1b2c3.sh' } }));
+  const found = scan(root).findings;
+  assert.ok(found.some((f) => f.rule === 'ci-stealer' && f.file === '.github/workflows/ci.yml'), JSON.stringify(found));
+  assert.ok(found.some((f) => f.rule === 'ci-stealer' && f.file === '.ci-a1b2c3.sh'), JSON.stringify(found));
+  assert.ok(found.some((f) => f.rule === 'lifecycle' && f.file === 'package.json'), JSON.stringify(found));
+  rmSync(root, { recursive: true, force: true });
+});
+
+test('normal workflows and shell scripts are not flagged as ci-stealer', () => {
+  const root = tmp();
+  put(root, '.github/workflows/ci.yml', 'name: CI\non: push\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm test\n');
+  put(root, 'scripts/build.sh', '#!/bin/sh\nnpm run build\n');
+  assert.equal(scan(root).findings.length, 0);
+  rmSync(root, { recursive: true, force: true });
+});

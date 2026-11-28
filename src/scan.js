@@ -66,6 +66,7 @@ export function checkNpm() {
   return found;
 }
 
+
 /**
  * Looks through a folder and returns every problem it finds.
  * Each finding: { level: 'high' | 'medium', file, rule, message, fix }
