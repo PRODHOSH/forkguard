@@ -2,8 +2,8 @@
 // the CLI, a Cloudflare Worker, a browser. Feed it a file name and its bytes (a Buffer or any
 // Uint8Array) and it tells you what is wrong. Reading files and talking to git is somebody else's job.
 import {
-  BAD_PACKAGES, CODE_EXT, CONFIG_RE, DROPPER_EXT, DROPPER_NAMES, FONT_EXT, GRADLE_RE, LOCKFILES, LONG_LINE, SCRIPT_EXT,
-  badScript, findChainLoader, findDecodeExec, findGradleLoader, findHiddenTail, findLoader, findMarker, findPythonLoader, hasPrelude, isBareName, isHistoryRewriter, isRealFont,
+  BAD_PACKAGES, CODE_EXT, CONFIG_RE, DROPPER_EXT, DROPPER_NAMES, FONT_EXT, GRADLE_RE, LOCKFILES, LONG_LINE, SCRIPT_EXT, SHELL_EXT, WORKFLOW_EXT,
+  badScript, findChainLoader, findCiMarker, findDecodeExec, findGradleLoader, findHiddenTail, findLoader, findMarker, findPythonLoader, hasPrelude, isBareName, isHistoryRewriter, isRealFont,
   longestLine, looksLikeText, riskyLifecycle,
 } from './rules.js';
 
@@ -31,7 +31,7 @@ export const isEnvFile = (name) => /^\.env(\.[^/]*)?$/.test(name) && !/example|s
 /** Whether forkguard needs to look inside a file with this name at all. */
 export function isInteresting(name, ext) {
   // A file with no extension (`init`, `service`, ...) is where the loader hides, whatever it is called.
-  return CODE_EXT.includes(ext) || name === 'init' || ext === '.py' || GRADLE_RE.test(name) || (ext === '' && isBareName(name)) || FONT_EXT.includes(ext) || DROPPER_NAMES.has(name.toLowerCase()) ||
+  return CODE_EXT.includes(ext) || SHELL_EXT.includes(ext) || WORKFLOW_EXT.includes(ext) || name === 'init' || ext === '.py' || GRADLE_RE.test(name) || (ext === '' && isBareName(name)) || FONT_EXT.includes(ext) || DROPPER_NAMES.has(name.toLowerCase()) ||
     DROPPER_EXT.includes(ext) || SCRIPT_EXT.includes(ext) || ['package.json', '.gitignore', 'tasks.json', 'settings.json', 'extension.json', 'README.md'].includes(name) ||
     LOCKFILES.has(name);
 }
@@ -116,8 +116,16 @@ export function inspect(f, buf, add, fontDirs) {
     return;
   }
 
-  if (SCRIPT_EXT.includes(f.ext)) {
+  if (WORKFLOW_EXT.includes(f.ext)) {
+    if (f.rel.includes('.github/workflows/') && findCiMarker(text)) {
+      add('high', f.rel, 'ci-stealer', 'GitHub Actions workflow contains a known CI secret stealer');
+    }
+    return;
+  }
+
+  if (SCRIPT_EXT.includes(f.ext) || SHELL_EXT.includes(f.ext)) {
     if (isHistoryRewriter(text)) add('high', f.rel, 'dropper', 'Script that rewrites your last commit and force pushes it, how this malware spreads', 'delete');
+    if (findCiMarker(text)) add('high', f.rel, 'ci-stealer', 'Shell script contains a known CI secret stealer', /^\.ci-/.test(f.name) ? 'delete' : null);
     return;
   }
 

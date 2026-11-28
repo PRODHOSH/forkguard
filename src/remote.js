@@ -2,7 +2,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { CHAIN_GREP, CHAIN_NEEDLES, CODE_EXT, CONFIG_RE, DECODE_EXEC_GREP, EXEC_GREP, MARKERS, SKIP_DIRS, isBareName } from './rules.js';
+import { CHAIN_GREP, CHAIN_NEEDLES, CI_MARKERS, CODE_EXT, CONFIG_RE, DECODE_EXEC_GREP, EXEC_GREP, MARKERS, SHELL_EXT, SKIP_DIRS, WORKFLOW_EXT, isBareName } from './rules.js';
 import { MAX_SIZE, finish, inspect, isEnvFile, isInteresting } from './scan.js';
 import { ghCommand, git, run } from './git.js';
 import { getToken, loginHelp } from './auth.js';
@@ -14,7 +14,7 @@ const ENV = { ...process.env, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'never'
 // Same fingerprints as the folder scan, as one git grep pattern so thousands of files are searched in one go.
 // Built from rules.js at runtime, so this file never contains a whole fingerprint and never flags itself.
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const GREP = `(?:${MARKERS.map(escapeRe).join('|')}|${CHAIN_NEEDLES.map(escapeRe).join('|')}|^.{0,400}?[ \\t]{30,}\\S.{1500}|^.{0,400}?[ \\t]{40,}\\S.{150}|^.{0,400}?[ \\t]{100,}\\S.{30}|atob\\(\\s*process\\.env)`;
+const GREP = `(?:${[...MARKERS, ...CI_MARKERS].map(escapeRe).join('|')}|${CHAIN_NEEDLES.map(escapeRe).join('|')}|^.{0,400}?[ \\t]{30,}\\S.{1500}|^.{0,400}?[ \\t]{40,}\\S.{150}|^.{0,400}?[ \\t]{100,}\\S.{30}|atob\\(\\s*process\\.env)`;
 
 /** A GitHub link, a git URL, or owner/repo. Returns a clone URL and a short name, or null for a local folder. */
 export function parseRemote(arg) {
@@ -92,7 +92,7 @@ export function scanRef(dir, ref) {
   }
 
   // Code files can number in the thousands, so let git find the suspicious ones first.
-  const codeSpecs = [...CODE_EXT.map((e) => `*${e}`), 'init', '*/init'];
+  const codeSpecs = [...CODE_EXT.map((e) => `*${e}`), ...SHELL_EXT.map((e) => `*${e}`), 'init', '*/init'];
   const hits = grepFiles(dir, ref, GREP, codeSpecs);
   const prelude = grepFiles(dir, ref, 'exports: {}', codeSpecs, true);
   const pyHits = grepFiles(dir, ref, CHAIN_GREP, ['*.py']);
@@ -109,8 +109,9 @@ export function scanRef(dir, ref) {
     if (f.ext === '.py') return pyHits === null ? f.size <= 200000 : pyHits.has(f.rel);
     // The loader hides in a big file with no extension (init, service, ...). Small ones, like LICENSE or Makefile, are not it.
     if (f.ext === '' && isBareName(f.name) && f.name !== 'init') return f.size >= 5000;
-    const isCode = CODE_EXT.includes(f.ext) || f.name === 'init';
+    const isCode = CODE_EXT.includes(f.ext) || SHELL_EXT.includes(f.ext) || f.name === 'init';
     if (isCode) return readAll || hits === null || hits.has(f.rel) || (CONFIG_RE.test(f.rel) && prelude?.has(f.rel)) || Boolean(decoders?.has(f.rel) && runners?.has(f.rel));
+    if (WORKFLOW_EXT.includes(f.ext)) return f.rel.includes('.github/workflows/');
     if (f.name === 'README.md') return /fonts?$/i.test(path.posix.dirname(f.rel));
     return true;
   });

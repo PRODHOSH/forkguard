@@ -55,7 +55,21 @@ export const DROPPER_NAMES = new Set(['config.bat', 'temp_auto_push.bat']);
 export const DROPPER_EXT = ['.orc'];
 
 export const CODE_EXT = ['.js', '.mjs', '.cjs', '.ts', '.mts', '.cts', '.jsx', '.tsx', '.vue', '.svelte'];
+export const SHELL_EXT = ['.sh', '.bash'];
+export const WORKFLOW_EXT = ['.yml', '.yaml'];
 export const FONT_EXT = ['.woff', '.woff2', '.ttf', '.otf', '.ttc', '.eot'];
+
+// Indicators used by CI secret-stealer campaigns (e.g. wfx-loot, GhostAction), split to avoid self-matching.
+export const CI_MARKERS = [
+  j('WF_', 'CALLBACK'),
+  j('WF_', 'CTOKEN'),
+  j('WF_', 'SECRETS'),
+  j('<!--WFX-', 'BEGIN-->'),
+  j('wfx-loot', '-'),
+  j('194.150.166', '.244'),
+  j('18.143.168', '.96'),
+  j('193.32.204', '.199'),
+];
 
 export const CONFIG_RE = /(^|\/)((postcss|tailwind|eslint|next|vite|babel|jest|webpack|astro|vue|nuxt|svelte|rollup|tsup|vitest|gridsome|playwright|cypress|metro|drizzle|prettier|commitlint|knip|tsdown|unbuild)\.config\.[cm]?[jt]s|truffle\.js)$/;
 
@@ -167,6 +181,10 @@ export function findMarker(text) {
   return MARKERS.find((m) => text.includes(m)) || null;
 }
 
+export function findCiMarker(text) {
+  return CI_MARKERS.find((m) => text.includes(m)) || null;
+}
+
 export function hasPrelude(text) {
   return text.split(/\r?\n/).some((l) => PRELUDE.has(l.trim()));
 }
@@ -206,6 +224,9 @@ export function riskyLifecycle(name, cmd) {
   if (!['preinstall', 'install', 'postinstall', 'prepare', 'prepublish'].includes(name)) return null;
   if (/\b(curl|wget|powershell|iwr|Invoke-WebRequest|certutil)\b|base64|\beval\b|\|\s*(ba)?sh\b/i.test(cmd)) {
     return `"${name}" downloads or decodes something during install`;
+  }
+  if (/(?:^|[\s;&|])((?:ba)?sh\s+)?(\.\/)?\.ci-[a-z0-9_-]+\.sh\b/i.test(cmd)) {
+    return `"${name}" runs a hidden .ci-*.sh script during install`;
   }
   return null;
 }
